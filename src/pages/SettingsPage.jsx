@@ -1,0 +1,388 @@
+import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { Crown, Shield, Bell, Eye, CreditCard, AlertTriangle, LogOut, Trash2, Vibrate, BellOff, Volume2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast.jsx';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/lib/customSupabaseClient';
+import { cn } from '@/lib/utils';
+import LocationSettings from '@/components/settings/LocationSettings';
+
+
+const PayPalIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+    <path d="M7.72 4.28a.2.2 0 0 0-.18.32l2.35 12.33a.2.2 0 0 0 .2.16h2.86a.2.2 0 0 0 .2-.16L15.48 4.6a.2.2 0 0 0-.19-.32h-3.1a.2.2 0 0 1-.2-.16L9.64 2.3a.2.2 0 0 0-.2-.16H6.5a.2.2 0 0 0-.2.16L3.95 16.9a.2.2 0 0 0 .2.16h2.82a.2.2 0 0 0 .2-.16l.7-3.66h.1a.2.2 0 0 0 .2-.16l.29-1.5a.2.2 0 0 0-.2-.25h-2.1a.2.2 0 0 1-.2-.16l.94-4.88a.2.2 0 0 1 .2-.16h2.92a.2.2 0 0 1 .2.16L7.72 4.28z"/>
+  </svg>
+);
+
+const SettingsPage = () => {
+  const { profile, signOut, deleteAccount, refreshProfile } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [deleteInput, setDeleteInput] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [privacySettings, setPrivacySettings] = useState({});
+  const [notificationSettings, setNotificationSettings] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setPrivacySettings({
+        visibility: profile.visibility || 'public',
+      });
+      setNotificationSettings({
+        notifications_new_match: profile.notifications_new_match ?? true,
+        notifications_new_message: profile.notifications_new_message ?? true,
+        notifications_promotions: profile.notifications_promotions ?? true,
+        notification_sound: profile.notification_sound || 'sound',
+      });
+    }
+  }, [profile]);
+
+
+  const handleFeatureClick = () => {
+    toast({
+      title: "🚧 Función en desarrollo",
+      description: "Esta característica estará disponible pronto. ¡Puedes solicitarla en tu próximo prompt! 🚀",
+    });
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteInput.toLowerCase() !== 'eliminar') {
+      toast({
+        variant: "destructive",
+        title: "Confirmación incorrecta",
+        description: "Por favor, escribe 'eliminar' para confirmar.",
+      });
+      return;
+    }
+    setDeleteLoading(true);
+    await deleteAccount();
+    setDeleteLoading(false);
+  };
+  
+  const handleSaveSettings = async (settingsData) => {
+    setSaving(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update(settingsData)
+      .eq('id', profile.id);
+
+    if (error) {
+      toast({ variant: "destructive", title: "Error", description: `No se pudieron guardar los cambios. ${error.message}` });
+    } else {
+      toast({ title: "¡Éxito!", description: "Tus ajustes se han guardado." });
+      await refreshProfile();
+    }
+    setSaving(false);
+    return !error;
+  };
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="loading-spinner" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Helmet>
+        <title>Ajustes - AGARCH-AR</title>
+        <meta name="description" content="Gestiona tu cuenta, privacidad y notificaciones en AGARCH-AR." />
+      </Helmet>
+      <div className="max-w-4xl mx-auto space-y-8 text-white">
+        <h1 className="text-3xl font-bold text-primary">Ajustes</h1>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card-glass"
+        >
+          <h2 className="text-2xl font-bold mb-4 text-primary">Cuenta</h2>
+          <div className="space-y-4">
+            <SettingsItem
+              icon={<Crown className="text-yellow-400" />}
+              title="Membresía"
+              description={profile?.is_vip ? 'Eres un miembro VIP' : 'Membresía Gratuita'}
+            >
+              {!profile?.is_vip && (
+                <Button onClick={handleFeatureClick} className="btn-action bg-[#0070BA] hover:bg-[#005ea6] text-white font-bold">
+                  <PayPalIcon />
+                  Hacerse VIP con PayPal
+                </Button>
+              )}
+            </SettingsItem>
+            <SettingsItem
+              icon={<Shield className="text-green-400" />}
+              title="Verificación"
+              description={profile?.is_verified ? 'Tu cuenta ha sido verificada.' : 'Cuenta no verificada.'}
+            />
+            <SettingsItem
+              icon={<CreditCard className="text-blue-400" />}
+              title="Pagos y Suscripciones"
+              description="Gestiona tus pagos con PayPal."
+            >
+              <Button onClick={() => navigate('/payments')} variant="outline" className="btn-outline-action">
+                Gestionar
+              </Button>
+            </SettingsItem>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="card-glass"
+        >
+          <h2 className="text-2xl font-bold mb-4 text-primary">Privacidad y Seguridad</h2>
+          <div className="space-y-4">
+            <Dialog>
+              <DialogTrigger asChild>
+                <SettingsItem
+                  icon={<Eye className="text-purple-400" />}
+                  title="Visibilidad del Perfil"
+                  description="Controla quién puede ver tu perfil."
+                >
+                  <Button variant="outline" className="btn-outline-action">Ajustar</Button>
+                </SettingsItem>
+              </DialogTrigger>
+              <DialogContent className="card-glass bg-surface">
+                <DialogHeader>
+                  <DialogTitle className="text-primary">Visibilidad del Perfil</DialogTitle>
+                  <DialogDescription>
+                    Elige quién puede ver tu perfil en la plataforma.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                  <Label htmlFor="visibility-select">Quiero que mi perfil sea visible para:</Label>
+                   <Select 
+                     id="visibility-select"
+                     value={privacySettings.visibility}
+                     onValueChange={(value) => setPrivacySettings({ ...privacySettings, visibility: value })}
+                   >
+                    <SelectTrigger className="input-glass"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="public">Todos</SelectItem>
+                      <SelectItem value="verified_members">Solo miembros verificados</SelectItem>
+                      <SelectItem value="matches">Solo mis matches</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="button" variant="secondary" className="btn-secondary-action">Cancelar</Button>
+                  </DialogClose>
+                  <DialogClose asChild>
+                    <Button onClick={() => handleSaveSettings(privacySettings)} disabled={saving} className="btn-action">
+                      {saving ? 'Guardando...' : 'Guardar'}
+                    </Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <SettingsItem
+                  icon={<Bell className="text-orange-400" />}
+                  title="Notificaciones"
+                  description="Elige qué y cómo recibir notificaciones."
+                >
+                   <Button variant="outline" className="btn-outline-action">Configurar</Button>
+                </SettingsItem>
+              </DialogTrigger>
+               <DialogContent className="card-glass bg-surface">
+                <DialogHeader>
+                  <DialogTitle className="text-primary">Notificaciones</DialogTitle>
+                  <DialogDescription>
+                    Gestiona las alertas que recibes.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-6">
+                    <div>
+                      <Label className="text-base font-medium text-text-primary">Alertas</Label>
+                      <div className="mt-2 space-y-2">
+                        <div className="flex items-center space-x-2">
+                            <Checkbox id="notif-match" checked={notificationSettings.notifications_new_match} onCheckedChange={(checked) => setNotificationSettings(prev => ({...prev, notifications_new_match: checked}))}/>
+                            <Label htmlFor="notif-match">Nuevos Matches</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox id="notif-message" checked={notificationSettings.notifications_new_message} onCheckedChange={(checked) => setNotificationSettings(prev => ({...prev, notifications_new_message: checked}))}/>
+                            <Label htmlFor="notif-message">Nuevos Mensajes</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox id="notif-promo" checked={notificationSettings.notifications_promotions} onCheckedChange={(checked) => setNotificationSettings(prev => ({...prev, notifications_promotions: checked}))}/>
+                            <Label htmlFor="notif-promo">Ofertas y Promociones</Label>
+                        </div>
+                      </div>
+                    </div>
+                     <div>
+                      <Label className="text-base font-medium text-text-primary">Modo de alerta</Label>
+                       <div className="mt-2 grid grid-cols-3 gap-2">
+                          <button
+                            onClick={() => setNotificationSettings(prev => ({...prev, notification_sound: 'sound'}))}
+                            className={cn('flex flex-col items-center p-2 rounded-lg border-2', notificationSettings.notification_sound === 'sound' ? 'border-primary bg-primary/20' : 'border-border-color hover:bg-surface/80')}
+                          >
+                            <Volume2/> <span className="text-sm mt-1">Sonido</span>
+                          </button>
+                           <button
+                             onClick={() => setNotificationSettings(prev => ({...prev, notification_sound: 'vibrate'}))}
+                            className={cn('flex flex-col items-center p-2 rounded-lg border-2', notificationSettings.notification_sound === 'vibrate' ? 'border-primary bg-primary/20' : 'border-border-color hover:bg-surface/80')}
+                          >
+                            <Vibrate/> <span className="text-sm mt-1">Vibración</span>
+                          </button>
+                           <button
+                             onClick={() => setNotificationSettings(prev => ({...prev, notification_sound: 'silent'}))}
+                            className={cn('flex flex-col items-center p-2 rounded-lg border-2', notificationSettings.notification_sound === 'silent' ? 'border-primary bg-primary/20' : 'border-border-color hover:bg-surface/80')}
+                          >
+                            <BellOff/> <span className="text-sm mt-1">Silencio</span>
+                          </button>
+                       </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild><Button type="button" variant="secondary" className="btn-secondary-action">Cancelar</Button></DialogClose>
+                  <DialogClose asChild>
+                    <Button onClick={() => handleSaveSettings(notificationSettings)} disabled={saving} className="btn-action">
+                      {saving ? 'Guardando...' : 'Guardar'}
+                    </Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <SettingsItem
+              icon={<AlertTriangle className="text-brand-red" />}
+              title="Denuncia, o reporta un problema"
+              description="Ayúdanos a mantener la comunidad segura."
+            >
+              <Button onClick={() => navigate('/contact')} variant="outline" className="btn-outline-action border-brand-red text-brand-red hover:bg-brand-red/10">
+                Reportar
+              </Button>
+            </SettingsItem>
+          </div>
+        </motion.div>
+
+        <LocationSettings />
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="card-glass"
+        >
+           <h2 className="text-2xl font-bold mb-4 text-primary">Acciones de la Cuenta</h2>
+           <div className="space-y-4">
+             <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between btn-outline-action">
+                    <span>Cerrar Sesión</span>
+                    <LogOut className="w-4 h-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="card-glass bg-surface">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-primary">¿Estás seguro?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-text-secondary">
+                      Podrás volver a iniciar sesión en cualquier momento.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="btn-secondary-action">Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={signOut} className="btn-action">Cerrar Sesión</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full justify-between">
+                    <span>Eliminar mi Cuenta</span>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="card-glass bg-surface">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-destructive">¿Estás absolutamente seguro?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-text-secondary">
+                      Esta acción es irreversible. Todos tus datos, perfil, fotos y publicaciones serán eliminados permanentemente. Esta información no se podrá recuperar.
+                      <br/><br/>
+                      Para confirmar, escribe <strong>eliminar</strong> a continuación:
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <Input
+                    type="text"
+                    value={deleteInput}
+                    onChange={(e) => setDeleteInput(e.target.value)}
+                    placeholder="eliminar"
+                    className="input-glass bg-surface/50 my-4"
+                  />
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="btn-secondary-action" onClick={() => setDeleteInput('')}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDeleteAccount} 
+                      disabled={deleteInput.toLowerCase() !== 'eliminar' || deleteLoading}
+                      className="bg-destructive hover:bg-red-700"
+                    >
+                       {deleteLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Eliminando...
+                        </>
+                      ) : (
+                        'Sí, eliminar mi cuenta'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+           </div>
+        </motion.div>
+      </div>
+    </>
+  );
+};
+
+const SettingsItem = ({ icon, title, description, children }) => (
+  <div className="flex items-center justify-between p-4 bg-surface/50 rounded-lg">
+    <div className="flex items-center space-x-4">
+      {icon}
+      <div>
+        <h3 className="font-semibold">{title}</h3>
+        <p className="text-sm text-text-secondary">{description}</p>
+      </div>
+    </div>
+    {children}
+  </div>
+);
+
+export default SettingsPage;
