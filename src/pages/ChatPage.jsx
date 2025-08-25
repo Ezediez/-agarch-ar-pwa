@@ -20,7 +20,7 @@ const ChatPage = () => {
   const [matches, setMatches] = useState([]);
   const [activeChat, setActiveChat] = useState(() => {
     try {
-      const savedChat = sessionStorage.getItem('activeChat');
+      const savedChat = localStorage.getItem('activeChat');
       return savedChat ? JSON.parse(savedChat) : null;
     } catch (e) {
       return null;
@@ -33,9 +33,9 @@ const ChatPage = () => {
   
   useEffect(() => {
     if (activeChat) {
-      sessionStorage.setItem('activeChat', JSON.stringify(activeChat));
+      localStorage.setItem('activeChat', JSON.stringify(activeChat));
     } else {
-      sessionStorage.removeItem('activeChat');
+      localStorage.removeItem('activeChat');
     }
   }, [activeChat]);
 

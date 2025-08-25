@@ -23,32 +23,46 @@ import React, { useState } from 'react';
       const [text, setText] = useState('');
       const [isSubmitting, setIsSubmitting] = useState(false);
 
-      const handleUploadAndSubmit = async (file, type) => {
-        setIsSubmitting(true);
-        let mediaUrl = null;
-        let folder;
+        const handleUploadAndSubmit = async (file, type) => {
+    setIsSubmitting(true);
+    let mediaUrl = null;
+    let folder;
 
-        if (file) {
-          if (postType === 'story') {
-            folder = type === 'image' ? 'stories' : 'story-videos';
-          } else {
-            folder = type === 'image' ? 'posts' : 'post-videos';
-          }
-          mediaUrl = await uploadFile(file, 'media', folder);
-
-          if (!mediaUrl) {
-            setIsSubmitting(false);
-            return;
-          }
+    if (file) {
+      if (postType === 'story') {
+        folder = type === 'image' ? 'stories' : 'story-videos';
+      } else {
+        folder = type === 'image' ? 'posts' : 'post-videos';
+      }
+      
+      // Usar el callback correcto de uploadFile
+      uploadFile(file, 'media', folder, async (url, error) => {
+        if (error) {
+          toast({ variant: 'destructive', title: 'Error de subida', description: error.message });
+          setIsSubmitting(false);
+          return;
         }
-
-        if (postType === 'story') {
-          await createStory(mediaUrl, type);
-        } else {
-          await createPost(mediaUrl, type);
+        
+        if (url) {
+          if (postType === 'story') {
+            await createStory(url, type);
+          } else {
+            await createPost(url, type);
+          }
         }
         setIsSubmitting(false);
-      };
+      });
+      return; // Salir aquí ya que uploadFile es asíncrono con callback
+    }
+
+    // Si no hay archivo, crear publicación solo con texto
+    if (postType === 'story') {
+      await createStory(null, type);
+    } else {
+      await createPost(null, type);
+    }
+    setIsSubmitting(false);
+  };
       
       const createPost = async (mediaUrl, type) => {
         if (!text.trim() && !mediaUrl) {
