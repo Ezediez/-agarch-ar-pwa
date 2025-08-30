@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, Frown } from 'lucide-react';
+import { Search, Loader2, Frown, RefreshCw } from 'lucide-react';
 import ProfileCard from '@/components/discover/ProfileCard';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -28,6 +28,10 @@ const AdvancedSearchPage = () => {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const RESULTS_PER_PAGE = 20;
 
   const handleFilterChange = useCallback((key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -42,14 +46,20 @@ const AdvancedSearchPage = () => {
     });
   }, []);
 
-  const handleSearch = useCallback(async () => {
+  const handleSearch = useCallback(async (isLoadMore = false) => {
     if (!user) {
         toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para buscar.' });
         return;
     }
-    setLoading(true);
-    setSearched(true);
-    setResults([]);
+    
+    if (!isLoadMore) {
+      setLoading(true);
+      setSearched(true);
+      setResults([]);
+      setPage(0);
+    }
+    
+    setError(null);
 
     try {
         const hasLocation = currentUserProfile?.latitud && currentUserProfile?.longitud;
@@ -61,50 +71,84 @@ const AdvancedSearchPage = () => {
             });
         }
 
-        const { data, error } = await supabase.rpc('get_nearby_profiles', {
-            p_user_id: user.id,
-            p_max_distance_km: filters.distance,
-            p_gender: filters.gender === 'Todos' ? null : filters.gender,
-            p_min_age: filters.ageRange[0],
-            p_max_age: filters.ageRange[1],
-            p_search_term: filters.keyword.trim() || null
-        });
+        // Construir query base
+        let query = supabase
+          .from('profiles')
+          .select('*')
+          .neq('id', user.id) // Excluir usuario actual
+          .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        // Aplicar filtros
+        if (filters.gender !== 'Todos') {
+          query = query.eq('gender', filters.gender);
+        }
+        if (filters.sexualOrientation !== 'Todas') {
+          query = query.eq('sexual_orientation', filters.sexualOrientation);
+        }
+        if (filters.relationshipStatus !== 'Todos') {
+          query = query.eq('relationship_status', filters.relationshipStatus);
+        }
+        if (filters.keyword.trim()) {
+          query = query.or(`alias.ilike.%${filters.keyword.trim()}%,bio.ilike.%${filters.keyword.trim()}%`);
+        }
+
+        // Aplicar paginación
+        const from = isLoadMore ? page * RESULTS_PER_PAGE : 0;
+        const to = from + RESULTS_PER_PAGE - 1;
+        query = query.range(from, to);
+
+        const { data, error: queryError } = await query;
+
+        if (queryError) throw queryError;
       
         let filteredData = data || [];
 
-        // These filters are now redundant because the RPC handles them, but keeping for clarity
-        if (filters.sexualOrientation !== 'Todas') {
-            filteredData = filteredData.filter(p => p.sexual_orientation === filters.sexualOrientation);
-        }
-        if (filters.relationshipStatus !== 'Todos') {
-            filteredData = filteredData.filter(p => p.relationship_status === filters.relationshipStatus);
-        }
+        // Filtros adicionales en el cliente
         if (filters.intentions.length > 0) {
-            filteredData = filteredData.filter(p => p.preferences && filters.intentions.some(i => p.preferences.includes(i)));
+            filteredData = filteredData.filter(p => 
+              p.preferences && filters.intentions.some(i => p.preferences.includes(i))
+            );
         }
 
-        setResults(filteredData);
+        // Filtro de edad en el cliente (temporal)
+        if (filters.ageRange[0] !== 18 || filters.ageRange[1] !== 70) {
+            filteredData = filteredData.filter(p => {
+                if (!p.birth_date) return true;
+                const age = new Date().getFullYear() - new Date(p.birth_date).getFullYear();
+                return age >= filters.ageRange[0] && age <= filters.ageRange[1];
+            });
+        }
+
+        if (isLoadMore) {
+          setResults(prev => [...prev, ...filteredData]);
+        } else {
+          setResults(filteredData);
+        }
+        
+        setHasMore(filteredData.length === RESULTS_PER_PAGE);
 
     } catch (error) {
-      console.error(error);
+      console.error('Search error:', error);
+      setError(error.message);
       toast({
         variant: "destructive",
         title: "Error en la búsqueda",
-        description: error.message || "No se pudieron obtener los perfiles. Inténtalo de nuevo.",
+        description: "No se pudieron obtener los resultados. Intenta de nuevo.",
       });
     } finally {
       setLoading(false);
     }
-  }, [filters, toast, currentUserProfile, user]);
-  
-  const intentionsList = [
-    { id: 'casual', label: 'De Trampa / Casual' },
-    { id: 'sexo', label: 'Solo encuentros para sexo' },
-    { id: 'chat', label: 'Solo chats' },
-    { id: 'relacion', label: 'Relación seria' },
-  ];
+  }, [user, currentUserProfile, filters, page, toast]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      setPage(prev => prev + 1);
+      handleSearch(true);
+    }
+  }, [loading, hasMore, handleSearch]);
+
+  // Memoizar resultados para evitar re-renders
+  const memoizedResults = useMemo(() => results, [results]);
 
   const selectContentClass = "bg-surface text-text-primary border-border-color";
 
@@ -112,7 +156,7 @@ const AdvancedSearchPage = () => {
     <>
       <Helmet>
         <title>Buscador Avanzado - AGARCH-AR</title>
-        <meta name="description" content="Encuentra exactamente lo que buscas con el buscador avanzado de AGARCH-AR. Filtra por distancia, edad, intereses y más." />
+        <meta name="description" content="Encuentra perfiles con filtros avanzados en AGARCH-AR." />
       </Helmet>
       <div className="flex flex-col lg:flex-row gap-8">
         <motion.div
@@ -162,58 +206,72 @@ const AdvancedSearchPage = () => {
                   <SelectItem value="Heterosexual">Heterosexual</SelectItem>
                   <SelectItem value="Homosexual">Homosexual</SelectItem>
                   <SelectItem value="Bisexual">Bisexual</SelectItem>
+                  <SelectItem value="Pansexual">Pansexual</SelectItem>
+                  <SelectItem value="Asexual">Asexual</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="relationshipStatus" className="text-primary font-semibold">Estado</Label>
+              <Label htmlFor="relationshipStatus" className="text-primary font-semibold">Estado Civil</Label>
               <Select value={filters.relationshipStatus} onValueChange={(value) => handleFilterChange('relationshipStatus', value)}>
                 <SelectTrigger id="relationshipStatus" className="input-glass mt-2">
                   <SelectValue placeholder="Seleccionar estado" />
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>
                   <SelectItem value="Todos">Todos</SelectItem>
-                  <SelectItem value="Soltero/a">Soltero/a</SelectItem>
-                  <SelectItem value="En una relación">En una relación</SelectItem>
-                  <SelectItem value="Casado/a">Casado/a</SelectItem>
+                  <SelectItem value="Soltero">Soltero/a</SelectItem>
+                  <SelectItem value="En relación">En relación</SelectItem>
+                  <SelectItem value="Casado">Casado/a</SelectItem>
+                  <SelectItem value="Divorciado">Divorciado/a</SelectItem>
+                  <SelectItem value="Viudo">Viudo/a</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-primary font-semibold">Rango de Edad: {filters.ageRange[0]} - {filters.ageRange[1]}</Label>
-              <Slider
-                min={18}
-                max={99}
-                step={1}
-                value={filters.ageRange}
+              <Label className="text-primary font-semibold">Rango de edad: {filters.ageRange[0]} - {filters.ageRange[1]} años</Label>
+              <Slider 
+                defaultValue={filters.ageRange} 
+                min={18} 
+                max={99} 
+                step={1} 
                 onValueChange={(value) => handleFilterChange('ageRange', value)}
-                className="mt-3"
+                className="mt-2"
               />
             </div>
             <div>
               <Label className="text-primary font-semibold">Distancia: hasta {filters.distance} km</Label>
-              <Slider
-                min={1}
-                max={500}
-                step={1}
-                value={[filters.distance]}
+              <Slider 
+                defaultValue={[filters.distance]} 
+                min={1} 
+                max={500} 
+                step={1} 
                 onValueChange={([value]) => handleFilterChange('distance', value)}
-                className="mt-3"
-                disabled={!(currentUserProfile?.latitud && currentUserProfile?.longitud)}
+                className="mt-2"
               />
             </div>
-             <div className="space-y-4">
-                <Label className="text-primary font-semibold">Intenciones de búsqueda</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {intentionsList.map(item => (
-                       <div key={item.id} className="flex items-center space-x-2">
-                          <Checkbox id={`intention-${item.id}`} checked={filters.intentions.includes(item.id)} onCheckedChange={() => handleIntentionChange(item.id)} />
-                          <label htmlFor={`intention-${item.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{item.label}</label>
-                       </div>
-                    ))}
-                </div>
+            <div>
+              <Label className="text-primary font-semibold">Intenciones</Label>
+              <div className="space-y-2 mt-2">
+                {[
+                  { id: 'casual', label: 'De Trampa / Casual' },
+                  { id: 'sexo', label: 'Solo encuentros para sexo' },
+                  { id: 'chat', label: 'Solo chats' },
+                  { id: 'relacion', label: 'Relación seria' }
+                ].map(item => (
+                  <div key={item.id} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={item.id} 
+                      checked={filters.intentions.includes(item.id)} 
+                      onCheckedChange={() => handleIntentionChange(item.id)} 
+                    />
+                    <label htmlFor={item.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      {item.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
-            <Button onClick={handleSearch} className="w-full btn-action" disabled={loading}>
+            <Button onClick={() => handleSearch()} className="w-full btn-action" disabled={loading}>
               {loading ? <Loader2 className="animate-spin mr-2" /> : <Search className="mr-2" />}
               {loading ? 'Buscando...' : 'Buscar perfiles'}
             </Button>
@@ -221,30 +279,62 @@ const AdvancedSearchPage = () => {
         </motion.div>
 
         <div className="flex-1">
-          {loading && (
+          {loading && !searched && (
             <div className="flex justify-center items-center h-64">
               <div className="loading-spinner"></div>
             </div>
           )}
-          {!loading && searched && results.length === 0 && (
+          {error && (
+            <div className="text-center py-16 card-glass rounded-lg flex flex-col items-center">
+              <Frown className="w-16 h-16 text-primary mb-4" />
+              <h2 className="text-xl font-semibold">Error en la búsqueda</h2>
+              <p className="text-text-secondary mt-2 mb-4">{error}</p>
+              <Button onClick={() => handleSearch()} className="btn-action">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Reintentar
+              </Button>
+            </div>
+          )}
+          {!loading && searched && memoizedResults.length === 0 && !error && (
             <div className="text-center py-16 card-glass rounded-lg flex flex-col items-center">
               <Frown className="w-16 h-16 text-primary mb-4" />
               <h2 className="text-xl font-semibold">No se encontraron perfiles</h2>
               <p className="text-text-secondary mt-2">Intenta ajustar tus filtros de búsqueda para obtener más resultados.</p>
             </div>
           )}
-          {!loading && results.length > 0 && (
+          {!loading && memoizedResults.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4"
+              className="space-y-4"
             >
-              {results.map(profile => (
-                <ProfileCard key={profile.id} profile={profile} />
-              ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {memoizedResults.map(profile => (
+                  <ProfileCard key={profile.id} profile={profile} />
+                ))}
+              </div>
+              {hasMore && (
+                <div className="text-center py-4">
+                  <Button 
+                    onClick={handleLoadMore} 
+                    disabled={loading}
+                    variant="outline"
+                    className="btn-outline-action"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Cargando...
+                      </>
+                    ) : (
+                      'Cargar más'
+                    )}
+                  </Button>
+                </div>
+              )}
             </motion.div>
           )}
-           {!loading && !searched && (
+           {!loading && !searched && !error && (
             <div className="text-center py-16 card-glass rounded-lg flex flex-col items-center">
               <Search className="w-16 h-16 text-primary mb-4" />
               <h2 className="text-xl font-semibold">Comienza tu búsqueda</h2>

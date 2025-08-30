@@ -43,7 +43,7 @@ const PayPalIcon = () => (
 );
 
 const SettingsPage = () => {
-  const { profile, signOut, deleteAccount, refreshProfile } = useAuth();
+  const { profile, signOut, deleteAccount, refreshProfile, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [deleteInput, setDeleteInput] = useState('');
@@ -51,21 +51,52 @@ const SettingsPage = () => {
   const [privacySettings, setPrivacySettings] = useState({});
   const [notificationSettings, setNotificationSettings] = useState({});
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (profile) {
-      setPrivacySettings({
-        visibility: profile.visibility || 'public',
-      });
-      setNotificationSettings({
-        notifications_new_match: profile.notifications_new_match ?? true,
-        notifications_new_message: profile.notifications_new_message ?? true,
-        notifications_promotions: profile.notifications_promotions ?? true,
-        notification_sound: profile.notification_sound || 'sound',
-      });
+    try {
+      if (profile && !loading) {
+        setPrivacySettings({
+          visibility: profile.visibility || 'public',
+        });
+        setNotificationSettings({
+          notifications_new_match: profile.notifications_new_match ?? true,
+          notifications_new_message: profile.notifications_new_message ?? true,
+          notifications_promotions: profile.notifications_promotions ?? true,
+          notification_sound: profile.notification_sound || 'sound',
+        });
+        setError(null);
+      }
+    } catch (err) {
+      console.error('Error loading settings:', err);
+      setError('Error al cargar la configuración');
     }
-  }, [profile]);
+  }, [profile, loading]);
 
+  // Mostrar loading mientras se carga el perfil
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="loading-spinner" />
+      </div>
+    );
+  }
+
+  // Mostrar error si no hay perfil
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Error al cargar configuración</h2>
+          <p className="text-gray-400 mb-4">No se pudo cargar tu perfil</p>
+          <Button onClick={() => window.location.reload()} className="btn-action">
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const handleFeatureClick = () => {
     toast({
@@ -84,34 +115,40 @@ const SettingsPage = () => {
       return;
     }
     setDeleteLoading(true);
-    await deleteAccount();
-    setDeleteLoading(false);
+    try {
+      await deleteAccount();
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo eliminar la cuenta. Intenta de nuevo.",
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
   };
   
   const handleSaveSettings = async (settingsData) => {
     setSaving(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update(settingsData)
-      .eq('id', profile.id);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(settingsData)
+        .eq('id', profile.id);
 
-    if (error) {
-      toast({ variant: "destructive", title: "Error", description: `No se pudieron guardar los cambios. ${error.message}` });
-    } else {
-      toast({ title: "¡Éxito!", description: "Tus ajustes se han guardado." });
-      await refreshProfile();
+      if (error) {
+        toast({ variant: "destructive", title: "Error", description: `No se pudieron guardar los cambios. ${error.message}` });
+      } else {
+        toast({ title: "¡Éxito!", description: "Tus ajustes se han guardado." });
+        await refreshProfile();
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: "Error inesperado al guardar configuración." });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
     return !error;
   };
-
-  if (!profile) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="loading-spinner" />
-      </div>
-    );
-  }
 
   return (
     <>
