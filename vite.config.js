@@ -298,13 +298,34 @@ export default defineConfig({
 		},
 	},
 	build: {
+		// Optimizaciones para reducir tiempo de build
+		minify: 'terser',
+		terserOptions: {
+			compress: {
+				drop_console: true,
+				drop_debugger: true,
+			},
+		},
 		rollupOptions: {
 			external: [
 				'@babel/parser',
 				'@babel/traverse',
 				'@babel/generator',
 				'@babel/types'
-			]
-		}
+			],
+			output: {
+				manualChunks: {
+					// Separar vendor chunks para mejor caching
+					vendor: ['react', 'react-dom'],
+					supabase: ['@supabase/supabase-js'],
+					ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+					utils: ['framer-motion', 'date-fns', 'lucide-react']
+				}
+			}
+		},
+		// Configuraciones adicionales para optimización
+		chunkSizeWarningLimit: 1000,
+		sourcemap: false, // Deshabilitar sourcemaps en producción
+		reportCompressedSize: false, // Deshabilitar reporte de tamaño comprimido
 	}
 });

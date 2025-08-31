@@ -182,3 +182,4 @@ self.addEventListener('push', (event) => {
 
 console.log('Service Worker configuration loaded');
 
+

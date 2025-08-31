@@ -33,39 +33,46 @@ const DiscoverPage = () => {
       const from = isRefresh ? 0 : page * POSTS_PER_PAGE;
       const to = from + POSTS_PER_PAGE - 1;
 
-      const { data, error: rpcError } = await supabase
+      // Primero obtener los posts
+      const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select(`
-          *,
-          profiles!posts_user_id_fkey (
-            id,
-            alias,
-            profile_picture_url,
-            is_vip,
-            is_verified
-          ),
-          likes (
-            id,
-            user_id
-          ),
-          comentarios (
-            id,
-            user_id,
-            texto,
-            created_at,
-            profiles!comentarios_user_id_fkey (
-              id,
-              alias,
-              profile_picture_url
-            )
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (rpcError) {
-        throw rpcError;
+      if (postsError) {
+        throw postsError;
       }
+
+      // Luego obtener los perfiles para cada post
+      const postsWithProfiles = await Promise.all(
+        postsData.map(async (post) => {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('id, alias, profile_picture_url, is_vip, is_verified')
+            .eq('id', post.user_id)
+            .single();
+
+          const { data: likesData } = await supabase
+            .from('likes')
+            .select('id, user_id')
+            .eq('post_id', post.id);
+
+          const { data: commentsData } = await supabase
+            .from('comentarios')
+            .select('id, usuario_id, texto, creado_en')
+            .eq('post_id', post.id);
+
+          return {
+            ...post,
+            profiles: profileData,
+            likes: likesData || [],
+            comentarios: commentsData || []
+          };
+        })
+      );
+
+      const data = postsWithProfiles;
       
       if (isRefresh) {
         setPosts(data || []);

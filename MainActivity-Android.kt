@@ -26,7 +26,7 @@ class MainActivity : AppCompatActivity() {
         webView = findViewById(R.id.webView)
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
 
-        // Configurar WebView para PWA
+        // Configurar WebView para PWA con mejor compatibilidad TCL
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
@@ -53,8 +53,18 @@ class MainActivity : AppCompatActivity() {
             setAppCacheEnabled(true)
             setAppCachePath(cacheDir.absolutePath)
             
-            // Configuraciones para dispositivos TCL y otros
-            userAgentString = userAgentString + " AGARCH-AR-PWA"
+            // Configuraciones específicas para dispositivos TCL
+            userAgentString = userAgentString + " AGARCH-AR-PWA/1.0"
+            
+            // Configuraciones adicionales para TCL
+            setSupportMultipleWindows(false)
+            javaScriptCanOpenWindowsAutomatically = false
+            setLayoutAlgorithm(WebSettings.LayoutAlgorithm.TEXT_AUTOSIZING)
+            
+            // Configuraciones de red para TCL
+            setLoadsImagesAutomatically(true)
+            setBlockNetworkImage(false)
+            setBlockNetworkLoads(false)
         }
 
         // Configurar WebViewClient con mejor manejo de errores
@@ -72,8 +82,16 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 swipeRefreshLayout.isRefreshing = false
-                // Inyectar CSS para mejorar la experiencia en móvil
-                injectMobileOptimizations()
+                
+                // Verificar si la página se cargó correctamente
+                webView.evaluateJavascript("document.title", { title ->
+                    if (title == null || title == "null" || title.isEmpty()) {
+                        showError("Error de carga", "La página no se cargó correctamente")
+                    } else {
+                        // Inyectar CSS para mejorar la experiencia en móvil
+                        injectMobileOptimizations()
+                    }
+                })
             }
             
             override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
@@ -109,7 +127,15 @@ class MainActivity : AppCompatActivity() {
     
     private fun loadPWA() {
         if (isNetworkAvailable()) {
+            // Intentar cargar la PWA con timeout
             webView.loadUrl("https://agarch-ar.com")
+            
+            // Configurar timeout para detectar si la página no carga
+            webView.postDelayed({
+                if (webView.progress < 100) {
+                    showError("Carga lenta", "La aplicación está tardando en cargar. Verifica tu conexión.")
+                }
+            }, 10000) // 10 segundos timeout
         } else {
             showError("Sin conexión", "Verifica tu conexión a internet e intenta de nuevo")
         }
