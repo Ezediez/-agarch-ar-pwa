@@ -1,0 +1,5 @@
+[33m4d18d79[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Mejoras criticas: PWA Android TCL, camara optimizada, busqueda paginada, settings sin pantalla negra
+[33m164b0c9[m[33m ([m[1;31morigin/main[m[33m)[m Fix critical errors: file upload, chat session, profile editing, and navigation issues
+[33m7557377[m Fix index.html and generate clean dist folder
+[33m45efedb[m Remove dist folder and update gitignore for clean build
+[33mc9c5a85[m Initial commit - PWA AgarchAR

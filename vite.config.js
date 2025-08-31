@@ -1,6 +1,7 @@
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { createLogger, defineConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 const isDev = process.env.NODE_ENV !== 'production';
 let inlineEditPlugin, editModeDevPlugin;
@@ -194,7 +195,94 @@ export default defineConfig({
 	plugins: [
 		...(isDev ? [inlineEditPlugin(), editModeDevPlugin()] : []),
 		react(),
-		addTransformIndexHtml
+		addTransformIndexHtml,
+		VitePWA({
+			registerType: 'autoUpdate',
+			workbox: {
+				globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+				navigateFallback: '/index.html',
+				navigateFallbackDenylist: [/^\/api/, /^\/_/, /^\/admin/],
+				runtimeCaching: [
+					{
+						urlPattern: /^https:\/\/agarch-ar\.com\/.*/i,
+						handler: 'NetworkFirst',
+						options: {
+							cacheName: 'agarch-ar-cache',
+							expiration: {
+								maxEntries: 100,
+								maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+							},
+							cacheableResponse: {
+								statuses: [0, 200]
+							}
+						}
+					},
+					{
+						urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|webp)$/,
+						handler: 'CacheFirst',
+						options: {
+							cacheName: 'images-cache',
+							expiration: {
+								maxEntries: 100,
+								maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+							}
+						}
+					}
+				]
+			},
+			manifest: {
+				name: 'AGARCH-AR - Red Social',
+				short_name: 'AGARCH-AR',
+				description: 'Conéctate con personas afines a vos, cerca tuyo y con ganas de hacer lo mismo que vos cuando quieras, sin ataduras.',
+				theme_color: '#0b121b',
+				background_color: '#0b121b',
+				display: 'standalone',
+				orientation: 'portrait',
+				scope: '/',
+				start_url: '/',
+				icons: [
+					{
+						src: 'pwa-192x192.png',
+						sizes: '192x192',
+						type: 'image/png'
+					},
+					{
+						src: 'pwa-512x512.png',
+						sizes: '512x512',
+						type: 'image/png'
+					},
+					{
+						src: 'pwa-512x512.png',
+						sizes: '512x512',
+						type: 'image/png',
+						purpose: 'any maskable'
+					}
+				],
+				shortcuts: [
+					{
+						name: 'Descubrir',
+						short_name: 'Descubrir',
+						description: 'Descubre nuevas personas',
+						url: '/discover',
+						icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+					},
+					{
+						name: 'Chat',
+						short_name: 'Chat',
+						description: 'Conversa con tus matches',
+						url: '/chat',
+						icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+					},
+					{
+						name: 'Perfil',
+						short_name: 'Perfil',
+						description: 'Gestiona tu perfil',
+						url: '/profile',
+						icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+					}
+				]
+			}
+		}),
 	],
 	server: {
 		cors: true,
