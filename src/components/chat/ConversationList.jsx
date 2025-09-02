@@ -23,7 +23,7 @@ import React from 'react';
       </motion.div>
     );
 
-    const ConversationList = ({ matches, activeChat, handleSelectChat }) => (
+    const ConversationList = ({ conversations, activeChat, handleSelectChat }) => (
       <motion.div layout initial={{ x: -300 }} animate={{ x: 0 }} className={`w-full md:w-1/3 card-glass flex-col ${activeChat && 'hidden md:flex'}`}>
         <div className="p-4 border-b border-border-color">
           <h2 className="text-2xl font-bold text-primary">Chats</h2>
@@ -34,12 +34,12 @@ import React from 'react';
         </div>
         <div className="flex-grow overflow-y-auto scrollbar-hide">
           <AnimatePresence>
-            {matches.length > 0 ? matches.map(match => (
-              <ConversationItem key={match.id} convo={match} onSelect={() => handleSelectChat(match)} isActive={activeChat?.id === match.id} />
+            {conversations.length > 0 ? conversations.map(convo => (
+              <ConversationItem key={convo.id} convo={convo} onSelect={() => handleSelectChat(convo)} isActive={activeChat?.id === convo.id} />
             )) : (
               <div className="text-center p-8 text-text-secondary">
                 <MessageCircle className="w-12 h-12 mx-auto mb-2" />
-                <p>No tienes matches aún.</p>
+                <p>No tienes conversaciones aún.</p>
               </div>
             )}
           </AnimatePresence>

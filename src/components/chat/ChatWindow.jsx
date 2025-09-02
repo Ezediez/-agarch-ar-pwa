@@ -92,7 +92,7 @@ const ChatWindow = ({
         await handleFilesUpload(stagedFiles, newMessage);
     } else {
         await sendMessage({
-          match_id: activeChat.match_id,
+          recipient_id: activeChat.id,
           sender_id: user.id,
           content: newMessage,
           message_type: 'text',

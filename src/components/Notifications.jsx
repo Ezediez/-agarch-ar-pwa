@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
@@ -23,6 +23,7 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const fetchDebounceRef = useRef(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -45,20 +46,31 @@ const Notifications = () => {
 
   useEffect(() => {
     if (user) {
-        fetchNotifications();
-        const channel = supabase
-          .channel('public:notifications')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user?.id}` }, 
-            (payload) => {
-              fetchNotifications();
-              toast({ title: "Nueva notificación", description: payload.new.message });
+      fetchNotifications();
+      const channel = supabase
+        .channel('public:notifications')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user?.id}` },
+          (payload) => {
+            if (payload?.new?.user_id !== user.id) return;
+            if (fetchDebounceRef.current) {
+              clearTimeout(fetchDebounceRef.current);
             }
-          )
-          .subscribe();
-          
-        return () => {
-          supabase.removeChannel(channel);
-        };
+            fetchDebounceRef.current = setTimeout(() => {
+              fetchNotifications();
+            }, 300);
+            if (payload?.new?.message) {
+              toast({ title: 'Nueva notificación', description: payload.new.message });
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
+        supabase.removeChannel(channel);
+      };
     }
   }, [user, fetchNotifications, toast]);
 

@@ -7,9 +7,18 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useUploader } from '@/hooks/useUploader';
 import ConversationList from '@/components/chat/ConversationList';
 import ChatWindow from '@/components/chat/ChatWindow';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MessageCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * ChatPage - Sistema de chat directo sin matches
+ * Características:
+ * - Mensajes directos usando recipient_id
+ * - Realtime con Supabase
+ * - Optimistic updates
+ * - Manejo de archivos y audio
+ * - Error handling robusto
+ */
 const ChatPage = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
@@ -17,108 +26,266 @@ const ChatPage = () => {
   const navigate = useNavigate();
   const { uploadFiles, isUploading: isUploadingFiles, progress } = useUploader();
 
-  const [matches, setMatches] = useState([]);
+  // Estados principales
+  const [conversations, setConversations] = useState([]);
   const [activeChat, setActiveChat] = useState(() => {
     try {
-      const savedChat = localStorage.getItem('activeChat');
+      const savedChat = localStorage.getItem('agarch-active-chat');
       return savedChat ? JSON.parse(savedChat) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   });
   const [messages, setMessages] = useState([]);
-  const [loadingMatches, setLoadingMatches] = useState(true);
+  const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const messagesEndRef = useRef(null);
   
+  // Referencias
+  const messagesEndRef = useRef(null);
+  const realtimeChannelRef = useRef(null);
+  const debounceTimeoutRef = useRef(null);
+  
+  // Persistir chat activo en localStorage
   useEffect(() => {
     if (activeChat) {
-      localStorage.setItem('activeChat', JSON.stringify(activeChat));
+      localStorage.setItem('agarch-active-chat', JSON.stringify(activeChat));
     } else {
-      localStorage.removeItem('activeChat');
+      localStorage.removeItem('agarch-active-chat');
     }
   }, [activeChat]);
 
-  const fetchMatches = useCallback(async () => {
-    if (!user) return;
-    setLoadingMatches(true);
-    const { data, error } = await supabase
-      .from('matches')
-      .select('*, user1:user1_id(id, alias, profile_picture_url, is_vip), user2:user2_id(id, alias, profile_picture_url, is_vip)')
-      .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-      .eq('estado_match', 'aceptado');
+  /**
+   * Obtener conversaciones basadas en mensajes enviados/recibidos
+   * Agrupa por usuarios únicos y obtiene sus perfiles
+   */
+  const fetchConversations = useCallback(async () => {
+    if (!user?.id) return;
+    
+    setLoadingConversations(true);
+    
+    try {
+      // Obtener todos los mensajes del usuario
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('messages')
+        .select('sender_id, recipient_id, sent_at')
+        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+        .order('sent_at', { ascending: false })
+        .limit(500);
 
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar tus matches.' });
-    } else {
-      const formattedMatches = data.map(m => {
-        const otherUser = m.user1.id === user.id ? m.user2 : m.user1;
-        return { match_id: m.id, ...otherUser };
+      if (messagesError) {
+        // Manejo silencioso de errores ignorables
+        const isIgnorable = ['42P01', '42501'].includes(messagesError.code) || 
+          messagesError.message?.toLowerCase().includes('does not exist') ||
+          messagesError.message?.toLowerCase().includes('permission');
+        
+        if (!isIgnorable) {
+          console.error('Error fetching conversations:', messagesError);
+          toast({ 
+            variant: 'destructive', 
+            title: 'Error', 
+            description: 'No se pudieron cargar las conversaciones.' 
+          });
+        }
+        setConversations([]);
+        return;
+      }
+
+      // Agrupar por usuarios únicos
+      const userMap = new Map();
+      (messagesData || []).forEach(msg => {
+        const otherUserId = msg.sender_id === user.id ? msg.recipient_id : msg.sender_id;
+        if (otherUserId && !userMap.has(otherUserId)) {
+          userMap.set(otherUserId, msg.sent_at);
+        }
       });
-      setMatches(formattedMatches);
+
+      const uniqueUserIds = Array.from(userMap.keys());
       
+      if (uniqueUserIds.length === 0) {
+        setConversations([]);
+        return;
+      }
+
+      // Obtener perfiles de usuarios
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, alias, profile_picture_url, is_vip')
+        .in('id', uniqueUserIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        setConversations([]);
+        return;
+      }
+
+      // Ordenar por última interacción
+      const sortedConversations = (profilesData || [])
+        .map(profile => ({
+          ...profile,
+          lastMessageAt: userMap.get(profile.id)
+        }))
+        .sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
+
+      setConversations(sortedConversations);
+
+      // Abrir chat específico si viene del state
       const chatWithUserId = location.state?.openChatWith;
       if (chatWithUserId) {
-        const chatToOpen = formattedMatches.find(m => m.id === chatWithUserId);
+        const chatToOpen = sortedConversations.find(c => c.id === chatWithUserId);
         if (chatToOpen) {
           handleSelectChat(chatToOpen);
+          // Limpiar state para evitar re-abrir
           navigate(location.pathname, { replace: true, state: {} });
         }
-      } else if (activeChat) {
-         const restoredChat = formattedMatches.find(m => m.match_id === activeChat.match_id);
-         if (restoredChat) {
-            handleSelectChat(restoredChat);
-         } else {
-            setActiveChat(null);
-         }
       }
-    }
-    setLoadingMatches(false);
-  }, [user, toast, location.state, navigate]);
-  
-  useEffect(()=>{
-      if(user) fetchMatches();
-  },[user, fetchMatches])
 
-  const handleSelectChat = async (match) => {
-    if (activeChat?.match_id === match.match_id) return;
-    setActiveChat(match);
+    } catch (error) {
+      console.error('Unexpected error in fetchConversations:', error);
+      setConversations([]);
+    } finally {
+      setLoadingConversations(false);
+    }
+  }, [user?.id, location.state, navigate, toast]);
+
+  // Cargar conversaciones al montar y cuando cambie el usuario
+  useEffect(() => {
+    if (user?.id) {
+      fetchConversations();
+    }
+  }, [fetchConversations]);
+
+  /**
+   * Seleccionar chat activo y cargar mensajes
+   */
+  const handleSelectChat = useCallback(async (conversation) => {
+    if (!user?.id || !conversation?.id) return;
+    if (activeChat?.id === conversation.id) return;
+
+    setActiveChat(conversation);
     setLoadingMessages(true);
     setMessages([]);
-    const { data, error } = await supabase.from('messages').select('*').eq('match_id', match.match_id).order('sent_at', { ascending: true });
-    if (error) toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los mensajes.' });
-    else setMessages(data || []);
-    setLoadingMessages(false);
-  };
-  
-  const handleRealtimeMessage = useCallback((payload) => {
-    if (payload.new.match_id === activeChat?.match_id) {
-      setMessages(current => {
-          const tempId = payload.new.temp_id;
-          if (tempId && current.some(m => m.id === tempId)) {
-              return current.map(m => m.id === tempId ? payload.new : m);
-          }
-          if (current.some(m => m.id === payload.new.id)) {
-              return current;
-          }
-          return [...current, payload.new];
-      });
+
+    try {
+      const { data: messagesData, error } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${conversation.id}),and(sender_id.eq.${conversation.id},recipient_id.eq.${user.id})`)
+        .order('sent_at', { ascending: true });
+
+      if (error) {
+        console.error('Error loading messages:', error);
+        toast({ 
+          variant: 'destructive', 
+          title: 'Error', 
+          description: 'No se pudieron cargar los mensajes.' 
+        });
+        setMessages([]);
+      } else {
+        setMessages(messagesData || []);
+      }
+    } catch (error) {
+      console.error('Unexpected error loading messages:', error);
+      setMessages([]);
+    } finally {
+      setLoadingMessages(false);
     }
-  }, [activeChat?.match_id]);
+  }, [user?.id, activeChat?.id, toast]);
 
+  /**
+   * Manejar mensajes en tiempo real
+   */
+  const handleRealtimeMessage = useCallback((payload) => {
+    if (!user?.id || !activeChat?.id || !payload?.new) return;
+
+    const newMessage = payload.new;
+    const isForActiveChat = 
+      (newMessage.sender_id === user.id && newMessage.recipient_id === activeChat.id) ||
+      (newMessage.sender_id === activeChat.id && newMessage.recipient_id === user.id);
+
+    if (!isForActiveChat) return;
+
+    // Debounce para evitar cascada de actualizaciones
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    debounceTimeoutRef.current = setTimeout(() => {
+      setMessages(currentMessages => {
+        // Si es un mensaje optimista siendo reemplazado
+        const tempId = newMessage.temp_id;
+        if (tempId) {
+          const existingIndex = currentMessages.findIndex(m => m.id === tempId || m.temp_id === tempId);
+          if (existingIndex !== -1) {
+            const updated = [...currentMessages];
+            updated[existingIndex] = newMessage;
+            return updated;
+          }
+        }
+
+        // Evitar duplicados
+        if (currentMessages.some(m => m.id === newMessage.id)) {
+          return currentMessages;
+        }
+
+        return [...currentMessages, newMessage];
+      });
+    }, 100);
+  }, [user?.id, activeChat?.id]);
+
+  /**
+   * Configurar suscripción en tiempo real
+   */
   useEffect(() => {
-    const channel = supabase.channel('realtime-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
+    if (!user?.id) return;
+
+    // Limpiar canal anterior
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current);
+    }
+
+    // Crear nuevo canal
+    const channel = supabase
+      .channel(`chat-messages-${user.id}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'messages'
+        },
         handleRealtimeMessage
-      ).subscribe();
-    return () => supabase.removeChannel(channel);
-  }, [supabase, handleRealtimeMessage]);
+      )
+      .subscribe();
 
+    realtimeChannelRef.current = channel;
+
+    return () => {
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current);
+      }
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [user?.id, handleRealtimeMessage]);
+
+  /**
+   * Auto-scroll a los nuevos mensajes
+   */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
   }, [messages]);
 
-  const sendMessage = async (messageData) => {
+  /**
+   * Enviar mensaje de texto
+   */
+  const sendMessage = useCallback(async (messageData) => {
+    if (!user?.id || !activeChat?.id) return;
+
     const tempId = `temp-${uuidv4()}`;
     const optimisticMessage = {
       ...messageData,
@@ -126,94 +293,154 @@ const ChatPage = () => {
       temp_id: tempId,
       sent_at: new Date().toISOString(),
       sender_id: user.id,
+      recipient_id: activeChat.id,
+      isOptimistic: true
+    };
+
+    // Agregar mensaje optimista
+    setMessages(current => [...current, optimisticMessage]);
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert({ 
+          ...messageData, 
+          sender_id: user.id,
+          recipient_id: activeChat.id,
+          temp_id: tempId 
+        });
+
+      if (error) {
+        console.error('Error sending message:', error);
+        toast({ 
+          variant: 'destructive', 
+          title: 'Error', 
+          description: 'No se pudo enviar el mensaje.' 
+        });
+        // Remover mensaje optimista fallido
+        setMessages(current => current.filter(m => m.id !== tempId));
+      }
+    } catch (error) {
+      console.error('Unexpected error sending message:', error);
+      setMessages(current => current.filter(m => m.id !== tempId));
+    }
+  }, [user?.id, activeChat?.id, toast]);
+
+  /**
+   * Subir archivos y enviar mensaje multimedia
+   */
+  const handleFilesUpload = useCallback(async (files, text = '') => {
+    if (!files?.length || !user?.id || !activeChat?.id) return;
+
+    const tempId = `temp-${uuidv4()}`;
+    const optimisticMessage = {
+      id: tempId,
+      temp_id: tempId,
+      recipient_id: activeChat.id,
+      sender_id: user.id,
+      content: text,
+      message_type: 'media',
+      media_urls: files.map(file => URL.createObjectURL(file)),
+      sent_at: new Date().toISOString(),
+      isOptimistic: true
     };
 
     setMessages(current => [...current, optimisticMessage]);
 
-    const { error } = await supabase.from('messages').insert({ ...messageData, temp_id: tempId });
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo enviar el mensaje.' });
+    try {
+      const uploadedUrls = await uploadFiles(files, 'media', 'chat-media');
+      
+      if (uploadedUrls?.length > 0) {
+        const { error } = await supabase
+          .from('messages')
+          .insert({
+            recipient_id: activeChat.id,
+            sender_id: user.id,
+            content: text,
+            message_type: 'media',
+            media_urls: uploadedUrls,
+            temp_id: tempId
+          });
+
+        if (error) {
+          console.error('Error sending media message:', error);
+          toast({ 
+            variant: 'destructive', 
+            title: 'Error', 
+            description: 'No se pudo enviar el mensaje con archivos.' 
+          });
+          setMessages(current => current.filter(m => m.id !== tempId));
+        }
+      } else {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Error', 
+          description: 'Error al subir archivos.' 
+        });
+        setMessages(current => current.filter(m => m.id !== tempId));
+      }
+    } catch (error) {
+      console.error('Error uploading files:', error);
       setMessages(current => current.filter(m => m.id !== tempId));
     }
-  };
-  
-  const handleFilesUpload = async (files, text) => {
-    if (!files || files.length === 0) return;
+  }, [user?.id, activeChat?.id, uploadFiles, toast]);
 
-    const optimisticMessages = files.map(file => {
-      const tempId = `temp-${uuidv4()}`;
-      return {
-        id: tempId,
-        temp_id: tempId,
-        match_id: activeChat.match_id,
-        sender_id: user.id,
-        content: text,
-        message_type: 'media',
-        media_urls: [URL.createObjectURL(file)],
-        sent_at: new Date().toISOString(),
-        isOptimistic: true,
-      };
-    });
+  /**
+   * Subir audio y enviar mensaje de audio
+   */
+  const handleAudioUpload = useCallback(async (audioBlob, duration) => {
+    if (!audioBlob || !user?.id || !activeChat?.id) return;
 
-    // We only show one optimistic message if multiple files are sent with one text
-    const representativeOptimisticMessage = {
-        ...optimisticMessages[0],
-        media_urls: files.map(f => URL.createObjectURL(f)),
-        content: text,
-    };
-    if (files.length > 1) representativeOptimisticMessage.content = text;
-    setMessages(current => [...current, representativeOptimisticMessage]);
-
-    
-    const urls = await uploadFiles(files, 'media', 'chat-media');
-    
-    if (urls && urls.length > 0) {
-      const { error } = await supabase.from('messages').insert({
-        match_id: activeChat.match_id,
-        sender_id: user.id,
-        content: text,
-        message_type: 'media',
-        media_urls: urls,
-        temp_id: representativeOptimisticMessage.temp_id
-      });
-       if (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo enviar el mensaje con archivos.' });
-        setMessages(current => current.filter(m => m.id !== representativeOptimisticMessage.id));
+    try {
+      const uploadedUrls = await uploadFiles([audioBlob], 'media', 'chat-audio');
+      
+      if (uploadedUrls?.length > 0) {
+        await sendMessage({
+          message_type: 'audio',
+          media_urls: uploadedUrls,
+          audio_duration_seconds: Math.round(duration || 0)
+        });
+      } else {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Error', 
+          description: 'Error al subir audio.' 
+        });
       }
-    } else {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo completar la subida de archivos.' });
-      setMessages(current => current.filter(m => m.id !== representativeOptimisticMessage.id));
-    }
-  };
-
-  const handleAudioUpload = async (audioBlob, duration) => {
-    if (!audioBlob) return;
-    const urls = await uploadFiles([audioBlob], 'media', 'chat-audio');
-    if (urls && urls.length > 0) {
-      await sendMessage({
-        match_id: activeChat.match_id,
-        sender_id: user.id,
-        message_type: 'audio',
-        media_urls: urls,
-        audio_duration_seconds: Math.round(duration),
+    } catch (error) {
+      console.error('Error uploading audio:', error);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Error', 
+        description: 'Error al subir audio.' 
       });
     }
-  };
+  }, [user?.id, activeChat?.id, uploadFiles, sendMessage, toast]);
 
-  if (loadingMatches) return <div className="flex justify-center items-center h-full"><Loader2 className="w-12 h-12 animate-spin text-primary"/></div>
+  // Loading state
+  if (loadingConversations) {
+    return (
+      <div className="flex flex-col justify-center items-center h-[calc(100vh-88px)] gap-4">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Cargando conversaciones...</p>
+      </div>
+    );
+  }
 
   return (
     <>
       <Helmet>
         <title>Chat - AGARCH-AR</title>
-        <meta name="description" content="Comunícate con tus matches en AGARCH-AR." />
+        <meta name="description" content="Comunícate directamente con otros usuarios en AGARCH-AR." />
       </Helmet>
+      
       <div className="h-[calc(100vh-88px)] md:h-auto md:aspect-[4/3] max-h-[calc(100vh-100px)] flex flex-col md:flex-row gap-4">
         <ConversationList
-          matches={matches}
+          conversations={conversations}
           activeChat={activeChat}
           handleSelectChat={handleSelectChat}
         />
+        
         <ChatWindow 
           activeChat={activeChat}
           setActiveChat={setActiveChat}
@@ -228,6 +455,17 @@ const ChatPage = () => {
           sendMessage={sendMessage}
         />
       </div>
+
+      {/* Estado vacío cuando no hay conversaciones */}
+      {!loadingConversations && conversations.length === 0 && !activeChat && (
+        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+          <MessageCircle className="w-16 h-16 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No tienes conversaciones</h3>
+          <p className="text-muted-foreground">
+            Envía "Me gusta" a otros usuarios desde Descubrir para comenzar a chatear.
+          </p>
+        </div>
+      )}
     </>
   );
 };

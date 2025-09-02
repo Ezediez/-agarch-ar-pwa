@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,57 +35,72 @@ const Stories = () => {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStoryUser, setSelectedStoryUser] = useState(null);
+  const refreshDebounceRef = useRef(null);
 
   const fetchStories = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('stories')
-      .select(`
-        *,
-        profile:user_id (id, alias, profile_picture_url)
-      `)
-      .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-      .order('created_at', { ascending: false });
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('stories')
+        .select(`
+          *,
+          profile:user_id (id, alias, profile_picture_url)
+        `)
+        .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar las historias.' });
-      console.error('Error fetching stories:', error);
-    } else if (data) {
-      const groupedStories = (data || []).reduce((acc, story) => {
-        if (story.profile) {
-          if (!acc[story.user_id]) {
-            acc[story.user_id] = {
-              user_id: story.user_id,
-              alias: story.profile.alias,
-              profile_picture_url: story.profile.profile_picture_url,
-              stories: []
-            };
-          }
-          acc[story.user_id].stories.push(story);
+      if (error) {
+        // Ignorar errores típicos de tabla inexistente o RLS y evitar spam de toasts
+        const msg = String(error.message || '');
+        const code = error.code || '';
+        const isIgnorable = code === '42P01' /* relation does not exist */ || code === '42501' /* insufficient_privilege */ || msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('does not exist');
+        if (!isIgnorable) {
+          console.error('Error fetching stories:', error);
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar las historias.' });
         }
-        return acc;
-      }, {});
-      
-      const ownStories = groupedStories[user.id];
-      delete groupedStories[user.id];
-      
-      const otherStories = Object.values(groupedStories);
-      
-      const finalStories = ownStories ? [ownStories, ...otherStories] : otherStories;
-
-      setStories(finalStories);
+        setStories([]);
+      } else if (data) {
+        const groupedStories = (data || []).reduce((acc, story) => {
+          if (story.profile) {
+            if (!acc[story.user_id]) {
+              acc[story.user_id] = {
+                user_id: story.user_id,
+                alias: story.profile.alias,
+                profile_picture_url: story.profile.profile_picture_url,
+                stories: []
+              };
+            }
+            acc[story.user_id].stories.push(story);
+          }
+          return acc;
+        }, {});
+        const ownStories = groupedStories[user.id];
+        delete groupedStories[user.id];
+        const otherStories = Object.values(groupedStories);
+        const finalStories = ownStories ? [ownStories, ...otherStories] : otherStories;
+        setStories(finalStories);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [toast, user.id]);
 
   useEffect(() => {
     fetchStories();
     const channel = supabase
       .channel('public:stories')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'stories' }, fetchStories)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stories' }, () => {
+        if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
+        refreshDebounceRef.current = setTimeout(() => fetchStories(), 300);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'stories' }, () => {
+        if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
+        refreshDebounceRef.current = setTimeout(() => fetchStories(), 300);
+      })
       .subscribe();
 
     return () => {
+      if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
       supabase.removeChannel(channel);
     };
   }, [fetchStories]);

@@ -10,55 +10,68 @@ import React, { useState, useEffect } from 'react';
     const OtherProfileActions = ({ profile }) => {
       const { user } = useAuth();
       const { toast } = useToast();
-      const [matchStatus, setMatchStatus] = useState(null);
-      const [loadingMatch, setLoadingMatch] = useState(true);
+      const [likeStatus, setLikeStatus] = useState(null);
+      const [loadingLike, setLoadingLike] = useState(true);
       const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
 
       useEffect(() => {
-        const checkMatchStatus = async () => {
+        const checkLikeStatus = async () => {
           if (!user || !profile) return;
-          setLoadingMatch(true);
+          setLoadingLike(true);
           const { data, error } = await supabase
-            .from('matches')
-            .select('id, estado_match, user1_id, user2_id')
-            .or(`(user1_id.eq.${user.id},user2_id.eq.${profile.id}),(user1_id.eq.${profile.id},user2_id.eq.${user.id})`)
+            .from('likes')
+            .select('id, user_id, liked_user_id')
+            .eq('user_id', user.id)
+            .eq('liked_user_id', profile.id)
             .maybeSingle();
           
           if (error) {
-            console.error("Error checking match status:", error);
+            console.error("Error checking like status:", error);
           } else {
-            setMatchStatus(data);
+            setLikeStatus(data);
           }
-          setLoadingMatch(false);
+          setLoadingLike(false);
         };
-        checkMatchStatus();
+        checkLikeStatus();
       }, [user, profile]);
 
-      const handleMatchAction = async () => {
-        setLoadingMatch(true);
-        const { data, error } = await supabase.rpc('handle_user_interaction', { target_user_id: profile.id });
-        setLoadingMatch(false);
-
-        if (error) {
+      const handleLikeAction = async () => {
+        setLoadingLike(true);
+        try {
+          if (likeStatus) {
+            // Unlike
+            const { error } = await supabase
+              .from('likes')
+              .delete()
+              .eq('user_id', user.id)
+              .eq('liked_user_id', profile.id);
+            
+            if (error) throw error;
+            setLikeStatus(null);
+            toast({ title: "Me gusta removido" });
+          } else {
+            // Like
+            const { error } = await supabase
+              .from('likes')
+              .insert({
+                user_id: user.id,
+                liked_user_id: profile.id
+              });
+            
+            if (error) throw error;
+            setLikeStatus({ user_id: user.id, liked_user_id: profile.id });
+            toast({ title: "¡Me gusta enviado!" });
+          }
+        } catch (error) {
           toast({ variant: "destructive", title: "Error", description: "Ocurrió un error al procesar la solicitud." });
-        } else {
-          const [status, message] = data.split(':');
-          toast({ title: message });
-          const { data: newStatus } = await supabase
-            .from('matches')
-            .select('id, estado_match, user1_id, user2_id')
-            .or(`(user1_id.eq.${user.id},user2_id.eq.${profile.id}),(user1_id.eq.${profile.id},user2_id.eq.${user.id})`)
-            .maybeSingle();
-          setMatchStatus(newStatus);
+        } finally {
+          setLoadingLike(false);
         }
       };
 
-      if (loadingMatch) {
+      if (loadingLike) {
         return <div className="mt-6 flex justify-center"><Button disabled><Loader2 className="mr-2 h-4 w-4 animate-spin" />Cargando...</Button></div>;
       }
-      
-      const isPendingRequest = matchStatus?.estado_match === 'pendiente';
-      const iSentRequest = isPendingRequest && matchStatus.user1_id === user.id;
 
       return (
         <>
@@ -72,12 +85,13 @@ import React, { useState, useEffect } from 'react';
                   <MessageSquare className="mr-2 h-4 w-4" /> Mensaje
               </Button>
 
-              {matchStatus?.estado_match !== 'aceptado' && (
-                <Button onClick={handleMatchAction} disabled={iSentRequest} className="flex-1">
-                  <Heart className="mr-2 h-4 w-4" />
-                  {iSentRequest ? 'Solicitud Enviada' : 'Hacer Match'}
-                </Button>
-              )}
+              <Button 
+                onClick={handleLikeAction} 
+                className={`flex-1 ${likeStatus ? 'bg-red-500 hover:bg-red-600' : ''}`}
+              >
+                <Heart className={`mr-2 h-4 w-4 ${likeStatus ? 'fill-current' : ''}`} />
+                {likeStatus ? 'Me gusta' : 'Me gusta'}
+              </Button>
             </motion.div>
             {isMessageModalOpen && (
                 <DirectMessageModal 

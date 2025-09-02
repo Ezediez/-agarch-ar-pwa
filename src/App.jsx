@@ -11,6 +11,7 @@ import PasswordRecoveryPage from '@/pages/PasswordRecoveryPage';
 import UpdatePasswordPage from '@/pages/UpdatePasswordPage';
 import ContactPage from '@/pages/ContactPage';
 import { useToast } from '@/components/ui/use-toast.jsx';
+import { askNotificationPermissionIfSupported } from '@/lib/notifications';
 import AdRegisterPage from '@/pages/AdRegisterPage';
 import AdLoginPage from '@/pages/AdLoginPage';
 import TermsPage from '@/pages/TermsPage';
@@ -38,6 +39,8 @@ const App = () => {
         });
       });
     }
+    // Solicitar permiso de notificaciones de forma segura y no intrusiva
+    askNotificationPermissionIfSupported();
   }, [toast]);
 
   if (loading) {

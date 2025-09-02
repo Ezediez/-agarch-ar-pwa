@@ -53,8 +53,9 @@ const DiscoverPage = () => {
             .eq('id', post.user_id)
             .single();
 
+          // Obtener likes del post (usando una tabla diferente o campo diferente)
           const { data: likesData } = await supabase
-            .from('likes')
+            .from('post_likes')
             .select('id, user_id')
             .eq('post_id', post.id);
 
@@ -115,7 +116,7 @@ const DiscoverPage = () => {
           fetchPosts(true);
         }, 1000);
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'post_likes' }, () => {
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
           fetchPosts(true);

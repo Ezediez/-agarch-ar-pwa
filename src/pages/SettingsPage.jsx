@@ -138,16 +138,19 @@ const SettingsPage = () => {
 
       if (error) {
         toast({ variant: "destructive", title: "Error", description: `No se pudieron guardar los cambios. ${error.message}` });
+        setSaving(false);
+        return false;
       } else {
         toast({ title: "¡Éxito!", description: "Tus ajustes se han guardado." });
         await refreshProfile();
+        setSaving(false);
+        return true;
       }
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "Error inesperado al guardar configuración." });
-    } finally {
       setSaving(false);
+      return false;
     }
-    return !error;
   };
 
   return (
