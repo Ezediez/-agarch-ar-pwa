@@ -44,6 +44,15 @@ const DiscoverPage = () => {
         throw postsError;
       }
 
+      // Si no hay posts, devolver array vacío
+      if (!postsData || postsData.length === 0) {
+        if (isRefresh) {
+          setPosts([]);
+        }
+        setHasMore(false);
+        return;
+      }
+
       // Luego obtener los perfiles para cada post
       const postsWithProfiles = await Promise.all(
         postsData.map(async (post) => {
