@@ -81,7 +81,7 @@ const DiscoverPage = () => {
             const { data } = await supabase
               .from('comentarios')
               .select('id, usuario_id, texto, creado_en')
-              .eq('post_id', post.id);
+              .eq('publicacion_id', post.id);
             commentsData = data || [];
           } catch (error) {
             console.log('Comments not found for post:', post.id);
