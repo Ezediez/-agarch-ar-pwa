@@ -56,28 +56,42 @@ const DiscoverPage = () => {
       // Luego obtener los perfiles para cada post
       const postsWithProfiles = await Promise.all(
         postsData.map(async (post) => {
+          // Obtener perfil del usuario (obligatorio)
           const { data: profileData } = await supabase
             .from('profiles')
             .select('id, alias, profile_picture_url, is_vip, is_verified')
             .eq('id', post.user_id)
             .single();
 
-          // Obtener likes del post (usando una tabla diferente o campo diferente)
-          const { data: likesData } = await supabase
-            .from('post_likes')
-            .select('id, user_id')
-            .eq('post_id', post.id);
+          // Obtener likes del post (opcional, no bloquear si falla)
+          let likesData = [];
+          try {
+            const { data } = await supabase
+              .from('post_likes')
+              .select('id, user_id')
+              .eq('post_id', post.id);
+            likesData = data || [];
+          } catch (error) {
+            console.log('Post likes not found for post:', post.id);
+          }
 
-          const { data: commentsData } = await supabase
-            .from('comentarios')
-            .select('id, usuario_id, texto, creado_en')
-            .eq('post_id', post.id);
+          // Obtener comentarios (opcional, no bloquear si falla)
+          let commentsData = [];
+          try {
+            const { data } = await supabase
+              .from('comentarios')
+              .select('id, usuario_id, texto, creado_en')
+              .eq('post_id', post.id);
+            commentsData = data || [];
+          } catch (error) {
+            console.log('Comments not found for post:', post.id);
+          }
 
           return {
             ...post,
             profiles: profileData,
-            likes: likesData || [],
-            comentarios: commentsData || []
+            likes: likesData,
+            comentarios: commentsData
           };
         })
       );
