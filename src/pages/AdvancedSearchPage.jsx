@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { supabase } from '@/lib/customSupabaseClient';
+import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
@@ -63,41 +63,69 @@ const AdvancedSearchPage = () => {
 
     try {
         const hasLocation = currentUserProfile?.latitud && currentUserProfile?.longitud;
+        let data, queryError;
 
-        if (!hasLocation && filters.distance < 500) {
-            toast({
-                title: "Ubicación no disponible",
-                description: "Para una búsqueda por distancia más precisa, activa tu ubicación en Ajustes.",
+        // Usar función RPC si hay ubicación y filtro de distancia activo
+        if (hasLocation && filters.distance < 500) {
+            // Usar función de búsqueda por distancia
+            const { data: rpcData, error: rpcError } = await supabase.rpc('get_nearby_profiles', {
+                user_lat: currentUserProfile.latitud,
+                user_lng: currentUserProfile.longitud,
+                radius_km: filters.distance
             });
-        }
+            
+            data = rpcData;
+            queryError = rpcError;
+            
+            // Aplicar filtros adicionales en el cliente
+            if (data && !queryError) {
+                let filteredData = data;
+                
+                if (filters.keyword.trim()) {
+                    filteredData = filteredData.filter(p => 
+                        (p.alias && p.alias.toLowerCase().includes(filters.keyword.toLowerCase())) ||
+                        (p.bio && p.bio.toLowerCase().includes(filters.keyword.toLowerCase()))
+                    );
+                }
+                if (filters.gender !== 'Todos') {
+                    filteredData = filteredData.filter(p => p.gender === filters.gender);
+                }
+                if (filters.sexualOrientation !== 'Todas') {
+                    filteredData = filteredData.filter(p => p.sexual_orientation === filters.sexualOrientation);
+                }
+                if (filters.relationshipStatus !== 'Todos') {
+                    filteredData = filteredData.filter(p => p.relationship_status === filters.relationshipStatus);
+                }
+                
+                // Aplicar paginación en el cliente
+                const from = isLoadMore ? page * RESULTS_PER_PAGE : 0;
+                const to = from + RESULTS_PER_PAGE;
+                data = filteredData.slice(from, to);
+            }
+        } else {
+            // Usar función RPC de búsqueda general o query tradicional
+            if (!hasLocation && filters.distance < 500) {
+                toast({
+                    title: "Ubicación no disponible",
+                    description: "Para una búsqueda por distancia más precisa, activa tu ubicación en Ajustes.",
+                });
+            }
 
-        // Construir query base
-        let query = supabase
-          .from('profiles')
-          .select('*')
-          .neq('id', user.id) // Excluir usuario actual
-          .order('created_at', { ascending: false });
-
-        // Aplicar filtros
-        if (filters.gender !== 'Todos') {
-          query = query.eq('gender', filters.gender);
+            // Usar función RPC search_profiles para mejor rendimiento
+            const { data: rpcData, error: rpcError } = await supabase.rpc('search_profiles', {
+                search_keyword: filters.keyword.trim() || null,
+                filter_gender: filters.gender !== 'Todos' ? filters.gender : null,
+                filter_orientation: filters.sexualOrientation !== 'Todas' ? filters.sexualOrientation : null,
+                filter_status: filters.relationshipStatus !== 'Todos' ? filters.relationshipStatus : null,
+                min_age: filters.ageRange[0],
+                max_age: filters.ageRange[1],
+                result_limit: RESULTS_PER_PAGE,
+                result_offset: isLoadMore ? page * RESULTS_PER_PAGE : 0
+            });
+            
+            data = rpcData;
+            queryError = rpcError;
         }
-        if (filters.sexualOrientation !== 'Todas') {
-          query = query.eq('sexual_orientation', filters.sexualOrientation);
-        }
-        if (filters.relationshipStatus !== 'Todos') {
-          query = query.eq('relationship_status', filters.relationshipStatus);
-        }
-        if (filters.keyword.trim()) {
-          query = query.or(`alias.ilike.%${filters.keyword.trim()}%,bio.ilike.%${filters.keyword.trim()}%`);
-        }
-
-        // Aplicar paginación
-        const from = isLoadMore ? page * RESULTS_PER_PAGE : 0;
-        const to = from + RESULTS_PER_PAGE - 1;
-        query = query.range(from, to);
-
-        const { data, error: queryError } = await query;
 
         if (queryError) throw queryError;
       

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-    import { supabase } from '@/lib/customSupabaseClient';
+    import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
     import { useAuth } from '@/hooks/useAuth';
     import { useToast } from '@/components/ui/use-toast';
     import { Button } from '@/components/ui/button';

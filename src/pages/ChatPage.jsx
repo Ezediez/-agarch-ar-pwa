@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { supabase } from '@/lib/customSupabaseClient';
+import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
  * ChatPage - Sistema de chat directo sin matches
  * Características:
  * - Mensajes directos usando recipient_id
- * - Realtime con Supabase
+ * - Realtime con Firebase
  * - Optimistic updates
  * - Manejo de archivos y audio
  * - Error handling robusto
@@ -338,7 +338,7 @@ const ChatPage = () => {
       temp_id: tempId,
       recipient_id: activeChat.id,
       sender_id: user.id,
-      content: text,
+      contenido: text,
       message_type: 'media',
       media_urls: files.map(file => URL.createObjectURL(file)),
       sent_at: new Date().toISOString(),
@@ -356,7 +356,7 @@ const ChatPage = () => {
           .insert({
             recipient_id: activeChat.id,
             sender_id: user.id,
-            content: text,
+            contenido: text,
             message_type: 'media',
             media_urls: uploadedUrls,
             temp_id: tempId

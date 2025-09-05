@@ -1,24 +1,72 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { supabase } from '@/lib/customSupabaseClient';
+import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Loader2, Frown, WifiOff, RefreshCw } from 'lucide-react';
 import PostCard from '@/components/discover/PostCard';
 import CreatePost from '@/components/discover/CreatePost';
 import Stories from '@/components/discover/Stories';
+import AdCard from '@/components/discover/AdCard';
 import { Button } from '@/components/ui/button';
 
 const DiscoverPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [posts, setPosts] = useState([]);
+  const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const POSTS_PER_PAGE = 10;
+
+  const fetchAds = useCallback(async () => {
+    try {
+      // Simular anuncios mientras se configura Firebase
+      const mockAds = [
+        {
+          id: 'ad-1',
+          title: 'Restaurante El Buen Sabor',
+          description: 'Comida casera y tradicional. Los mejores sabores de la región con ingredientes frescos y naturales.',
+          category: 'Restaurante',
+          company_info: 'Más de 20 años sirviendo a la comunidad con amor y dedicación.',
+          contact_phone: '+54 11 1234-5678',
+          contact_email: 'contacto@elbuensabor.com',
+          contact_website: 'https://elbuensabor.com',
+          cover_image: null,
+          duration: '30days'
+        },
+        {
+          id: 'ad-2', 
+          title: 'Tienda Fashion Style',
+          description: 'Ropa moderna y accesorios de última moda. Encuentra tu estilo único con nosotros.',
+          category: 'Moda',
+          company_info: 'Especialistas en tendencias y estilo personal.',
+          contact_phone: '+54 11 9876-5432',
+          contact_email: 'info@fashionstyle.com',
+          cover_image: null,
+          duration: 'once'
+        },
+        {
+          id: 'ad-3',
+          title: 'Servicios de Plomería Express',
+          description: 'Reparaciones rápidas y confiables. Disponibles 24/7 para emergencias.',
+          category: 'Servicios',
+          company_info: 'Técnicos certificados con más de 15 años de experiencia.',
+          contact_phone: '+54 11 5555-0000',
+          contact_email: 'urgencias@plomeriaexpress.com',
+          cover_image: null,
+          duration: '30days'
+        }
+      ];
+      
+      setAds(mockAds);
+    } catch (error) {
+      console.error('Error fetching ads:', error);
+    }
+  }, []);
 
   const fetchPosts = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -50,6 +98,8 @@ const DiscoverPage = () => {
           setPosts([]);
         }
         setHasMore(false);
+        setLoading(false);
+        setRefreshing(false);
         return;
       }
 
@@ -89,7 +139,8 @@ const DiscoverPage = () => {
 
           return {
             ...post,
-            profiles: profileData,
+            author: profileData, // Cambiar profiles por author para compatibilidad con PostCard
+            profiles: profileData, // Mantener profiles por compatibilidad
             likes: likesData,
             comentarios: commentsData
           };
@@ -120,12 +171,39 @@ const DiscoverPage = () => {
     }
   }, [toast, page]);
 
-  // Memoizar los posts para evitar re-renders innecesarios
-  const memoizedPosts = useMemo(() => posts, [posts]);
+  // Función para intercalar anuncios cada 8 posts
+  const createMixedContent = useCallback((posts, ads) => {
+    if (!posts.length) return [];
+    
+    const mixedContent = [];
+    let adIndex = 0;
+    
+    posts.forEach((post, index) => {
+      mixedContent.push({ type: 'post', data: post, key: `post-${post.id}` });
+      
+      // Intercalar anuncio cada 8 posts (índices 7, 15, 23, etc.)
+      if ((index + 1) % 8 === 0 && ads.length > 0) {
+        const ad = ads[adIndex % ads.length];
+        mixedContent.push({ 
+          type: 'ad', 
+          data: ad, 
+          key: `ad-${ad.id}-${Math.floor(index / 8)}`,
+          adIndex: adIndex % ads.length
+        });
+        adIndex++;
+      }
+    });
+    
+    return mixedContent;
+  }, []);
+
+  // Memoizar el contenido mixto para evitar re-renders innecesarios
+  const memoizedContent = useMemo(() => createMixedContent(posts, ads), [posts, ads, createMixedContent]);
 
   useEffect(() => {
     fetchPosts(true);
-  }, []);
+    fetchAds();
+  }, [fetchAds]);
 
   // Configurar realtime con debounce para evitar demasiadas actualizaciones
   useEffect(() => {
@@ -209,16 +287,29 @@ const DiscoverPage = () => {
       );
     }
 
-    if (memoizedPosts.length > 0) {
+    if (memoizedContent.length > 0) {
       return (
         <div className="space-y-4">
-          {memoizedPosts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onLikeToggle={handleLikeToggle}
-            />
-          ))}
+          {memoizedContent.map((item) => {
+            if (item.type === 'post') {
+              return (
+                <PostCard
+                  key={item.key}
+                  post={item.data}
+                  onLikeToggle={handleLikeToggle}
+                />
+              );
+            } else if (item.type === 'ad') {
+              return (
+                <AdCard
+                  key={item.key}
+                  ad={item.data}
+                  index={item.adIndex}
+                />
+              );
+            }
+            return null;
+          })}
           {hasMore && (
             <div className="text-center py-4">
               <Button 

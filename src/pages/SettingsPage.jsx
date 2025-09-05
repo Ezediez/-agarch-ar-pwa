@@ -31,7 +31,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/lib/customSupabaseClient';
+import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
 import { cn } from '@/lib/utils';
 import LocationSettings from '@/components/settings/LocationSettings';
 
@@ -60,7 +60,7 @@ const SettingsPage = () => {
           visibility: profile.visibility || 'public',
         });
         setNotificationSettings({
-          notifications_new_match: profile.notifications_new_match ?? true,
+          notifications_new_like: profile.notifications_new_like ?? true,
           notifications_new_message: profile.notifications_new_message ?? true,
           notifications_promotions: profile.notifications_promotions ?? true,
           notification_sound: profile.notification_sound || 'sound',
@@ -103,6 +103,34 @@ const SettingsPage = () => {
       title: "🚧 Función en desarrollo",
       description: "Esta característica estará disponible pronto. ¡Puedes solicitarla en tu próximo prompt! 🚀",
     });
+  };
+
+  const handleVerificationRequest = async () => {
+    try {
+      // Simular proceso de verificación - redireccionar a página de verificación
+      toast({
+        title: "Proceso de Verificación",
+        description: "Serás redirigido al proceso de verificación. Costo: $1 USD",
+      });
+      
+      // Aquí puedes agregar la lógica para ir a la página de verificación
+      // navigate('/verification-process');
+      
+      // Por ahora, mostrar mensaje informativo
+      setTimeout(() => {
+        toast({
+          title: "Información",
+          description: "El proceso de verificación incluye validación de identidad por $1 USD vía PayPal.",
+        });
+      }, 2000);
+      
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo iniciar el proceso de verificación.",
+      });
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -175,7 +203,10 @@ const SettingsPage = () => {
               description={profile?.is_vip ? 'Eres un miembro VIP' : 'Membresía Gratuita'}
             >
               {!profile?.is_vip && (
-                <Button onClick={handleFeatureClick} className="btn-action bg-[#0070BA] hover:bg-[#005ea6] text-white font-bold">
+                 <Button 
+                  onClick={handleFeatureClick} 
+                  className="bg-[#0070BA] hover:bg-[#005ea6] text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200"
+                >
                   <PayPalIcon />
                   Hacerse VIP con PayPal
                 </Button>
@@ -185,7 +216,16 @@ const SettingsPage = () => {
               icon={<Shield className="text-green-400" />}
               title="Verificación"
               description={profile?.is_verified ? 'Tu cuenta ha sido verificada.' : 'Cuenta no verificada.'}
-            />
+            >
+              {!profile?.is_verified && (
+                <Button 
+                  onClick={handleVerificationRequest} 
+                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium"
+                >
+                  Verificar Cuenta
+                </Button>
+              )}
+            </SettingsItem>
             <SettingsItem
               icon={<CreditCard className="text-blue-400" />}
               title="Pagos y Suscripciones"
@@ -208,12 +248,14 @@ const SettingsPage = () => {
           <div className="space-y-4">
             <Dialog>
               <DialogTrigger asChild>
-                <SettingsItem
+                                <SettingsItem
                   icon={<Eye className="text-purple-400" />}
                   title="Visibilidad del Perfil"
                   description="Controla quién puede ver tu perfil."
                 >
-                  <Button variant="outline" className="btn-outline-action">Ajustar</Button>
+                   <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 px-6 py-2 rounded-lg font-medium">
+                     Ajustar
+                   </Button>
                 </SettingsItem>
               </DialogTrigger>
               <DialogContent className="card-glass bg-surface">
@@ -234,7 +276,7 @@ const SettingsPage = () => {
                     <SelectContent>
                       <SelectItem value="public">Todos</SelectItem>
                       <SelectItem value="verified_members">Solo miembros verificados</SelectItem>
-                      <SelectItem value="matches">Solo mis matches</SelectItem>
+                      <SelectItem value="likes">Solo personas que me gustan</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -258,7 +300,9 @@ const SettingsPage = () => {
                   title="Notificaciones"
                   description="Elige qué y cómo recibir notificaciones."
                 >
-                   <Button variant="outline" className="btn-outline-action">Configurar</Button>
+                   <Button variant="default" className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg font-medium">
+                     Activar
+                   </Button>
                 </SettingsItem>
               </DialogTrigger>
                <DialogContent className="card-glass bg-surface">
@@ -273,8 +317,8 @@ const SettingsPage = () => {
                       <Label className="text-base font-medium text-text-primary">Alertas</Label>
                       <div className="mt-2 space-y-2">
                         <div className="flex items-center space-x-2">
-                            <Checkbox id="notif-match" checked={notificationSettings.notifications_new_match} onCheckedChange={(checked) => setNotificationSettings(prev => ({...prev, notifications_new_match: checked}))}/>
-                            <Label htmlFor="notif-match">Nuevos Matches</Label>
+                            <Checkbox id="notif-like" checked={notificationSettings.notifications_new_like} onCheckedChange={(checked) => setNotificationSettings(prev => ({...prev, notifications_new_like: checked}))}/>
+                            <Label htmlFor="notif-like">Nuevos Me Gusta</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                             <Checkbox id="notif-message" checked={notificationSettings.notifications_new_message} onCheckedChange={(checked) => setNotificationSettings(prev => ({...prev, notifications_new_message: checked}))}/>

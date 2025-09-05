@@ -34,16 +34,8 @@ export const saveChat = (chat) => {
   localStorage.setItem('dating_app_chats', JSON.stringify(chats));
 };
 
-export const getMatches = () => {
-  const matches = localStorage.getItem('dating_app_matches');
-  return matches ? JSON.parse(matches) : [];
-};
-
-export const saveMatch = (match) => {
-  const matches = getMatches();
-  matches.push(match);
-  localStorage.setItem('dating_app_matches', JSON.stringify(matches));
-};
+// FUNCIONES DE MATCHES ELIMINADAS - YA NO SE USAN
+// El sistema funciona con likes directos, no matches
 
 export const getReports = () => {
   const reports = localStorage.getItem('dating_app_reports');

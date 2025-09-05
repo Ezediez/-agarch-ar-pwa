@@ -1,0 +1,381 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Bell, Heart, MessageCircle, User, X } from 'lucide-react';
+import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/components/ui/use-toast.jsx';
+
+const NotificationBell = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotifications();
+      setupRealtimeSubscription();
+    }
+
+    // Cerrar dropdown al hacer clic fuera
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [user?.id]);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      
+      // Crear notificaciones virtuales basadas en likes y mensajes recientes
+      const notifications = [];
+      
+      // 1. Notificaciones de nuevos likes (últimas 24 horas)
+      const { data: likesData, error: likesError } = await supabase
+        .from('user_likes')
+        .select(`
+          id,
+          created_at,
+          user_id,
+          profiles!user_id (
+            id,
+            alias,
+            profile_picture_url
+          )
+        `)
+        .eq('liked_user_id', user.id)
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (!likesError && likesData) {
+        likesData.forEach(like => {
+          if (like.profiles) {
+            notifications.push({
+              id: `like-${like.id}`,
+              type: 'like',
+              title: 'Nuevo Me Gusta',
+              message: `A ${like.profiles.alias} le gustó tu perfil`,
+              avatar: like.profiles.profile_picture_url,
+              created_at: like.created_at,
+              user_id: like.user_id,
+              read: false
+            });
+          }
+        });
+      }
+
+      // 2. Notificaciones de nuevos mensajes (últimas 24 horas)
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('messages')
+        .select(`
+          id,
+          contenido,
+          message_type,
+          sent_at,
+          sender_id,
+          profiles!sender_id (
+            id,
+            alias,
+            profile_picture_url
+          )
+        `)
+        .eq('recipient_id', user.id)
+        .gte('sent_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .order('sent_at', { ascending: false })
+        .limit(10);
+
+      if (!messagesError && messagesData) {
+        messagesData.forEach(message => {
+          if (message.profiles) {
+            notifications.push({
+              id: `message-${message.id}`,
+              type: 'message',
+              title: 'Nuevo Mensaje',
+              message: message.message_type === 'text' 
+                ? `${message.profiles.alias}: ${message.contenido?.substring(0, 50)}${message.contenido?.length > 50 ? '...' : ''}`
+                : `${message.profiles.alias} te envió ${message.message_type === 'media' ? 'una imagen' : 'un archivo'}`,
+              avatar: message.profiles.profile_picture_url,
+              created_at: message.sent_at,
+              user_id: message.sender_id,
+              read: false
+            });
+          }
+        });
+      }
+
+      // Ordenar por fecha y limitar
+      notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const limitedNotifications = notifications.slice(0, 15);
+      
+      setNotifications(limitedNotifications);
+      setUnreadCount(limitedNotifications.length);
+      
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setupRealtimeSubscription = () => {
+    // Suscripción a nuevos likes
+    const likesChannel = supabase
+      .channel(`notifications-likes-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'likes',
+          filter: `liked_user_id=eq.${user.id}`
+        },
+        async (payload) => {
+          // Obtener datos del perfil que dio like
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('id, alias, profile_picture_url')
+            .eq('id', payload.new.user_id)
+            .single();
+
+          if (profileData) {
+            const newNotification = {
+              id: `like-${payload.new.id}`,
+              type: 'like',
+              title: 'Nuevo Me Gusta',
+              message: `A ${profileData.alias} le gustó tu perfil`,
+              avatar: profileData.profile_picture_url,
+              created_at: payload.new.created_at,
+              user_id: payload.new.user_id,
+              read: false
+            };
+
+            setNotifications(prev => [newNotification, ...prev].slice(0, 15));
+            setUnreadCount(prev => prev + 1);
+            
+            // Mostrar toast
+            toast({
+              title: '❤️ Nuevo Me Gusta',
+              description: `A ${profileData.alias} le gustó tu perfil`,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // Suscripción a nuevos mensajes
+    const messagesChannel = supabase
+      .channel(`notifications-messages-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `recipient_id=eq.${user.id}`
+        },
+        async (payload) => {
+          // Obtener datos del perfil que envió el mensaje
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('id, alias, profile_picture_url')
+            .eq('id', payload.new.sender_id)
+            .single();
+
+          if (profileData) {
+            const newNotification = {
+              id: `message-${payload.new.id}`,
+              type: 'message',
+              title: 'Nuevo Mensaje',
+              message: payload.new.message_type === 'text' 
+                ? `${profileData.alias}: ${payload.new.contenido?.substring(0, 50)}${payload.new.contenido?.length > 50 ? '...' : ''}`
+                : `${profileData.alias} te envió ${payload.new.message_type === 'media' ? 'una imagen' : 'un archivo'}`,
+              avatar: profileData.profile_picture_url,
+              created_at: payload.new.sent_at,
+              user_id: payload.new.sender_id,
+              read: false
+            };
+
+            setNotifications(prev => [newNotification, ...prev].slice(0, 15));
+            setUnreadCount(prev => prev + 1);
+            
+            // Mostrar toast
+            toast({
+              title: '💬 Nuevo Mensaje',
+              description: `Mensaje de ${profileData.alias}`,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(likesChannel);
+      supabase.removeChannel(messagesChannel);
+    };
+  };
+
+  const handleNotificationClick = (notification) => {
+    // Marcar como leída
+    setNotifications(prev =>
+      prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+    );
+    setUnreadCount(prev => Math.max(0, prev - 1));
+
+    // Navegar según el tipo
+    if (notification.type === 'like') {
+      navigate(`/profile/${notification.user_id}`);
+    } else if (notification.type === 'message') {
+      navigate(`/chat?user=${notification.user_id}`);
+    }
+    
+    setIsOpen(false);
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
+  };
+
+  const clearNotifications = () => {
+    setNotifications([]);
+    setUnreadCount(0);
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'like':
+        return <Heart className="w-4 h-4 text-red-500" />;
+      case 'message':
+        return <MessageCircle className="w-4 h-4 text-blue-500" />;
+      default:
+        return <User className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const formatTimeAgo = (dateString) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Ahora';
+    if (diffInMinutes < 60) return `${diffInMinutes}m`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h`;
+    return `${Math.floor(diffInMinutes / 1440)}d`;
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {/* Bell Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2 text-muted-foreground hover:text-primary transition-colors"
+      >
+        <Bell className="w-6 h-6" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {/* Dropdown */}
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-lg shadow-lg z-50 max-h-96 overflow-hidden">
+          {/* Header */}
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-foreground">Notificaciones</h3>
+              <div className="flex items-center space-x-2">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllAsRead}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Marcar leídas
+                  </button>
+                )}
+                <button
+                  onClick={clearNotifications}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Notifications List */}
+          <div className="max-h-64 overflow-y-auto">
+            {loading ? (
+              <div className="p-4 text-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="p-4 text-center text-muted-foreground">
+                <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No hay notificaciones</p>
+              </div>
+            ) : (
+              notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
+                  className={`p-3 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/50 transition-colors ${
+                    !notification.read ? 'bg-primary/5' : ''
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="relative">
+                      <img
+                        src={notification.avatar || '/default-avatar.png'}
+                        alt=""
+                        className="w-8 h-8 rounded-full object-cover"
+                        onError={(e) => {
+                          e.target.src = '/default-avatar.png';
+                        }}
+                      />
+                      <div className="absolute -bottom-1 -right-1">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-foreground">
+                          {notification.title}
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          {formatTimeAgo(notification.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {notification.message}
+                      </p>
+                      {!notification.read && (
+                        <div className="w-2 h-2 bg-primary rounded-full mt-1"></div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default NotificationBell;

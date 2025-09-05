@@ -6,7 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/customSupabaseClient';
+import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
 import { useAuth } from '@/hooks/useAuth';
 import CommentModal from './CommentModal';
 
@@ -45,7 +45,7 @@ const PostCard = ({ post, onLikeToggle }) => {
         onLikeToggle(id, !currentlyLiked, currentlyLiked ? likes_count - 1 : likes_count + 1);
 
         if (currentlyLiked) {
-            const { error } = await supabase.from('likes').delete().match({ post_id: id, user_id: user.id });
+            const { error } = await supabase.from('post_likes').delete().match({ post_id: id, user_id: user.id });
             if (error) {
                 setOptimisticLiked(true);
                 setOptimisticLikesCount(prev => prev + 1);
@@ -53,7 +53,7 @@ const PostCard = ({ post, onLikeToggle }) => {
                 toast({ variant: 'destructive', title: 'Error al quitar el Me Gusta' });
             }
         } else {
-            const { error } = await supabase.from('likes').insert({ post_id: id, user_id: user.id });
+            const { error } = await supabase.from('post_likes').insert({ post_id: id, user_id: user.id });
             if (error) {
                 setOptimisticLiked(false);
                 setOptimisticLikesCount(prev => prev - 1);

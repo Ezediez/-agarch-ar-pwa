@@ -3,7 +3,7 @@ import React, { useState } from 'react';
     import { useNavigate } from 'react-router-dom';
     import { useAuth } from '@/hooks/useAuth';
     import { useToast } from '@/components/ui/use-toast.jsx';
-    import { supabase } from '@/lib/customSupabaseClient';
+    import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
     import { Button } from '@/components/ui/button';
     import { Textarea } from '@/components/ui/textarea';
     import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

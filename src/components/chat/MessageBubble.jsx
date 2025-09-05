@@ -67,7 +67,7 @@ import React from 'react';
                 </div>
             )}
 
-            {message.content && <p className="whitespace-pre-wrap break-words mt-2">{message.content}</p>}
+            {message.contenido && <p className="whitespace-pre-wrap break-words mt-2">{message.contenido}</p>}
             
             {message.message_type === 'audio' && message.media_urls?.[0] && 
                 <div className="flex items-center">

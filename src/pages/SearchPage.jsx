@@ -9,7 +9,7 @@ import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import DiscoverPage from './DiscoverPage';
-import { supabase } from '@/lib/customSupabaseClient';
+import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -61,8 +61,8 @@ const SearchPage = () => {
       if (currentUserProfile?.latitud && currentUserProfile?.longitud) {
           const { data, error } = await supabase.rpc('get_nearby_profiles', {
               user_lat: currentUserProfile.latitud,
-              user_lon: currentUserProfile.longitud,
-              distance_km: filters.distance
+              user_lng: currentUserProfile.longitud,
+              radius_km: filters.distance
           });
 
           if (error) throw error;

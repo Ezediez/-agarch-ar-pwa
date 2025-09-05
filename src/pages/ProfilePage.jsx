@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/customSupabaseClient';
+import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileInfo from '@/components/profile/ProfileInfo';
 import ProfileGallery from '@/components/profile/ProfileGallery';
 import ProfileVideos from '@/components/profile/ProfileVideos';
+import FollowingList from '@/components/profile/FollowingList';
 import { Loader2 } from 'lucide-react';
 import { useUploader } from '@/hooks/useUploader';
 import UploadModal from '@/components/profile/UploadModal';
@@ -215,6 +216,11 @@ const ProfilePage = () => {
                     onOpenUploadModal={handleOpenUploadModal}
                     onRemoveVideo={(url) => handleRemoveMedia(url, 'video')}
                 />
+                
+                {/* Lista de seguidos - solo visible en perfil propio */}
+                {isOwnProfile && (
+                    <FollowingList isOwnProfile={true} />
+                )}
             </div>
             
             <UploadModal

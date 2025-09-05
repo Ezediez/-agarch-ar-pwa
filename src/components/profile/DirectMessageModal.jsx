@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '@/lib/customSupabaseClient';
+import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,8 @@ const DirectMessageModal = ({ profile, onClose }) => {
       return;
     }
     setSending(true);
+    
+    console.log('🔥🔥🔥 ENVIANDO MENSAJE VIA FIREBASE RPC');
     const { data, error } = await supabase.rpc('handle_user_interaction', {
       target_user_id: profile.id,
       initial_message: message,
@@ -27,13 +29,16 @@ const DirectMessageModal = ({ profile, onClose }) => {
     setSending(false);
 
     if (error) {
+      console.error('🔥🔥🔥 ERROR FIREBASE RPC:', error);
       toast({ variant: 'destructive', title: 'Error al enviar mensaje', description: error.message });
     } else {
-      const [status, msg] = data.split(':');
-      toast({ title: msg });
-      if (status === 'success') {
+      console.log('🔥🔥🔥 FIREBASE RPC EXITOSO:', data);
+      if (data && data.success) {
+        toast({ title: 'Éxito', description: data.message || 'Mensaje enviado correctamente' });
         onClose();
         navigate('/chat', { state: { openChatWith: profile.id } });
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: data.error || 'No se pudo enviar el mensaje' });
       }
     }
   };

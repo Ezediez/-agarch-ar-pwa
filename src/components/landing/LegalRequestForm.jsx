@@ -11,17 +11,44 @@ const LegalRequestForm = ({ setOpen }) => {
   const { toast } = useToast();
 
   const onSubmit = async (data) => {
-    // Here you would typically send the data to a secure backend endpoint
-    // For now, we'll simulate a successful submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('Legal Request Data:', data);
+    try {
+      // Formatear datos para envío por email
+      const emailBody = `
+REQUERIMIENTO LEGAL - AGARCH-AR
 
-    toast({
-      title: "Solicitud Enviada",
-      description: "Hemos recibido su requerimiento. Nuestro equipo legal se pondrá en contacto a la brevedad.",
-    });
-    setOpen(false);
+Nombre del Solicitante: ${data.officialName}
+Email de Contacto: ${data.email}
+Institución/Entidad: ${data.institution}
+Número de Causa/Expediente: ${data.caseNumber}
+
+Detalles del Requerimiento:
+${data.requestDetails}
+
+---
+Solicitud generada automáticamente desde AGARCH-AR
+Fecha: ${new Date().toLocaleString()}
+      `.trim();
+
+      // Crear enlace mailto para legales@agarch-ar.com
+      const mailtoLink = `mailto:legales@agarch-ar.com?subject=Requerimiento Legal - Caso ${data.caseNumber}&body=${encodeURIComponent(emailBody)}`;
+      
+      // Abrir cliente de correo
+      window.location.href = mailtoLink;
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast({
+        title: "Solicitud Preparada",
+        description: "Se ha abierto su cliente de correo. El requerimiento se enviará a legales@agarch-ar.com",
+      });
+      setOpen(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo procesar el requerimiento. Intente nuevamente.",
+      });
+    }
   };
 
   return (
@@ -30,6 +57,23 @@ const LegalRequestForm = ({ setOpen }) => {
         <Label htmlFor="officialName">Nombre Completo del Solicitante</Label>
         <Input id="officialName" {...register('officialName', { required: 'El nombre es requerido' })} className="input-glass" />
         {errors.officialName && <p className="text-red-500 text-sm">{errors.officialName.message}</p>}
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="email">Email del Consultante</Label>
+        <Input 
+          id="email" 
+          type="email"
+          {...register('email', { 
+            required: 'El email es requerido',
+            pattern: {
+              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+              message: 'Email inválido'
+            }
+          })} 
+          className="input-glass" 
+          placeholder="consulta@institucion.gov"
+        />
+        {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
       </div>
       <div className="grid gap-2">
         <Label htmlFor="institution">Institución/Entidad</Label>

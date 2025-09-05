@@ -94,7 +94,7 @@ const ChatWindow = ({
         await sendMessage({
           recipient_id: activeChat.id,
           sender_id: user.id,
-          content: newMessage,
+          contenido: newMessage,
           message_type: 'text',
         });
     }

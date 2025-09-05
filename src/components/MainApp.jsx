@@ -36,7 +36,7 @@ const MainApp = () => {
         <Route path="/profile/:id" element={<ProfilePage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/chat" element={<ChatPage />} />
-        <Route path="/chat/:matchId" element={<ChatPage />} />
+        <Route path="/chat/:userId" element={<ChatPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/create-post" element={<CreatePostPage />} />
         <Route path="/payments" element={<PaymentsPage />} />

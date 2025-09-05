@@ -3,10 +3,10 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Compass, MessageSquare, User, Settings, LogOut, Shield, Search } from 'lucide-react';
+import { Home, MessageSquare, User, Settings, LogOut, Shield, Search } from 'lucide-react';
 
 const navItems = [
-  { icon: Compass, text: 'Descubrir', path: '/' },
+  { icon: Home, text: 'Publicaciones', path: '/' },
   { icon: MessageSquare, text: 'Chats', path: '/chat' },
   { icon: User, text: 'Mi Perfil', path: '/profile' },
   { icon: Search, text: 'Buscar', path: '/search' },

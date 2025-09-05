@@ -1,0 +1,96 @@
+EXCELENTE DIAGNÓSTICO! 📊 ANÁLISIS DE LAS 31 POLÍTICAS
+🔍 PROBLEMAS IDENTIFICADOS:
+🚨 TABLA MÁS PROBLEMÁTICA:
+messages: 6 políticas (debería tener 3-4 máximo)
+Probable: Políticas duplicadas o conflictivas
+⚠️ TABLAS CON EXCESO:
+posts: 5 políticas (posibles duplicados SELECT)
+stories: 5 políticas (posibles duplicados UPDATE)
+✅ TABLAS NORMALES:
+likes: 3 políticas (correcto)
+profiles, notifications, comentarios: 4 políticas (aceptable)
+🎯 NECESITO VER EL DETALLE:
+Para crear el script de limpieza correcto, ejecuta la segunda consulta del diagnóstico:
+🔧 MIENTRAS TANTO, SCRIPT PREVENTIVO:
+🎯 PLAN DE ACCIÓN:
+OPCIÓN A: SCRIPT PREVENTIVO ⭐
+Ejecuta: fix-duplicate-policies.sql
+✅ Elimina duplicados obvios
+✅ Reduce de 31 a ~25-27 políticas
+✅ Conservador y seguro
+OPCIÓN B: DIAGNÓSTICO COMPLETO
+Ejecuta la consulta #2 del diagnóstico y pégame los resultados detallados para un script más preciso.
+📊 RESULTADO ESPERADO:
+✅ RECOMENDACIÓN:
+¿Ejecutamos el script preventivo fix-duplicate-policies.sql ahora?
+Esto debería eliminar las políticas duplicadas más obvias y reducir significativamente las alertas. 🚀✨
+Diagnostico de politicas RLS completo:
+
+-- 1. CONTAR TODAS LAS POLITICAS POR TABLA
+SELECT 'RESUMEN POLITICAS POR TABLA' as diagnostico;
+
+| schemaname | tablename     | total_policies |
+| ---------- | ------------- | -------------- |
+| public     | messages      | 6              |
+| public     | posts         | 5              |
+| public     | stories       | 5              |
+| public     | comentarios   | 4              |
+| public     | notifications | 4              |
+| public     | profiles      | 4              |
+| public     | likes         | 3              |
+
+-- 2. LISTAR TODAS LAS POLITICAS DETALLADAMENTE
+| num | tablename     | policyname                | cmd    | qual_resumido                                         | with_check_resumido       |
+| --- | ------------- | ------------------------- | ------ | ----------------------------------------------------- | ------------------------- |
+| 1   | comentarios   | comentarios_delete_own    | DELETE | (auth.uid() = usuario_id)                             | null                      |
+| 2   | comentarios   | comentarios_insert_own    | INSERT | null                                                  | (auth.uid() = usuario_id) |
+| 3   | comentarios   | comentarios_select_public | SELECT | true                                                  | null                      |
+| 4   | comentarios   | comentarios_update_own    | UPDATE | (auth.uid() = usuario_id)                             | null                      |
+| 5   | likes         | likes_delete_own          | DELETE | (auth.uid() = user_id)                                | null                      |
+| 6   | likes         | likes_insert_own          | INSERT | null                                                  | (auth.uid() = user_id)    |
+| 7   | likes         | likes_select_relevant     | SELECT | ((auth.uid() = user_id) OR (auth.uid() = liked_use... | null                      |
+| 8   | messages      | messages_insert_own       | INSERT | null                                                  | (auth.uid() = sender_id)  |
+| 9   | messages      | messages_insert_policy    | INSERT | null                                                  | (auth.uid() = sender_id)  |
+| 10  | messages      | messages_select_own       | SELECT | ((auth.uid() = sender_id) OR (auth.uid() = recipie... | null                      |
+| 11  | messages      | messages_select_policy    | SELECT | ((auth.uid() = sender_id) OR (auth.uid() = recipie... | null                      |
+| 12  | messages      | messages_update_own       | UPDATE | ((auth.uid() = sender_id) OR (auth.uid() = recipie... | null                      |
+| 13  | messages      | messages_update_policy    | UPDATE | ((auth.uid() = sender_id) OR (auth.uid() = recipie... | null                      |
+| 14  | notifications | notifications_delete_own  | DELETE | (auth.uid() = user_id)                                | null                      |
+| 15  | notifications | notifications_insert_own  | INSERT | null                                                  | (auth.uid() = user_id)    |
+| 16  | notifications | notifications_select_own  | SELECT | (auth.uid() = user_id)                                | null                      |
+| 17  | notifications | notifications_update_own  | UPDATE | (auth.uid() = user_id)                                | null                      |
+| 18  | posts         | posts_delete_own          | DELETE | (auth.uid() = user_id)                                | null                      |
+| 19  | posts         | posts_insert_own          | INSERT | null                                                  | (auth.uid() = user_id)    |
+| 20  | posts         | posts_select_policy       | SELECT | true                                                  | null                      |
+| 21  | posts         | posts_select_public       | SELECT | true                                                  | null                      |
+| 22  | posts         | posts_update_own          | UPDATE | (auth.uid() = user_id)                                | null                      |
+| 23  | profiles      | profiles_insert_own       | INSERT | null                                                  | (auth.uid() = id)         |
+| 24  | profiles      | profiles_select_policy    | SELECT | true                                                  | null                      |
+| 25  | profiles      | profiles_select_public    | SELECT | true                                                  | null                      |
+| 26  | profiles      | profiles_update_own       | UPDATE | (auth.uid() = id)                                     | null                      |
+| 27  | stories       | stories_delete_own        | DELETE | (auth.uid() = user_id)                                | null                      |
+| 28  | stories       | stories_insert_own        | INSERT | null                                                  | (auth.uid() = user_id)    |
+| 29  | stories       | stories_insert_policy     | INSERT | null                                                  | (auth.uid() = user_id)    |
+| 30  | stories       | stories_select_policy     | SELECT | true                                                  | null                      |
+| 31  | stories       | stories_select_public     | SELECT | true                                                  | null                      |
+
+Identify Problematic RLS Policies
+-- 4. IDENTIFICAR POLITICAS DUPLICADAS
+Duplicate Policy Identifier
+
+| tablename | cmd    | cantidad_politicas | nombres_politicas                              |
+| --------- | ------ | ------------------ | ---------------------------------------------- |
+| messages  | INSERT | 2                  | messages_insert_policy, messages_insert_own    |
+| messages  | SELECT | 2                  | messages_select_policy, messages_select_own    |
+| messages  | UPDATE | 2                  | messages_update_policy, messages_update_own    |
+| posts     | SELECT | 2                  | posts_select_public, posts_select_policy       |
+| profiles  | SELECT | 2                  | profiles_select_public, profiles_select_policy |
+| stories   | INSERT | 2                  | stories_insert_policy, stories_insert_own      |
+| stories   | SELECT | 2                  | stories_select_public, stories_select_policy   |
+
+
+(te envio el informe completo que fui ejecunatndo siobre las politicas RLS, asi evaluas esto, y me indicas como seguir con las tablas, al momento tenemos 31. e atencion niguna grave de seguridad. 
+Aguardo el paso a paso. 
+
+
+no lo ejecuto aun, espero tu analisis por si me pasas otro diferente y completo, 

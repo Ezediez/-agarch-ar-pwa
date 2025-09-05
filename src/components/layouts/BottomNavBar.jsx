@@ -4,8 +4,7 @@ import { Compass, Home, MessageSquare, User, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
-  { icon: Compass, text: 'Descubrir', path: '/discover' },
-  { icon: Home, text: 'Publicaciones', path: '/' },
+  { icon: Home, text: 'Publicaciones', path: '/discover' },
   { icon: MessageSquare, text: 'Chats', path: '/chat' },
   { icon: User, text: 'Perfil', path: '/profile' },
 ];

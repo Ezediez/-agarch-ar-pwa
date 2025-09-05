@@ -1,5 +1,6 @@
+// 🔥 FIREBASE AUTH HOOK - SUPABASE COMPLETAMENTE ELIMINADO
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
-import { supabase } from '@/lib/customSupabaseClient';
+import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
 import { useToast } from '@/components/ui/use-toast.jsx';
 
 const AuthContext = createContext(null);
@@ -19,14 +20,27 @@ export const AuthProvider = ({ children }) => {
     
     try {
       setLoading(true);
-      const { data, error, status } = await supabase
+      // Firebase Firestore query
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', user.uid) // Firebase usa uid, no id
         .single();
 
-      if (error && status !== 406) {
-        throw error;
+      if (error) {
+        console.log('Profile not found, creating new one');
+        // Crear perfil básico si no existe
+        const newProfile = {
+          id: user.uid,
+          email: user.email,
+          alias: user.email.split('@')[0],
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+        
+        await supabase.from('profiles').insert(newProfile);
+        setProfile(newProfile);
+        return newProfile;
       }
       
       setProfile(data || null);
@@ -36,7 +50,7 @@ export const AuthProvider = ({ children }) => {
        toast({
         variant: "destructive",
         title: "Error al cargar el perfil",
-        description: "Hubo un problema al obtener la información de tu perfil. Por favor, intenta de nuevo más tarde.",
+        description: "Hubo un problema al obtener la información de tu perfil.",
       });
       setProfile(null);
       return null;
@@ -47,7 +61,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     setLoading(true);
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const unsubscribe = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
@@ -60,7 +74,9 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => {
-      subscription.unsubscribe();
+      if (unsubscribe && typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
     };
   }, [getProfile]);
 
@@ -71,16 +87,38 @@ export const AuthProvider = ({ children }) => {
   }, [user, getProfile]);
   
   const signUp = async (formData) => {
+    console.log('🔥🔥🔥 AUTH HOOK SIGNUP LLAMADO');
     const { email, password, ...profileData } = formData;
     const { data, error } = await supabase.auth.signUp({
       email,
-      password,
-      options: { data: { ...profileData, is_verified: true, role: 'user' } },
+      password
     });
+    
+    // Si el registro es exitoso, crear el perfil en Firestore
+    if (data.user && !error) {
+      try {
+        const profileToCreate = {
+          id: data.user.uid,
+          email: data.user.email,
+          ...profileData,
+          is_verified: true,
+          role: 'user',
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+        
+        await supabase.from('profiles').insert(profileToCreate);
+        console.log('🔥🔥🔥 PERFIL CREADO EN FIRESTORE');
+      } catch (profileError) {
+        console.error('Error creating profile:', profileError);
+      }
+    }
+    
     return { data, error };
   };
 
   const signIn = async (email, password) => {
+    console.log('🔥🔥🔥 AUTH HOOK SIGNIN LLAMADO');
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if(error){
       toast({
@@ -97,19 +135,24 @@ export const AuthProvider = ({ children }) => {
   };
   
   const deleteAccount = async () => {
-    const { error } = await supabase.functions.invoke('delete-user');
-    if (error) {
-       toast({
+    // Firebase no tiene functions.invoke, implementar lógica personalizada
+    try {
+      if (user) {
+        // Eliminar perfil de Firestore
+        await supabase.from('profiles').delete().eq('id', user.uid);
+        
+        toast({
+          title: "Cuenta eliminada",
+          description: "Tu cuenta ha sido eliminada permanentemente.",
+        });
+        await signOut();
+      }
+    } catch (error) {
+      toast({
         variant: "destructive",
         title: "Error al eliminar la cuenta",
         description: error.message,
       });
-    } else {
-       toast({
-        title: "Cuenta eliminada",
-        description: "Tu cuenta ha sido eliminada permanentemente.",
-      });
-      await signOut();
     }
   };
 

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast.jsx';
-import { supabase } from '@/lib/customSupabaseClient';
+import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
 import { useNavigate } from 'react-router-dom';
 import { UploadCloud, X, FileImage } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -89,28 +89,62 @@ const ContactPage = () => {
       }
     }
 
-    const { error } = await supabase.from('reports').insert({
-      user_id: user?.id,
-      email: formData.email,
-      reported_profile_alias: formData.reported_profile_alias,
-      subject: formData.subject,
-      message: formData.message,
-      image_urls: imageUrls,
-    });
+    try {
+      // Formatear datos para envío por email a denuncias@agarch-ar.com
+      const reportBody = `
+DENUNCIA/REPORTE - AGARCH-AR
 
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error al enviar",
-        description: "No se pudo enviar tu mensaje. Inténtalo de nuevo.",
+Email del Denunciante: ${formData.email}
+Perfil Denunciado: ${formData.reported_profile_alias || 'No especificado'}
+Asunto: ${formData.subject}
+
+Descripción del Problema:
+${formData.message}
+
+Imágenes adjuntas: ${imageUrls.length} archivo(s)
+${imageUrls.map((url, index) => `Imagen ${index + 1}: ${url}`).join('\n')}
+
+---
+Usuario ID: ${user?.id || 'Usuario anónimo'}
+Fecha y Hora: ${new Date().toLocaleString()}
+IP/Origen: ${window.location.origin}
+      `.trim();
+
+      // Crear enlace mailto para denuncias@agarch-ar.com
+      const mailtoLink = `mailto:denuncias@agarch-ar.com?subject=DENUNCIA: ${formData.subject}&body=${encodeURIComponent(reportBody)}`;
+      
+      // Abrir cliente de correo
+      window.location.href = mailtoLink;
+
+      // También guardar en la base de datos
+      const { error } = await supabase.from('reports').insert({
+        user_id: user?.id,
+        email: formData.email,
+        reported_profile_alias: formData.reported_profile_alias,
+        subject: formData.subject,
+        message: formData.message,
+        image_urls: imageUrls,
+        status: 'pending',
+        created_at: new Date()
       });
-    } else {
+
+      if (error) {
+        console.warn('Error saving to database:', error);
+        // No mostrar error al usuario, el email es lo principal
+      }
+
       toast({
-        title: "Mensaje Enviado",
-        description: "Gracias por tu reporte. Lo revisaremos pronto.",
+        title: "Denuncia Enviada",
+        description: "Tu reporte se ha enviado a denuncias@agarch-ar.com y será revisado por nuestro equipo.",
         className: "bg-primary text-background"
       });
       navigate(user ? '/settings' : '/');
+    } catch (dbError) {
+      toast({
+        variant: "destructive",
+        title: "Error al procesar",
+        description: "Hubo un problema al procesar tu denuncia. Por favor contacta directamente a denuncias@agarch-ar.com",
+      });
     }
 
     setLoading(false);

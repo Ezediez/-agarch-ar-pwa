@@ -1,11 +1,11 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Compass, MessageSquare, User, Shield, Search, Settings } from 'lucide-react';
+import { Home, MessageSquare, User, Shield, Search, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import Notifications from '@/components/Notifications';
 
 const navItems = [
-  { icon: Compass, text: 'Descubrir', path: '/' },
+  { icon: Home, text: 'Publicaciones', path: '/' },
   { icon: MessageSquare, text: 'Chats', path: '/chat' },
   { icon: User, text: 'Perfil', path: '/profile' },
   { icon: Search, text: 'Buscar', path: '/search' },
