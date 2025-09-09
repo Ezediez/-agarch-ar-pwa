@@ -19,7 +19,7 @@ const AdCard = ({ ad, index = 0 }) => {
                 window.open(value, '_blank');
                 break;
             default:
-                toast({
+        toast({
                     title: "Contactar Anunciante",
                     description: `${ad.company_name || ad.title}`,
                 });
