@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { getUsers } from '@/utils/storage';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = ({ onLogin, onBackToLanding }) => {
   const [formData, setFormData] = useState({
@@ -16,6 +17,8 @@ const LoginPage = ({ onLogin, onBackToLanding }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { signIn } = useAuth();
+  const navigate = useNavigate();
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -25,34 +28,39 @@ const LoginPage = ({ onLogin, onBackToLanding }) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simular delay de autenticación
-    setTimeout(() => {
-      const users = getUsers();
-      const user = users.find(u => u.email === formData.email && u.password === formData.password);
-
-      if (user) {
-        if (!user.isVerified) {
-          toast({
-            title: "Cuenta no verificada",
-            description: "Por favor verifica tu cuenta con el token enviado a tu email y móvil",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "¡Bienvenido!",
-            description: `Hola ${user.firstName}, es genial tenerte de vuelta`
-          });
-          onLogin(user);
-        }
-      } else {
+    try {
+      const { data, error } = await signIn(formData.email, formData.password);
+      
+      if (error) {
         toast({
           title: "Error de autenticación",
-          description: "Email o contraseña incorrectos",
+          description: error.message,
           variant: "destructive"
         });
+      } else if (data?.user) {
+        toast({
+          title: "¡Bienvenido!",
+          description: "Has iniciado sesión exitosamente"
+        });
+        
+        // Si hay callback onLogin, lo llamamos
+        if (onLogin) {
+          onLogin(data.user);
+        } else {
+          // Si no hay callback, navegamos a la página principal
+          navigate('/');
+        }
       }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Error inesperado",
+        description: "Ocurrió un problema al iniciar sesión",
+        variant: "destructive"
+      });
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -140,12 +148,7 @@ const LoginPage = ({ onLogin, onBackToLanding }) => {
             <div className="mt-6 text-center">
               <button 
                 className="text-orange-500 hover:text-orange-600 font-medium"
-                onClick={() => {
-                  toast({
-                    title: "🚧 Esta función no está implementada aún",
-                    description: "¡Pero no te preocupes! Puedes solicitarla en tu próximo prompt! 🚀"
-                  });
-                }}
+                onClick={() => navigate('/recover-password')}
               >
                 ¿Olvidaste tu contraseña?
               </button>

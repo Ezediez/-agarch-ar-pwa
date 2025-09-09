@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from "@/components/ui/use-toast.jsx";
+import { CheckCircle, CreditCard } from 'lucide-react';
 
 const RegisterStep3 = ({ formData, updateFormData, prevStep, handleFinalSubmit, loading }) => {
   const { toast } = useToast();
@@ -29,6 +30,25 @@ const RegisterStep3 = ({ formData, updateFormData, prevStep, handleFinalSubmit, 
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Estado del Pago */}
+          {formData.paymentValidated && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-2 text-green-700">
+                <CheckCircle className="w-5 h-5" />
+                <span className="font-semibold">Pago Validado</span>
+              </div>
+              <div className="mt-2 text-sm text-green-600">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4" />
+                  <span>ID de pago: {formData.paymentId}</span>
+                </div>
+                <div className="mt-1">
+                  Monto: $1.00 USD - PayPal
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4">
             <div className="flex items-start space-x-3">
               <Checkbox id="agreedToTerms" checked={formData.agreedToTerms} onCheckedChange={(checked) => updateFormData({ agreedToTerms: checked })} className="mt-1" />

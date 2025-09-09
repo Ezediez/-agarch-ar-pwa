@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { auth } from '@/lib/firebase'; // 🔥 Firebase client
+import { sendPasswordResetEmail } from 'firebase/auth';
 import { ArrowLeft, Mail } from 'lucide-react';
 
 const PasswordRecoveryPage = () => {
@@ -18,27 +19,33 @@ const PasswordRecoveryPage = () => {
     e.preventDefault();
     setLoading(true);
     
-    const redirectTo = `${window.location.origin}/update-password`;
-
-    const { error } = await db.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectTo,
-    });
-
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    } else {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      
       toast({
         title: "Correo enviado",
         description: "Revisa tu bandeja de entrada para restablecer tu contraseña.",
         className: "bg-primary text-background"
       });
+    } catch (error) {
+      console.error('Password reset error:', error);
+      
+      const errorMap = {
+        'auth/user-not-found': 'No existe una cuenta con este correo electrónico.',
+        'auth/invalid-email': 'El correo electrónico no es válido.',
+        'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde.'
+      };
+      
+      const friendlyError = errorMap[error.code] || 'Error al enviar el correo de recuperación.';
+      
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: friendlyError,
+      });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (

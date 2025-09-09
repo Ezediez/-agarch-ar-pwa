@@ -1,0 +1,32 @@
+[debug] [2025-09-09T22:25:47.427Z] ----------------------------------------------------------------------
+[debug] [2025-09-09T22:25:47.432Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Eze\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init firestore
+[debug] [2025-09-09T22:25:47.432Z] CLI Version:   14.15.2
+[debug] [2025-09-09T22:25:47.433Z] Platform:      win32
+[debug] [2025-09-09T22:25:47.433Z] Node Version:  v24.7.0
+[debug] [2025-09-09T22:25:47.433Z] Time:          Tue Sep 09 2025 19:25:47 GMT-0300 (hora estándar de Argentina)
+[debug] [2025-09-09T22:25:47.433Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-09-09T22:25:47.444Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-09-09T22:25:47.445Z] > authorizing via signed-in user (ezediez75@gmail.com)
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\app-agarch-ar
+
+Before we get started, keep in mind:
+
+  * You are currently outside your home directory
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] but for now we'll just set up a default project.
+[info] 

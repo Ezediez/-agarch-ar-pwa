@@ -28,6 +28,10 @@ const MultiStepRegisterPage = () => {
     // Step 2
     password: '',
     confirmPassword: '',
+    // Monetización
+    paymentValidated: false,
+    paymentId: null,
+    paymentDate: null,
     // Step 3
     agreedToTerms: false,
     agreedToPrivacy: false,
@@ -43,6 +47,17 @@ const MultiStepRegisterPage = () => {
 
   const handleFinalSubmit = async () => {
     setLoading(true);
+    
+    // 🔥 VALIDAR QUE EL PAGO ESTÉ COMPLETADO
+    if (!formData.paymentValidated) {
+      toast({
+        variant: "destructive",
+        title: "Pago requerido",
+        description: "Debes completar la validación de pago antes de crear tu cuenta.",
+      });
+      setLoading(false);
+      return;
+    }
     
     const { agreedToTerms, agreedToPrivacy, agreedToSecurity, confirmPassword, ...finalAuthData } = formData;
 
@@ -61,7 +76,7 @@ const MultiStepRegisterPage = () => {
     if (signUpData.user) {
       toast({
         title: "¡Cuenta creada exitosamente!",
-        description: "Validación de 1 USD con PayPal completada. ¡Bienvenido!",
+        description: `Validación de $1 USD completada. ID de pago: ${formData.paymentId}. ¡Bienvenido!`,
         className: "bg-primary text-background"
       });
 

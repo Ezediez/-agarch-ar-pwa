@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/components/ui/use-toast.jsx";
 import { validatePassword } from '@/utils/validation';
-import { CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { processMonetizationPayment } from '@/lib/monetization';
 
 const PasswordRequirement = ({ isValid, text }) => (
   <div className={`flex items-center text-xs ${isValid ? 'text-green-400' : 'text-text-secondary'}`}>
@@ -24,6 +25,7 @@ const RegisterStep2 = ({ formData, updateFormData, nextStep, prevStep }) => {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const passwordValidation = useMemo(() => {
     const { errors } = validatePassword(formData.password);
@@ -38,7 +40,7 @@ const RegisterStep2 = ({ formData, updateFormData, nextStep, prevStep }) => {
     updateFormData({ [e.target.id]: e.target.value });
   };
   
-  const handleNext = (e) => {
+  const handleNext = async (e) => {
     e.preventDefault();
 
     const { isValid } = validatePassword(formData.password);
@@ -52,18 +54,54 @@ const RegisterStep2 = ({ formData, updateFormData, nextStep, prevStep }) => {
       return;
     }
 
-    // This is where you would trigger the real PayPal flow.
-    // For now, we simulate a successful payment.
-    toast({
-      title: "¡Validación con PayPal exitosa!",
-      description: "Se ha simulado un pago de 1 USD. Serás redirigido al último paso.",
-      className: "bg-blue-600 text-white"
-    });
+    // 🔥 PROCESAR PAGO CON FIREBASE
+    setIsProcessingPayment(true);
+    
+    try {
+      // Generar un ID temporal para el usuario (antes de crear la cuenta)
+      const tempUserId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const paymentResult = await processMonetizationPayment(tempUserId, {
+        email: formData.email,
+        nombre: formData.nombre_completo,
+        alias: formData.alias,
+      });
 
-    // We can add a small delay to make the simulation feel more real
-    setTimeout(() => {
-      nextStep();
-    }, 1500);
+      if (paymentResult.success) {
+        // Guardar datos del pago en el formData para el siguiente paso
+        updateFormData({
+          paymentValidated: true,
+          paymentId: paymentResult.paymentData.paymentId,
+          paymentDate: paymentResult.paymentData.timestamp,
+        });
+
+        toast({
+          title: "¡Validación con PayPal exitosa!",
+          description: `Pago de $1 USD procesado. ID: ${paymentResult.paymentData.paymentId}`,
+          className: "bg-green-600 text-white"
+        });
+
+        // Continuar al siguiente paso
+        setTimeout(() => {
+          nextStep();
+        }, 1500);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error en el pago",
+          description: paymentResult.error || "No se pudo procesar el pago. Intenta nuevamente.",
+        });
+      }
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error inesperado",
+        description: "Ocurrió un problema al procesar el pago. Intenta nuevamente.",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   return (
@@ -106,9 +144,22 @@ const RegisterStep2 = ({ formData, updateFormData, nextStep, prevStep }) => {
              <p className="text-xs text-center text-brand-red font-semibold pt-2">
               (El titular de la cuenta de PayPal debe ser el mismo que el del perfil que se está creando)
             </p>
-            <Button type="submit" className="w-full btn-action bg-[#0070BA] hover:bg-[#005ea6] text-white font-bold py-3 text-lg flex items-center justify-center gap-2">
-              <PayPalIcon/>
-              Pagar 1 USD con PayPal
+            <Button 
+              type="submit" 
+              className="w-full btn-action bg-[#0070BA] hover:bg-[#005ea6] text-white font-bold py-3 text-lg flex items-center justify-center gap-2"
+              disabled={isProcessingPayment}
+            >
+              {isProcessingPayment ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Procesando pago...
+                </>
+              ) : (
+                <>
+                  <PayPalIcon/>
+                  Pagar 1 USD con PayPal
+                </>
+              )}
             </Button>
           </div>
 
