@@ -1,35 +1,40 @@
-// 🔥 MONETIZACIÓN FIREBASE - SERVICIO COMPLETO
+// 🔥 VALIDACIÓN DE IDENTIDAD FIREBASE - SERVICIO COMPLETO
+// NOTA: Este es un sistema de VALIDACIÓN, no de monetización real.
+// La monetización real será a través de Play Store/App Store.
 import { db } from './firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
 
-// Configuración de PayPal (puedes cambiar estos valores)
+// Configuración de PayPal para VALIDACIÓN DE IDENTIDAD (no monetización)
 const PAYPAL_CONFIG = {
-  amount: 1.00, // USD
+  amount: 1.00, // USD - Solo para validación
   currency: 'USD',
-  description: 'Validación de identidad AGARCH-AR',
+  description: 'Validación de identidad AGARCH-AR (NO es monetización)',
   sandbox: true, // Cambiar a false en producción
+  purpose: 'identity_verification', // Clarificar propósito
 };
 
-// Simulación de PayPal (en producción usarías la API real)
+// Simulación de PayPal para VALIDACIÓN DE IDENTIDAD (en producción usarías la API real)
 export const simulatePayPalPayment = async (userData) => {
   try {
     // Simular delay de PayPal
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Simular respuesta exitosa de PayPal
+    // Simular respuesta exitosa de PayPal para VALIDACIÓN
     const paymentData = {
-      paymentId: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      paymentId: `VALIDATION-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       status: 'COMPLETED',
       amount: PAYPAL_CONFIG.amount,
       currency: PAYPAL_CONFIG.currency,
+      purpose: PAYPAL_CONFIG.purpose, // identity_verification
       payerEmail: userData.email,
       timestamp: new Date(),
       transactionId: `TXN-${Date.now()}`,
+      isValidation: true, // Marcar como validación, no monetización
     };
     
     return { success: true, data: paymentData };
   } catch (error) {
-    console.error('PayPal simulation error:', error);
+    console.error('PayPal validation simulation error:', error);
     return { success: false, error: error.message };
   }
 };

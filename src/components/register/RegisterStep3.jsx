@@ -30,20 +30,23 @@ const RegisterStep3 = ({ formData, updateFormData, prevStep, handleFinalSubmit, 
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Estado del Pago */}
+          {/* Estado de Validación */}
           {formData.paymentValidated && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
               <div className="flex items-center gap-2 text-green-700">
                 <CheckCircle className="w-5 h-5" />
-                <span className="font-semibold">Pago Validado</span>
+                <span className="font-semibold">Identidad Validada</span>
               </div>
               <div className="mt-2 text-sm text-green-600">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
-                  <span>ID de pago: {formData.paymentId}</span>
+                  <span>ID de validación: {formData.paymentId}</span>
                 </div>
                 <div className="mt-1">
-                  Monto: $1.00 USD - PayPal
+                  Validación: $1.00 USD - PayPal (NO es monetización)
+                </div>
+                <div className="mt-1 text-xs text-green-500">
+                  ✅ Cuenta verificada para prevenir perfiles falsos
                 </div>
               </div>
             </div>

@@ -76,7 +76,7 @@ const MultiStepRegisterPage = () => {
     if (signUpData.user) {
       toast({
         title: "¡Cuenta creada exitosamente!",
-        description: `Validación de $1 USD completada. ID de pago: ${formData.paymentId}. ¡Bienvenido!`,
+        description: `Identidad validada ($1 USD). ID: ${formData.paymentId}. ¡Bienvenido a AGARCH-AR!`,
         className: "bg-primary text-background"
       });
 

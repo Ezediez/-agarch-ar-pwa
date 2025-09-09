@@ -139,8 +139,13 @@ const RegisterStep2 = ({ formData, updateFormData, nextStep, prevStep }) => {
           <div className="space-y-4 border-t border-border-color pt-6">
             <h3 className="text-lg font-semibold text-center text-primary">Validación de Identidad</h3>
             <p className="text-sm text-center text-text-secondary">
-              Para prevenir cuentas falsas y asegurar la calidad de nuestra comunidad, requerimos una validación única de 1 USD a través de PayPal. Esto no es una suscripción.
+              Para prevenir cuentas falsas y asegurar la calidad de nuestra comunidad, requerimos una validación única de 1 USD a través de PayPal. Esto NO es una suscripción ni monetización.
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-xs text-center text-blue-700 font-semibold">
+                💡 <strong>Nota:</strong> La monetización real será a través de Play Store/App Store cuando publiques la app. Este pago es solo para validación de identidad.
+              </p>
+            </div>
              <p className="text-xs text-center text-brand-red font-semibold pt-2">
               (El titular de la cuenta de PayPal debe ser el mismo que el del perfil que se está creando)
             </p>
