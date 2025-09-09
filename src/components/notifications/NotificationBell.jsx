@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Heart, MessageCircle, User, X } from 'lucide-react';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast.jsx';
@@ -221,8 +221,8 @@ const NotificationBell = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(likesChannel);
-      supabase.removeChannel(messagesChannel);
+      db.removeChannel(likesChannel);
+      db.removeChannel(messagesChannel);
     };
   };
 

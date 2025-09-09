@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { ArrowLeft, Mail } from 'lucide-react';
 
 const PasswordRecoveryPage = () => {
@@ -20,7 +20,7 @@ const PasswordRecoveryPage = () => {
     
     const redirectTo = `${window.location.origin}/update-password`;
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await db.auth.resetPasswordForEmail(email, {
       redirectTo: redirectTo,
     });
 

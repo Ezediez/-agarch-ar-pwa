@@ -3,7 +3,7 @@ import React, { useState } from 'react';
     import { useNavigate } from 'react-router-dom';
     import { useAuth } from '@/hooks/useAuth';
     import { useToast } from '@/components/ui/use-toast.jsx';
-    import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+    import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
     import { Button } from '@/components/ui/button';
     import { Textarea } from '@/components/ui/textarea';
     import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,7 +77,7 @@ import React, { useState } from 'react';
             ...(mediaUrl && type === 'video' && { video_url: mediaUrl }),
         };
 
-        const { error } = await supabase.from('posts').insert(postData);
+        const { error } = await db.from('posts').insert(postData);
 
         if (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo crear la publicación.' });
@@ -93,7 +93,7 @@ import React, { useState } from 'react';
             return;
         }
 
-        const { error } = await supabase.from('stories').insert({
+        const { error } = await db.from('stories').insert({
             user_id: user.id,
             media_url: mediaUrl,
             media_type: type

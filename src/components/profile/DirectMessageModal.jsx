@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
     setSending(true);
     
     console.log('🔥🔥🔥 ENVIANDO MENSAJE VIA FIREBASE RPC');
-    const { data, error } = await supabase.rpc('handle_user_interaction', {
+    const { data, error } = await db.rpc('handle_user_interaction', {
       target_user_id: profile.id,
       initial_message: message,
     });

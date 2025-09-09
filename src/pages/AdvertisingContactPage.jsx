@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast.jsx';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useNavigate } from 'react-router-dom';
 
 const AdvertisingContactPage = () => {
@@ -43,7 +43,7 @@ const AdvertisingContactPage = () => {
       return;
     }
 
-    const { error } = await supabase.from('emails').insert({
+    const { error } = await db.from('emails').insert({
       user_id: null, // No user associated with this contact form
       recipient: 'advertising@agarch-ar.com', // Fixed recipient for advertising inquiries
       subject: `Consulta de Publicidad de ${formData.name} (${formData.company || 'N/A'})`,

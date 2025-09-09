@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast.jsx';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useNavigate } from 'react-router-dom';
 import { UploadCloud, X, FileImage } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -74,7 +74,7 @@ const ContactPage = () => {
         const fileName = `${uuidv4()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await db.storage
           .from('report_images')
           .upload(filePath, file);
 
@@ -84,7 +84,7 @@ const ContactPage = () => {
           return;
         }
 
-        const { data: urlData } = supabase.storage.from('report_images').getPublicUrl(filePath);
+        const { data: urlData } = db.storage.from('report_images').getPublicUrl(filePath);
         imageUrls.push(urlData.publicUrl);
       }
     }
@@ -117,7 +117,7 @@ IP/Origen: ${window.location.origin}
       window.location.href = mailtoLink;
 
       // También guardar en la base de datos
-      const { error } = await supabase.from('reports').insert({
+      const { error } = await db.from('reports').insert({
         user_id: user?.id,
         email: formData.email,
         reported_profile_alias: formData.reported_profile_alias,

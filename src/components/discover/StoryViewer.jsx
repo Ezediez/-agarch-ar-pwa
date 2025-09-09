@@ -4,7 +4,7 @@ import { X, ChevronLeft, ChevronRight, Pause, Play, Trash2 } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useNavigate } from 'react-router-dom';
 
@@ -77,7 +77,7 @@ const StoryViewer = ({ storyGroup, onClose }) => {
 
   const handleDeleteStory = async () => {
     if (!isOwnStory) return;
-    const { error } = await supabase.from('stories').delete().eq('id', currentStory.id);
+    const { error } = await db.from('stories').delete().eq('id', currentStory.id);
     if (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar la historia.' });
     } else {

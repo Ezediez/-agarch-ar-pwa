@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db } from '@/lib/firebase'; // 🔥 Firebase Firestore
+import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/components/ui/use-toast';
 
 export const useAutoLocationUpdate = (user) => {
@@ -28,16 +29,18 @@ export const useAutoLocationUpdate = (user) => {
             return;
           }
 
-          const { error } = await supabase
-            .from('profiles')
-            .update({ latitud: latitude, longitud: longitude, updated_at: new Date() })
-            .eq('id', user.id);
-
-          if (error) {
-            console.error("Error al actualizar la ubicación en Supabase:", error.message);
-          } else {
-            console.log("✅ Ubicación actualizada en Supabase");
+          try {
+            const profileRef = doc(db, 'profiles', user.uid || user.id);
+            await updateDoc(profileRef, { 
+              latitud: latitude, 
+              longitud: longitude, 
+              updated_at: new Date() 
+            });
+            
+            console.log("✅ Ubicación actualizada en Firebase");
             sessionStorage.setItem(locationUpdatedKey, 'true');
+          } catch (error) {
+            console.error("Error al actualizar la ubicación en Firebase:", error.message);
           }
         },
         (error) => {

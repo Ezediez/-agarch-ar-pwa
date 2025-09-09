@@ -9,7 +9,7 @@ import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import DiscoverPage from './DiscoverPage';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -34,7 +34,7 @@ const SearchPage = () => {
     setShowResults(true);
 
     try {
-      let query = supabase.from('profiles').select('*');
+      let query = db.from('profiles').select('*');
 
       if (filters.keyword) {
         query = query.or(`alias.ilike.%${filters.keyword}%,bio.ilike.%${filters.keyword}%,interests.cs.{${filters.keyword}}`);
@@ -59,7 +59,7 @@ const SearchPage = () => {
       // Distance filtering requires a database function for performance.
       // We will call an RPC function `get_nearby_profiles` if location is available.
       if (currentUserProfile?.latitud && currentUserProfile?.longitud) {
-          const { data, error } = await supabase.rpc('get_nearby_profiles', {
+          const { data, error } = await db.rpc('get_nearby_profiles', {
               user_lat: currentUserProfile.latitud,
               user_lng: currentUserProfile.longitud,
               radius_km: filters.distance

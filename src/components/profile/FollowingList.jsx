@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Heart, MessageCircle, User, MapPin } from 'lucide-react';
@@ -23,7 +23,7 @@ const FollowingList = ({ isOwnProfile = false }) => {
       setLoading(true);
       
       // Usar la función RPC para obtener los likes del usuario
-      const { data: likesData, error: likesError } = await supabase.rpc('get_user_likes_list');
+      const { data: likesData, error: likesError } = await db.rpc('get_user_likes_list');
 
       if (likesError) {
         console.error('Error fetching following:', likesError);

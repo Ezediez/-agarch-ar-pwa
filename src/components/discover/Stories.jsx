@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -122,7 +122,7 @@ const Stories = () => {
 
     return () => {
       if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
-      supabase.removeChannel(channel);
+      db.removeChannel(channel);
     };
   }, [fetchStories]);
 

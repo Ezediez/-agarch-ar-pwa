@@ -24,7 +24,12 @@ const SPA_ROUTES = [
   '/login',
   '/register',
   '/landing',
-  '/admin'
+  '/admin',
+  '/ad-register',
+  '/ad-login',
+  '/contact',
+  '/terms',
+  '/privacy'
 ];
 
 // Install event - cache static assets

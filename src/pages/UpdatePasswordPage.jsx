@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { KeyRound, Eye, EyeOff } from 'lucide-react';
 
 const UpdatePasswordPage = () => {
@@ -19,7 +19,7 @@ const UpdatePasswordPage = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = db.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         // The user is in the password recovery flow
       }
@@ -50,7 +50,7 @@ const UpdatePasswordPage = () => {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await db.auth.updateUser({ password });
 
     if (error) {
       toast({

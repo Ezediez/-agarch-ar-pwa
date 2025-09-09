@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Cargar la PWA
-        webView.loadUrl("https://agarch-ar.com")
+        webView.loadUrl("https://agarch-ar.netlify.app")
     }
 
     override fun onBackPressed() {

@@ -5,12 +5,13 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "background_color": "#0b121b",
-  "theme_color": "#0b121b",
-  "categories": ["social", "dating", "lifestyle"],
+  "theme_color": "#dc2626",
+  "categories": ["social", "dating", "lifestyle", "networking"],
   "lang": "es-AR",
   "dir": "ltr",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/pwa-192x192.png",
@@ -31,24 +32,31 @@
   ],
   "shortcuts": [
     {
-      "name": "Descubrir",
-      "short_name": "Descubrir",
-      "description": "Descubre nuevas personas",
+      "name": "Publicaciones",
+      "short_name": "Publicaciones",
+      "description": "Ver publicaciones y stories",
       "url": "/discover",
       "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Chat",
-      "short_name": "Chat",
-      "description": "Conversa con tus matches",
+      "name": "Chats",
+      "short_name": "Chats",
+      "description": "Mensajes y conversaciones",
       "url": "/chat",
       "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Perfil",
+      "name": "Mi Perfil",
       "short_name": "Perfil",
       "description": "Gestiona tu perfil",
       "url": "/profile",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Publicidad",
+      "short_name": "Anuncios",
+      "description": "Portal de anunciantes",
+      "url": "/ad-login",
       "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
     }
   ]

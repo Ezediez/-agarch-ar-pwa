@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { v4 as uuidv4 } from 'uuid';
@@ -33,7 +33,7 @@ export const useUploader = () => {
     const fileName = `${user.id}/${folder}/${uuidv4()}.${fileExt}`;
 
     try {
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await db.storage
         .from(bucket)
         .upload(fileName, file, {
           cacheControl: '3600',
@@ -45,7 +45,7 @@ export const useUploader = () => {
         throw uploadError;
       }
 
-      const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
+      const { data: publicUrlData } = db.storage.from(bucket).getPublicUrl(fileName);
       
       if (!publicUrlData.publicUrl) {
         throw new Error("No se pudo obtener la URL pública del archivo subido.");
@@ -89,7 +89,7 @@ export const useUploader = () => {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${folder}/${uuidv4()}.${fileExt}`;
       
-      return supabase.storage
+      return db.storage
         .from(bucket)
         .upload(fileName, file, {
           cacheControl: '3600',
@@ -106,7 +106,7 @@ export const useUploader = () => {
         if (result.error) {
           throw result.error;
         }
-        const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(result.data.path);
+        const { data: publicUrlData } = db.storage.from(bucket).getPublicUrl(result.data.path);
         if (!publicUrlData.publicUrl) {
           throw new Error("No se pudo obtener la URL pública del archivo subido.");
         }

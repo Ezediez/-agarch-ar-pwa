@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -240,7 +240,7 @@ const ChatPage = () => {
 
     // Limpiar canal anterior
     if (realtimeChannelRef.current) {
-      supabase.removeChannel(realtimeChannelRef.current);
+      db.removeChannel(realtimeChannelRef.current);
     }
 
     // Crear nuevo canal
@@ -261,7 +261,7 @@ const ChatPage = () => {
 
     return () => {
       if (realtimeChannelRef.current) {
-        supabase.removeChannel(realtimeChannelRef.current);
+        db.removeChannel(realtimeChannelRef.current);
       }
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);

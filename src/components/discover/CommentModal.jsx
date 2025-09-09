@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-    import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+    import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
     import { useAuth } from '@/hooks/useAuth';
     import { useToast } from '@/components/ui/use-toast';
     import { Button } from '@/components/ui/button';
@@ -68,7 +68,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
           .subscribe();
     
         return () => {
-          supabase.removeChannel(channel);
+          db.removeChannel(channel);
         };
       }, [postId, fetchComments]);
     

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db } from '@/lib/firebase'; // 🔥 Firebase Firestore
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Loader2, Frown, WifiOff, RefreshCw } from 'lucide-react';
@@ -241,7 +241,7 @@ const DiscoverPage = () => {
       
     return () => {
       clearTimeout(timeoutId);
-      supabase.removeChannel(channel);
+      db.removeChannel(channel);
     };
   }, [fetchPosts]);
 

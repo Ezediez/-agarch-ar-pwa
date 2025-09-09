@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import ProfileHeader from '@/components/profile/ProfileHeader';
@@ -96,7 +96,7 @@ const ProfilePage = () => {
             interests: localProfileData.interests,
         };
 
-        const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+        const { error } = await db.from('profiles').update(updates).eq('id', user.id);
         setSaveLoading(false);
 
         if (error) {
@@ -146,7 +146,7 @@ const ProfilePage = () => {
                     updatedField = { [column]: url };
                 }
 
-                const { error: dbError } = await supabase.from('profiles').update(updatedField).eq('id', user.id);
+                const { error: dbError } = await db.from('profiles').update(updatedField).eq('id', user.id);
 
                 if (dbError) {
                     toast({ variant: 'destructive', title: 'Error', description: `No se pudo guardar la ${mediaType}.` });
@@ -164,7 +164,7 @@ const ProfilePage = () => {
         const currentMedia = profile[column] || [];
         const updatedMedia = currentMedia.filter(url => url !== urlToRemove);
 
-        const { error } = await supabase.from('profiles').update({ [column]: updatedMedia }).eq('id', user.id);
+        const { error } = await db.from('profiles').update({ [column]: updatedMedia }).eq('id', user.id);
 
         if (error) {
             toast({ variant: 'destructive', title: 'Error', description: `No se pudo eliminar la ${mediaType}.` });

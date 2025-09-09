@@ -1,6 +1,8 @@
-// 🔥 FIREBASE AUTH HOOK - SUPABASE COMPLETAMENTE ELIMINADO
+// 🔥 FIREBASE AUTH HOOK - USANDO FIREBASE NATIVO
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { auth, db } from '@/lib/firebase';
+import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/components/ui/use-toast.jsx';
 
 const AuthContext = createContext(null);
@@ -21,13 +23,10 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       // Firebase Firestore query
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.uid) // Firebase usa uid, no id
-        .single();
+      const profileRef = doc(db, 'profiles', user.uid);
+      const profileSnap = await getDoc(profileRef);
 
-      if (error) {
+      if (!profileSnap.exists()) {
         console.log('Profile not found, creating new one');
         // Crear perfil básico si no existe
         const newProfile = {
@@ -38,13 +37,14 @@ export const AuthProvider = ({ children }) => {
           updated_at: new Date()
         };
         
-        await supabase.from('profiles').insert(newProfile);
+        await setDoc(profileRef, newProfile);
         setProfile(newProfile);
         return newProfile;
       }
       
-      setProfile(data || null);
-      return data || null;
+      const profileData = profileSnap.data();
+      setProfile(profileData || null);
+      return profileData || null;
     } catch (error) {
        console.error("Error fetching profile:", error.message);
        toast({
@@ -61,9 +61,8 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     setLoading(true);
-    const unsubscribe = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      const currentUser = session?.user ?? null;
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setSession(currentUser ? { user: currentUser } : null);
       setUser(currentUser);
       if (currentUser) {
         await getProfile(currentUser);
@@ -87,59 +86,90 @@ export const AuthProvider = ({ children }) => {
   }, [user, getProfile]);
   
   const signUp = async (formData) => {
-    console.log('🔥🔥🔥 AUTH HOOK SIGNUP LLAMADO');
+    console.log('🔥🔥🔥 FIREBASE SIGNUP LLAMADO');
     const { email, password, ...profileData } = formData;
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password
-    });
     
-    // Si el registro es exitoso, crear el perfil en Firestore
-    if (data.user && !error) {
-      try {
-        const profileToCreate = {
-          id: data.user.uid,
-          email: data.user.email,
-          ...profileData,
-          is_verified: true,
-          role: 'user',
-          created_at: new Date(),
-          updated_at: new Date()
-        };
-        
-        await supabase.from('profiles').insert(profileToCreate);
-        console.log('🔥🔥🔥 PERFIL CREADO EN FIRESTORE');
-      } catch (profileError) {
-        console.error('Error creating profile:', profileError);
-      }
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Crear el perfil en Firestore
+      const profileToCreate = {
+        id: user.uid,
+        email: user.email,
+        ...profileData,
+        is_verified: true,
+        role: 'user',
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+      
+      const profileRef = doc(db, 'profiles', user.uid);
+      await setDoc(profileRef, profileToCreate);
+      console.log('🔥🔥🔥 PERFIL CREADO EN FIRESTORE');
+      
+      return { data: { user }, error: null };
+    } catch (error) {
+      console.error('FIREBASE SIGNUP ERROR:', error.code, error.message);
+      
+      // Mapear errores comunes
+      const errorMap = {
+        'auth/operation-not-allowed': 'El proveedor Email/Password no está habilitado en Firebase.',
+        'auth/email-already-in-use': 'Este correo ya está registrado.',
+        'auth/invalid-email': 'El correo electrónico no es válido.',
+        'auth/weak-password': 'La contraseña es demasiado débil (mínimo 6 caracteres).'
+      };
+      
+      const friendlyError = errorMap[error.code] || 'Error al crear la cuenta.';
+      
+      return { data: null, error: { message: friendlyError, code: error.code } };
     }
-    
-    return { data, error };
   };
 
   const signIn = async (email, password) => {
-    console.log('🔥🔥🔥 AUTH HOOK SIGNIN LLAMADO');
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if(error){
+    console.log('🔥🔥🔥 FIREBASE SIGNIN LLAMADO');
+    
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      return { data: { user }, error: null };
+    } catch (error) {
+      console.error('FIREBASE SIGNIN ERROR:', error.code, error.message);
+      
+      const errorMap = {
+        'auth/operation-not-allowed': 'El proveedor Email/Password no está habilitado en Firebase.',
+        'auth/invalid-credential': 'Credenciales inválidas.',
+        'auth/user-not-found': 'Usuario no encontrado.',
+        'auth/wrong-password': 'Contraseña incorrecta.',
+        'auth/invalid-email': 'El correo electrónico no es válido.'
+      };
+      
+      const friendlyError = errorMap[error.code] || 'Error al iniciar sesión.';
+      
       toast({
         variant: "destructive",
         title: "Error de inicio de sesión",
-        description: error.message,
+        description: friendlyError,
       });
+      
+      return { data: null, error: { message: friendlyError, code: error.code } };
     }
-    return { data, error };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await firebaseSignOut(auth);
   };
   
   const deleteAccount = async () => {
-    // Firebase no tiene functions.invoke, implementar lógica personalizada
     try {
       if (user) {
         // Eliminar perfil de Firestore
-        await supabase.from('profiles').delete().eq('id', user.uid);
+        const profileRef = doc(db, 'profiles', user.uid);
+        await deleteDoc(profileRef);
+        
+        // Eliminar usuario de Authentication (requiere reautenticación reciente)
+        await user.delete();
         
         toast({
           title: "Cuenta eliminada",

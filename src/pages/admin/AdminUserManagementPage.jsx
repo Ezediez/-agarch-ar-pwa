@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -52,7 +52,7 @@ const AdminUserManagementPage = () => {
 
     const handleSave = async () => {
         const { id, ...updateData } = editingUser;
-        const { error } = await supabase.from('profiles').update(updateData).eq('id', id);
+        const { error } = await db.from('profiles').update(updateData).eq('id', id);
         if (error) {
             toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el usuario." });
         } else {
@@ -64,7 +64,7 @@ const AdminUserManagementPage = () => {
     
     const handleDelete = async (userId) => {
          if (window.confirm('¿Estás seguro de que quieres eliminar a este usuario de forma permanente? Esta acción no se puede deshacer.')) {
-            const { error } = await supabase.rpc('delete_user_by_id_admin', { user_id_to_delete: userId });
+            const { error } = await db.rpc('delete_user_by_id_admin', { user_id_to_delete: userId });
             if (error) {
                 toast({ variant: "destructive", title: "Error", description: `No se pudo eliminar el usuario: ${error.message}` });
             } else {

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/customSupabaseClient';
+import { db, auth, storage } from '@/lib/firebase';
 import { ArrowLeft, Building, User, Phone, Mail, CreditCard, Shield } from 'lucide-react';
 
 const AdRegisterPage = () => {

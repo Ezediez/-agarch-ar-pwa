@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { supabase } from '@/lib/customSupabaseClient'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
@@ -68,7 +68,7 @@ const AdvancedSearchPage = () => {
         // Usar función RPC si hay ubicación y filtro de distancia activo
         if (hasLocation && filters.distance < 500) {
             // Usar función de búsqueda por distancia
-            const { data: rpcData, error: rpcError } = await supabase.rpc('get_nearby_profiles', {
+            const { data: rpcData, error: rpcError } = await db.rpc('get_nearby_profiles', {
                 user_lat: currentUserProfile.latitud,
                 user_lng: currentUserProfile.longitud,
                 radius_km: filters.distance
@@ -112,7 +112,7 @@ const AdvancedSearchPage = () => {
             }
 
             // Usar función RPC search_profiles para mejor rendimiento
-            const { data: rpcData, error: rpcError } = await supabase.rpc('search_profiles', {
+            const { data: rpcData, error: rpcError } = await db.rpc('search_profiles', {
                 search_keyword: filters.keyword.trim() || null,
                 filter_gender: filters.gender !== 'Todos' ? filters.gender : null,
                 filter_orientation: filters.sexualOrientation !== 'Todas' ? filters.sexualOrientation : null,
