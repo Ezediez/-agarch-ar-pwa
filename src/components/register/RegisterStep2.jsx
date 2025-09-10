@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from "@/components/ui/use-toast.jsx";
 import { validatePassword } from '@/utils/validation';
 import { CheckCircle, XCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { processMonetizationPayment } from '@/lib/monetization';
+// import { processMonetizationPayment } from '@/lib/monetization'; // Temporalmente deshabilitado
 
 const PasswordRequirement = ({ isValid, text }) => (
   <div className={`flex items-center text-xs ${isValid ? 'text-green-400' : 'text-text-secondary'}`}>
@@ -15,11 +15,7 @@ const PasswordRequirement = ({ isValid, text }) => (
   </div>
 );
 
-const PayPalIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M7.72 4.28a.2.2 0 0 0-.18.32l2.35 12.33a.2.2 0 0 0 .2.16h2.86a.2.2 0 0 0 .2-.16L15.48 4.6a.2.2 0 0 0-.19-.32h-3.1a.2.2 0 0 1-.2-.16L9.64 2.3a.2.2 0 0 0-.2-.16H6.5a.2.2 0 0 0-.2.16L3.95 16.9a.2.2 0 0 0 .2.16h2.82a.2.2 0 0 0 .2-.16l.7-3.66h.1a.2.2 0 0 0 .2-.16l.29-1.5a.2.2 0 0 0-.2-.25h-2.1a.2.2 0 0 1-.2-.16l.94-4.88a.2.2 0 0 1 .2-.16h2.92a.2.2 0 0 1 .2.16L7.72 4.28z"/>
-  </svg>
-);
+// PayPalIcon removido temporalmente - se implementará con Google Play Store
 
 const RegisterStep2 = ({ formData, updateFormData, nextStep, prevStep }) => {
   const { toast } = useToast();
@@ -54,54 +50,26 @@ const RegisterStep2 = ({ formData, updateFormData, nextStep, prevStep }) => {
       return;
     }
 
-    // 🔥 PROCESAR PAGO CON FIREBASE
-    setIsProcessingPayment(true);
+    // 🚀 REGISTRO SIMPLIFICADO - SIN VALIDACIÓN DE PAGO TEMPORAL
+    // TODO: Implementar monetización real con Google Play Store en el futuro
     
-    try {
-      // Generar un ID temporal para el usuario (antes de crear la cuenta)
-      const tempUserId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const paymentResult = await processMonetizationPayment(tempUserId, {
-        email: formData.email,
-        nombre: formData.nombre_completo,
-        alias: formData.alias,
-      });
+    // Simular validación exitosa para continuar el flujo
+    updateFormData({
+      paymentValidated: true, // Temporalmente true
+      paymentId: `TEMP-${Date.now()}`, // ID temporal
+      paymentDate: new Date(), // Fecha actual
+    });
 
-      if (paymentResult.success) {
-        // Guardar datos del pago en el formData para el siguiente paso
-        updateFormData({
-          paymentValidated: true,
-          paymentId: paymentResult.paymentData.paymentId,
-          paymentDate: paymentResult.paymentData.timestamp,
-        });
+    toast({
+      title: "¡Contraseña configurada correctamente!",
+      description: "Procediendo al siguiente paso del registro.",
+      className: "bg-green-600 text-white"
+    });
 
-        toast({
-          title: "¡Validación con PayPal exitosa!",
-          description: `Pago de $1 USD procesado. ID: ${paymentResult.paymentData.paymentId}`,
-          className: "bg-green-600 text-white"
-        });
-
-        // Continuar al siguiente paso
-        setTimeout(() => {
-          nextStep();
-        }, 1500);
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error en el pago",
-          description: paymentResult.error || "No se pudo procesar el pago. Intenta nuevamente.",
-        });
-      }
-    } catch (error) {
-      console.error('Payment processing error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error inesperado",
-        description: "Ocurrió un problema al procesar el pago. Intenta nuevamente.",
-      });
-    } finally {
-      setIsProcessingPayment(false);
-    }
+    // Continuar al siguiente paso inmediatamente
+    setTimeout(() => {
+      nextStep();
+    }, 1000);
   };
 
   return (
@@ -135,34 +103,30 @@ const RegisterStep2 = ({ formData, updateFormData, nextStep, prevStep }) => {
             </div>
           </div>
 
-          {/* PayPal Validation Section */}
+          {/* Sección de Validación Temporalmente Ocultada */}
+          {/* TODO: Implementar monetización real con Google Play Store */}
           <div className="space-y-4 border-t border-border-color pt-6">
-            <h3 className="text-lg font-semibold text-center text-primary">Validación de Identidad</h3>
-            <p className="text-sm text-center text-text-secondary">
-              Para prevenir cuentas falsas y asegurar la calidad de nuestra comunidad, requerimos una validación única de 1 USD a través de PayPal. Esto NO es una suscripción ni monetización.
-            </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs text-center text-blue-700 font-semibold">
-                💡 <strong>Nota:</strong> La monetización real será a través de Play Store/App Store cuando publiques la app. Este pago es solo para validación de identidad.
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+              <h3 className="text-lg font-semibold text-green-800 mb-2">✅ Registro Simplificado</h3>
+              <p className="text-sm text-green-700">
+                La validación de identidad se implementará cuando publiques la app en Google Play Store.
+                Por ahora, puedes continuar con el registro normal.
               </p>
             </div>
-             <p className="text-xs text-center text-brand-red font-semibold pt-2">
-              (El titular de la cuenta de PayPal debe ser el mismo que el del perfil que se está creando)
-            </p>
+            
             <Button 
               type="submit" 
-              className="w-full btn-action bg-[#0070BA] hover:bg-[#005ea6] text-white font-bold py-3 text-lg flex items-center justify-center gap-2"
+              className="w-full btn-action bg-primary hover:bg-primary/90 text-white font-bold py-3 text-lg flex items-center justify-center gap-2"
               disabled={isProcessingPayment}
             >
               {isProcessingPayment ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Procesando pago...
+                  Procesando...
                 </>
               ) : (
                 <>
-                  <PayPalIcon/>
-                  Pagar 1 USD con PayPal
+                  Continuar Registro
                 </>
               )}
             </Button>
