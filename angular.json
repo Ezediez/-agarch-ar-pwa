@@ -23,7 +23,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/firebase-ai-angular",
+            "outputPath": "dist/CARPETA_PARA_SUBIR_A_NETLIFY",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
