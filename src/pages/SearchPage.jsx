@@ -9,7 +9,8 @@ import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import DiscoverPage from './DiscoverPage';
-import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { db, auth, storage } from '@/lib/firebase';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -34,191 +35,263 @@ const SearchPage = () => {
     setShowResults(true);
 
     try {
-      let query = db.from('profiles').select('*');
+      const profilesRef = collection(db, 'profiles');
+      let searchQuery = query(profilesRef, limit(50));
 
-      if (filters.keyword) {
-        query = query.or(`alias.ilike.%${filters.keyword}%,bio.ilike.%${filters.keyword}%,interests.cs.{${filters.keyword}}`);
-      }
+      // Aplicar filtros básicos
       if (filters.gender !== 'todos') {
-        query = query.eq('gender', filters.gender);
+        searchQuery = query(searchQuery, where('gender', '==', filters.gender));
       }
       if (filters.sexual_orientation !== 'todos') {
-        query = query.eq('sexual_orientation', filters.sexual_orientation);
+        searchQuery = query(searchQuery, where('sexual_orientation', '==', filters.sexual_orientation));
       }
       if (filters.relationship_status !== 'todos') {
-        query = query.eq('relationship_status', filters.relationship_status);
+        searchQuery = query(searchQuery, where('relationship_status', '==', filters.relationship_status));
+      }
+
+      const snapshot = await getDocs(searchQuery);
+      let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Filtrar por keyword en el cliente (Firebase no soporta búsqueda de texto completo)
+      if (filters.keyword) {
+        const keyword = filters.keyword.toLowerCase();
+        results = results.filter(profile => 
+          profile.alias?.toLowerCase().includes(keyword) ||
+          profile.bio?.toLowerCase().includes(keyword) ||
+          profile.interests?.some(interest => interest.toLowerCase().includes(keyword))
+        );
       }
       
-      // Age filtering
-      const today = new Date();
-      const minBirthDate = new Date(today.getFullYear() - filters.ageRange[1] - 1, today.getMonth(), today.getDate());
-      const maxBirthDate = new Date(today.getFullYear() - filters.ageRange[0], today.getMonth(), today.getDate());
-      query = query.gte('birth_date', minBirthDate.toISOString());
-      query = query.lte('birth_date', maxBirthDate.toISOString());
-
-      // Distance filtering requires a database function for performance.
-      // We will call an RPC function `get_nearby_profiles` if location is available.
-      if (currentUserProfile?.latitud && currentUserProfile?.longitud) {
-          const { data, error } = await db.rpc('get_nearby_profiles', {
-              user_lat: currentUserProfile.latitud,
-              user_lng: currentUserProfile.longitud,
-              radius_km: filters.distance
-          });
-
-          if (error) throw error;
-          
-          // Apply other filters on the client-side after getting nearby profiles
-          let filteredData = data;
-          if (filters.keyword) {
-              filteredData = filteredData.filter(p => 
-                  (p.alias && p.alias.toLowerCase().includes(filters.keyword.toLowerCase())) ||
-                  (p.bio && p.bio.toLowerCase().includes(filters.keyword.toLowerCase())) ||
-                  (p.interests && p.interests.some(i => i.toLowerCase().includes(filters.keyword.toLowerCase())))
-              );
-          }
-          if (filters.gender !== 'todos') {
-              filteredData = filteredData.filter(p => p.gender === filters.gender);
-          }
-          // ... add other client-side filters if needed
-
-          setSearchResults(filteredData);
-
-      } else {
-          const { data, error } = await query;
-          if (error) throw error;
-          setSearchResults(data);
-          toast({
-              title: "Búsqueda sin ubicación",
-              description: "Activa tu ubicación para buscar perfiles cercanos.",
-          });
+      // Age filtering (client-side)
+      if (filters.ageRange[0] !== 18 || filters.ageRange[1] !== 70) {
+        const today = new Date();
+        const minBirthDate = new Date(today.getFullYear() - filters.ageRange[1] - 1, today.getMonth(), today.getDate());
+        const maxBirthDate = new Date(today.getFullYear() - filters.ageRange[0], today.getMonth(), today.getDate());
+        
+        results = results.filter(profile => {
+          if (!profile.birth_date) return false;
+          const birthDate = new Date(profile.birth_date);
+          return birthDate >= minBirthDate && birthDate <= maxBirthDate;
+        });
       }
 
+      // Distance filtering (client-side - simplified)
+      if (currentUserProfile?.latitud && currentUserProfile?.longitud) {
+        results = results.filter(profile => {
+          if (!profile.latitud || !profile.longitud) return false;
+          
+          // Simple distance calculation (not exact but functional)
+          const distance = Math.sqrt(
+            Math.pow(profile.latitud - currentUserProfile.latitud, 2) + 
+            Math.pow(profile.longitud - currentUserProfile.longitud, 2)
+          ) * 111; // Rough conversion to km
+          
+          return distance <= filters.distance;
+        });
+      }
+
+      setSearchResults(results);
+
     } catch (error) {
+      console.error('Search error:', error);
       toast({
         variant: "destructive",
         title: "Error en la búsqueda",
-        description: "No se pudieron obtener los resultados. " + error.message,
+        description: "No se pudieron obtener los resultados. Intenta de nuevo.",
       });
+      setSearchResults([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({...prev, [key]: value}));
+  const updateFilter = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
   };
-  
-  const handleIntentionChange = (intention) => {
-    setFilters(prev => {
-      const newIntentions = prev.intentions.includes(intention)
+
+  const toggleIntention = (intention) => {
+    setFilters(prev => ({
+      ...prev,
+      intentions: prev.intentions.includes(intention)
         ? prev.intentions.filter(i => i !== intention)
-        : [...prev.intentions, intention];
-      return {...prev, intentions: newIntentions};
-    });
+        : [...prev.intentions, intention]
+    }));
   };
 
-  const intentionsList = [
-    { id: 'casual', label: 'De Trampa / Casual' },
-    { id: 'sexo', label: 'Solo encuentros para sexo' },
-    { id: 'chat', label: 'Solo chats' },
-    { id: 'relacion', label: 'Relación seria' },
-  ];
+  if (showResults) {
+    return (
+      <>
+        <Helmet>
+          <title>Resultados de Búsqueda - AGARCH-AR</title>
+        </Helmet>
+        <div className="min-h-screen bg-background">
+          <div className="max-w-md mx-auto bg-background">
+            <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+              <div className="flex items-center justify-between p-4">
+                <h1 className="text-xl font-bold">Resultados de Búsqueda</h1>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowResults(false)}
+                >
+                  Volver
+                </Button>
+              </div>
+            </div>
 
-  const selectContentClass = "bg-surface text-text-primary border-border-color";
+            <div className="p-4 space-y-4">
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-sm text-muted-foreground">Buscando...</p>
+                </div>
+              ) : searchResults.length === 0 ? (
+                <div className="text-center py-8">
+                  <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No se encontraron resultados</h3>
+                  <p className="text-muted-foreground">Intenta ajustar tus filtros de búsqueda.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {searchResults.map((profile) => (
+                    <motion.div
+                      key={profile.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-card rounded-lg p-4 border"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-lg font-semibold">
+                            {profile.alias?.[0] || '?'}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{profile.alias || 'Usuario'}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {profile.age ? `${profile.age} años` : 'Edad no especificada'}
+                          </p>
+                          {profile.bio && (
+                            <p className="text-sm mt-1 line-clamp-2">{profile.bio}</p>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
       <Helmet>
-        <title>Buscador - AGARCH-AR</title>
-        <meta name="description" content="Encuentra perfiles con filtros avanzados en AGARCH-AR." />
+        <title>Buscar - AGARCH-AR</title>
       </Helmet>
-      <div className="space-y-6">
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card-glass p-6"
-        >
-          <h1 className="text-3xl font-bold text-primary mb-2 flex items-center gap-2">
-            <Search /> Buscador Avanzado
-          </h1>
-          <p className="text-text-secondary mb-6">Usa los filtros para encontrar exactamente lo que buscas.</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="keyword" className="text-primary">Palabra clave</Label>
-              <Input id="keyword" placeholder="Ej: Viajes, rock, arte..." className="input-glass" value={filters.keyword} onChange={(e) => handleFilterChange('keyword', e.target.value)} />
+      <div className="min-h-screen bg-background">
+        <div className="max-w-md mx-auto bg-background">
+          <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+            <div className="flex items-center justify-between p-4">
+              <h1 className="text-xl font-bold">Buscar</h1>
             </div>
+          </div>
+
+          <div className="p-4 space-y-6">
+            {/* Keyword Search */}
             <div className="space-y-2">
-              <Label htmlFor="gender" className="text-primary">Busco</Label>
-              <Select value={filters.gender} onValueChange={(v) => handleFilterChange('gender', v)}>
-                <SelectTrigger id="gender" className="input-glass"><SelectValue /></SelectTrigger>
-                <SelectContent className={selectContentClass}><SelectItem value="todos">Todos</SelectItem><SelectItem value="hombre">Hombres</SelectItem><SelectItem value="mujer">Mujeres</SelectItem><SelectItem value="no-binario">No binarios</SelectItem></SelectContent>
-              </Select>
+              <Label htmlFor="keyword">Palabra clave</Label>
+              <Input
+                id="keyword"
+                placeholder="Buscar por nombre, bio, intereses..."
+                value={filters.keyword}
+                onChange={(e) => updateFilter('keyword', e.target.value)}
+              />
             </div>
-             <div className="space-y-2">
-              <Label htmlFor="sexual_orientation" className="text-primary">Orientación Sexual</Label>
-              <Select value={filters.sexual_orientation} onValueChange={(v) => handleFilterChange('sexual_orientation', v)}>
-                <SelectTrigger id="sexual_orientation" className="input-glass"><SelectValue /></SelectTrigger>
-                <SelectContent className={selectContentClass}><SelectItem value="todos">Todas</SelectItem><SelectItem value="heterosexual">Heterosexual</SelectItem><SelectItem value="homosexual">Homosexual</SelectItem><SelectItem value="bisexual">Bisexual</SelectItem></SelectContent>
-              </Select>
-            </div>
+
+            {/* Gender Filter */}
             <div className="space-y-2">
-              <Label htmlFor="relationship_status" className="text-primary">Estado</Label>
-               <Select value={filters.relationship_status} onValueChange={(v) => handleFilterChange('relationship_status', v)}>
-                <SelectTrigger id="relationship_status" className="input-glass"><SelectValue /></SelectTrigger>
-                <SelectContent className={selectContentClass}><SelectItem value="todos">Todos</SelectItem><SelectItem value="soltero">Soltero/a</SelectItem><SelectItem value="en-una-relacion">En una relación</SelectItem><SelectItem value="casado">Casado/a</SelectItem></SelectContent>
+              <Label>Género</Label>
+              <Select value={filters.gender} onValueChange={(value) => updateFilter('gender', value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="masculino">Masculino</SelectItem>
+                  <SelectItem value="femenino">Femenino</SelectItem>
+                  <SelectItem value="otro">Otro</SelectItem>
+                </SelectContent>
               </Select>
             </div>
 
+            {/* Sexual Orientation Filter */}
             <div className="space-y-2">
-              <Label className="text-primary">Rango de Edad: {filters.ageRange[0]} - {filters.ageRange[1]}</Label>
-              <Slider defaultValue={filters.ageRange} min={18} max={99} step={1} onValueChange={(v) => handleFilterChange('ageRange', v)} />
+              <Label>Orientación sexual</Label>
+              <Select value={filters.sexual_orientation} onValueChange={(value) => updateFilter('sexual_orientation', value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="heterosexual">Heterosexual</SelectItem>
+                  <SelectItem value="homosexual">Homosexual</SelectItem>
+                  <SelectItem value="bisexual">Bisexual</SelectItem>
+                  <SelectItem value="otro">Otro</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-             <div className="space-y-2">
-              <Label className="text-primary">Distancia: hasta {filters.distance} km</Label>
-              <Slider defaultValue={[filters.distance]} min={1} max={500} step={1} onValueChange={([v]) => handleFilterChange('distance', v)} />
-            </div>
-          </div>
-          
-          <div className="mt-6">
-             <Label className="text-primary block mb-3">Intenciones de búsqueda</Label>
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {intentionsList.map(item => (
-                   <div key={item.id} className="flex items-center space-x-2">
-                      <Checkbox id={item.id} checked={filters.intentions.includes(item.id)} onCheckedChange={() => handleIntentionChange(item.id)} />
-                      <label htmlFor={item.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{item.label}</label>
-                   </div>
-                ))}
-             </div>
-          </div>
 
-          <div className="mt-8 flex justify-end">
-            <Button onClick={handleSearch} disabled={loading} className="btn-action flex items-center gap-2">
+            {/* Age Range */}
+            <div className="space-y-2">
+              <Label>Rango de edad: {filters.ageRange[0]} - {filters.ageRange[1]} años</Label>
+              <Slider
+                value={filters.ageRange}
+                onValueChange={(value) => updateFilter('ageRange', value)}
+                min={18}
+                max={70}
+                step={1}
+                className="w-full"
+              />
+            </div>
+
+            {/* Distance */}
+            <div className="space-y-2">
+              <Label>Distancia: {filters.distance} km</Label>
+              <Slider
+                value={[filters.distance]}
+                onValueChange={(value) => updateFilter('distance', value[0])}
+                min={1}
+                max={100}
+                step={1}
+                className="w-full"
+              />
+            </div>
+
+            {/* Search Button */}
+            <Button
+              onClick={handleSearch}
+              disabled={loading}
+              className="w-full"
+              size="lg"
+            >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Buscando...
                 </>
               ) : (
                 <>
-                  <Search className="w-5 h-5" />
-                  Buscar Perfiles
+                  <Search className="h-4 w-4 mr-2" />
+                  Buscar
                 </>
               )}
             </Button>
           </div>
-        </motion.div>
-
-        {showResults && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-8"
-          >
-            <h2 className="text-2xl font-bold text-primary mb-4">Resultados de la Búsqueda</h2>
-             <DiscoverPage isSearchResult={true} searchResults={searchResults} searchLoading={loading} />
-          </motion.div>
-        )}
+        </div>
       </div>
     </>
   );
