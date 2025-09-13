@@ -1,39 +1,73 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Los perfiles son públicos para leer, pero solo el dueño puede escribir.
+    // Reglas para perfiles de usuario
+    match /profiles/{profileId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+      allow create: if request.auth != null;
+    }
+
+    // Reglas para usuarios
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null; // Permite escritura para usuarios autenticados
-      allow create: if request.auth != null; // Permite creación para usuarios autenticados
+      allow write: if request.auth != null;
+      allow create: if request.auth != null;
     }
 
-    // Regla de 'likes' temporalmente más abierta para depuración.
-    match /likes/{likeId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Solo los miembros de una conversación pueden acceder a ella y a sus mensajes.
-    match /conversations/{conversationId} {
-      allow read, delete: if request.auth != null; // Simplificado para permitir acceso
-      allow create: if request.auth != null; // Permite creación para usuarios autenticados
-
-      match /messages/{messageId} {
-        allow read, create: if request.auth != null; // Simplificado
-        allow update, delete: if request.auth != null; // Simplificado
-      }
-    }
-
-    // Reglas adicionales para posts y otros datos
+    // Reglas para posts
     match /posts/{postId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null;
+      allow create: if request.auth != null;
+    }
+
+    // Reglas para stories
+    match /stories/{storyId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+      allow create: if request.auth != null;
+    }
+
+    // Reglas para likes
+    match /likes/{likeId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+      allow create: if request.auth != null;
+    }
+
+    // Reglas para post_likes
+    match /post_likes/{likeId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+      allow create: if request.auth != null;
+    }
+
+    // Reglas para comentarios
+    match /comentarios/{commentId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+      allow create: if request.auth != null;
+    }
+
+    // Reglas para conversaciones
+    match /conversations/{conversationId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+      allow create: if request.auth != null;
+
+      match /messages/{messageId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null;
+        allow create: if request.auth != null;
+      }
     }
 
     // Reglas para matches
     match /matches/{matchId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null;
+      allow create: if request.auth != null;
     }
   }
 }
