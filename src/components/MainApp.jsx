@@ -8,7 +8,6 @@ import SettingsPage from '@/pages/SettingsPage';
 import CreatePostPage from '@/pages/CreatePostPage';
 import PaymentsPage from '@/pages/PaymentsPage';
 import AdvancedSearchPage from '@/pages/AdvancedSearchPage';
-import CompleteProfilePage from '@/pages/CompleteProfilePage';
 import { useAuth } from '@/hooks/useAuth';
 
 const MainApp = () => {
@@ -22,10 +21,7 @@ const MainApp = () => {
         );
     }
     
-    // This check is now a fallback, primary routing is in App.jsx
-    if (!profile?.alias) {
-        return <Navigate to="/complete-profile" replace />;
-    }
+    // Usuario ya validado, puede acceder libremente
 
   return (
     <MainLayout>

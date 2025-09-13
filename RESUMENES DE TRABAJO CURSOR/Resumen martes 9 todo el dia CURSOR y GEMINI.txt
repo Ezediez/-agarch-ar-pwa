@@ -1,4 +1,4 @@
-RESUMEN DEL TRABAJO - MIGRACIÓN COMPLETA A FIREBASE
+RESUMEN DE (CURSOR) DEL TRABAJO - MIGRACIÓN COMPLETA A FIREBASE
 🎯 OBJETIVO PRINCIPAL
 Migrar completamente de Supabase a Firebase para simplificar el backend, mejorar capacidades real-time y preparar la app para Play Store/App Store.
 ✅ TRABAJOS COMPLETADOS

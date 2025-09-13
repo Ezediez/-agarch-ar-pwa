@@ -54,9 +54,19 @@ const ProfileHeader = ({
               />
             </div>
           ) : (
-            <h1 className="text-4xl font-bold gradient-text">{profileData.alias}</h1>
+            <h1 className="text-4xl font-bold gradient-text">{profileData.alias || 'Usuario'}</h1>
           )}
           <p className="text-text-secondary mt-1">{profileData.location || 'Ubicación no especificada'}</p>
+          
+          {/* Mensaje para completar perfil */}
+          {isOwnProfile && (!profileData.alias || !profileData.bio || !profileData.gender) && (
+            <div className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+              <p className="text-primary font-medium">💡 Completa tu perfil</p>
+              <p className="text-text-secondary text-sm mt-1">
+                Agrega tu alias, biografía y género para que otros usuarios puedan conocerte mejor.
+              </p>
+            </div>
+          )}
         </div>
 
         {isOwnProfile ? (

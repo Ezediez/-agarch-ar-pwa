@@ -81,7 +81,7 @@ const MultiStepRegisterPage = () => {
       });
 
       await signIn(finalAuthData.email, finalAuthData.password);
-      navigate('/profile');
+      navigate('/discover');
     } else {
         toast({
             variant: "destructive",

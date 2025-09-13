@@ -22,7 +22,6 @@ import AdminAdManagementPage from '@/pages/admin/AdminAdManagementPage';
 import AdminRoute from '@/components/admin/AdminRoute';
 import AdvertisingContactPage from '@/pages/AdvertisingContactPage';
 import AdminLoginPage from '@/pages/admin/AdminLoginPage';
-import CompleteProfilePage from '@/pages/CompleteProfilePage';
 
 const App = () => {
   const { user, loading, profile } = useAuth();
@@ -55,9 +54,7 @@ const App = () => {
     if (!user) {
       return <Navigate to="/landing" state={{ from: location }} replace />;
     }
-    if (!profile?.alias) {
-      return <Navigate to="/complete-profile" replace />;
-    }
+    // Usuario validado puede acceder libremente a la app
     return <MainApp />;
   };
 
@@ -77,9 +74,6 @@ const App = () => {
         <Route path="/admin-login" element={<AdminLoginPage />} />
       </Route>
       
-      {user && !profile?.alias && (
-         <Route path="/complete-profile" element={<CompleteProfilePage />} />
-      )}
 
       <Route 
         path="/admin/*"
