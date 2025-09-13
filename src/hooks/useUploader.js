@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { v4 as uuidv4 } from 'uuid';
@@ -33,21 +34,30 @@ export const useUploader = () => {
     const fileName = `${user.id}/${folder}/${uuidv4()}.${fileExt}`;
 
     try {
-      const { error: uploadError } = await db.storage
-        .from(bucket)
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type,
-        });
+      const storageRef = ref(storage, `${bucket}/${fileName}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      const { data: publicUrlData } = db.storage.from(bucket).getPublicUrl(fileName);
+      const downloadURL = await new Promise((resolve, reject) => {
+        uploadTask.on('state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setProgress(progress);
+          },
+          (error) => {
+            reject(error);
+          },
+          async () => {
+            try {
+              const url = await getDownloadURL(uploadTask.snapshot.ref);
+              resolve(url);
+            } catch (error) {
+              reject(error);
+            }
+          }
+        );
+      });
       
-      if (!publicUrlData.publicUrl) {
+      if (!downloadURL) {
         throw new Error("No se pudo obtener la URL pública del archivo subido.");
       }
       
@@ -56,7 +66,7 @@ export const useUploader = () => {
         description: "El archivo se ha subido correctamente.",
       });
 
-      onUploadComplete(publicUrlData.publicUrl, null);
+      onUploadComplete(downloadURL, null);
 
     } catch (error) {
       console.error('Upload Error:', error);

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import ProfileHeader from '@/components/profile/ProfileHeader';
@@ -30,18 +31,22 @@ const ProfilePage = () => {
 
     const fetchProfile = useCallback(async (profileId) => {
         setPageLoading(true);
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', profileId)
-            .single();
+        try {
+            const profileRef = doc(db, 'profiles', profileId);
+            const profileSnap = await getDoc(profileRef);
 
-        if (error || !data) {
+            if (profileSnap.exists()) {
+                const data = { id: profileSnap.id, ...profileSnap.data() };
+                setProfile(data);
+                setLocalProfileData(data);
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo cargar el perfil.' });
+                navigate('/discover');
+            }
+        } catch (error) {
+            console.error('Error fetching profile:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo cargar el perfil.' });
             navigate('/discover');
-        } else {
-            setProfile(data);
-            setLocalProfileData(data);
         }
         setPageLoading(false);
     }, [toast, navigate]);
