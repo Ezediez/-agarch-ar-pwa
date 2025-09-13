@@ -65,7 +65,7 @@ const DiscoverPage = () => {
       if (isRefresh) {
         setRefreshing(true);
       } else {
-        setLoading(true);
+    setLoading(true);
       }
 
       const from = isRefresh ? 0 : page * POSTS_PER_PAGE;
@@ -221,8 +221,8 @@ const DiscoverPage = () => {
                 disabled={refreshing}
               >
                 <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
+                </Button>
+              </div>
           </div>
 
           {/* Stories */}
@@ -231,7 +231,7 @@ const DiscoverPage = () => {
           {/* Create Post */}
           <div className="p-4">
             <CreatePost onPostCreated={handleRefresh} />
-          </div>
+      </div>
 
           {/* Ads */}
           {ads.length > 0 && (
@@ -242,8 +242,8 @@ const DiscoverPage = () => {
                   <AdCard key={ad.id} ad={ad} />
                 ))}
               </div>
-            </div>
-          )}
+      </div>
+    )}
 
           {/* Posts */}
           <div className="px-4 pb-20">
@@ -260,13 +260,13 @@ const DiscoverPage = () => {
                 <Button onClick={handleRefresh} variant="outline">
                   Intentar nuevamente
                 </Button>
-              </div>
+      </div>
             ) : posts.length === 0 ? (
               <div className="text-center py-8">
                 <Frown className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No hay posts</h3>
                 <p className="text-muted-foreground">Sé el primero en crear contenido.</p>
-              </div>
+    </div>
             ) : (
               <>
                 <div className="space-y-4">
@@ -278,7 +278,7 @@ const DiscoverPage = () => {
                       onComment={() => handleRefresh()}
                     />
                   ))}
-                </div>
+  </div>
 
                 {/* Load More */}
                 {hasMore && (
@@ -296,14 +296,14 @@ const DiscoverPage = () => {
                       ) : (
                         'Cargar más'
                       )}
-                    </Button>
-                  </div>
+        </Button>
+          </div>
                 )}
               </>
             )}
           </div>
+          </div>
         </div>
-      </div>
     </>
   );
 };
