@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { db } from '@/lib/firebase'; // 🔥 Firebase Firestore
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Loader2, Frown, WifiOff, RefreshCw } from 'lucide-react';
@@ -48,20 +49,8 @@ const DiscoverPage = () => {
           contact_email: 'info@fashionstyle.com',
           cover_image: null,
           duration: 'once'
-        },
-        {
-          id: 'ad-3',
-          title: 'Servicios de Plomería Express',
-          description: 'Reparaciones rápidas y confiables. Disponibles 24/7 para emergencias.',
-          category: 'Servicios',
-          company_info: 'Técnicos certificados con más de 15 años de experiencia.',
-          contact_phone: '+54 11 5555-0000',
-          contact_email: 'urgencias@plomeriaexpress.com',
-          cover_image: null,
-          duration: '30days'
         }
       ];
-      
       setAds(mockAds);
     } catch (error) {
       console.error('Error fetching ads:', error);
@@ -69,289 +58,251 @@ const DiscoverPage = () => {
   }, []);
 
   const fetchPosts = useCallback(async (isRefresh = false) => {
-    if (isRefresh) {
-      setRefreshing(true);
-      setPage(0);
-    } else {
-      setLoading(true);
-    }
-    setError(null);
+    if (!user) return;
     
     try {
-      const from = isRefresh ? 0 : page * POSTS_PER_PAGE;
-      const to = from + POSTS_PER_PAGE - 1;
-
-      // Primero obtener los posts
-      const { data: postsData, error: postsError } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(from, to);
-
-      if (postsError) {
-        throw postsError;
+      setError(null);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
       }
 
-      // Si no hay posts, devolver array vacío
+      const from = isRefresh ? 0 : page * POSTS_PER_PAGE;
+
+      // Obtener posts desde Firebase
+      const postsRef = collection(db, 'posts');
+      const postsQuery = query(
+        postsRef,
+        orderBy('created_at', 'desc'),
+        limit(POSTS_PER_PAGE)
+      );
+      const postsSnapshot = await getDocs(postsQuery);
+      const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
       if (!postsData || postsData.length === 0) {
+        setHasMore(false);
         if (isRefresh) {
           setPosts([]);
         }
-        setHasMore(false);
-        setLoading(false);
-        setRefreshing(false);
         return;
       }
 
-      // Luego obtener los perfiles para cada post
+      // Obtener perfiles para cada post
       const postsWithProfiles = await Promise.all(
         postsData.map(async (post) => {
-          // Obtener perfil del usuario (obligatorio)
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('id, alias, profile_picture_url, is_vip, is_verified')
-            .eq('id', post.user_id)
-            .single();
-
-          // Obtener likes del post (opcional, no bloquear si falla)
-          let likesData = [];
           try {
-            const { data } = await supabase
-              .from('post_likes')
-              .select('id, user_id')
-              .eq('post_id', post.id);
-            likesData = data || [];
-          } catch (error) {
-            console.log('Post likes not found for post:', post.id);
-          }
+            // Obtener perfil del usuario
+            const profileRef = doc(db, 'profiles', post.user_id);
+            const profileSnap = await getDoc(profileRef);
+            const profileData = profileSnap.exists() ? profileSnap.data() : null;
 
-          // Obtener comentarios (opcional, no bloquear si falla)
-          let commentsData = [];
-          try {
-            const { data } = await supabase
-              .from('comentarios')
-              .select('id, usuario_id, texto, creado_en')
-              .eq('publicacion_id', post.id);
-            commentsData = data || [];
-          } catch (error) {
-            console.log('Comments not found for post:', post.id);
-          }
+            // Obtener likes del post
+            let likesData = [];
+            try {
+              const likesRef = collection(db, 'post_likes');
+              const likesQuery = query(likesRef, where('post_id', '==', post.id));
+              const likesSnapshot = await getDocs(likesQuery);
+              likesData = likesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (error) {
+              console.log('Post likes not found for post:', post.id);
+            }
 
-          return {
-            ...post,
-            author: profileData, // Cambiar profiles por author para compatibilidad con PostCard
-            profiles: profileData, // Mantener profiles por compatibilidad
-            likes: likesData,
-            comentarios: commentsData
-          };
+            // Obtener comentarios
+            let commentsData = [];
+            try {
+              const commentsRef = collection(db, 'comentarios');
+              const commentsQuery = query(commentsRef, where('publicacion_id', '==', post.id));
+              const commentsSnapshot = await getDocs(commentsQuery);
+              commentsData = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (error) {
+              console.log('Comments not found for post:', post.id);
+            }
+
+            return {
+              ...post,
+              profile: profileData,
+              likes: likesData,
+              comments: commentsData,
+              likes_count: likesData.length,
+              comments_count: commentsData.length
+            };
+          } catch (error) {
+            console.error('Error processing post:', post.id, error);
+            return {
+              ...post,
+              profile: null,
+              likes: [],
+              comments: [],
+              likes_count: 0,
+              comments_count: 0
+            };
+          }
         })
       );
 
-      const data = postsWithProfiles;
-      
-      if (isRefresh) {
-        setPosts(data || []);
-      } else {
-        setPosts(prev => [...prev, ...(data || [])]);
-      }
-      
-      setHasMore((data || []).length === POSTS_PER_PAGE);
+      // Filtrar posts que tienen perfil válido
+      const validPosts = postsWithProfiles.filter(post => post.profile);
 
-    } catch (err) {
-      console.error("Error fetching posts:", err);
-      setError(err);
+      if (isRefresh) {
+        setPosts(validPosts);
+        setPage(1);
+      } else {
+        setPosts(prevPosts => [...prevPosts, ...validPosts]);
+        setPage(prevPage => prevPage + 1);
+      }
+
+      if (validPosts.length < POSTS_PER_PAGE) {
+        setHasMore(false);
+      }
+
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      setError('Error al cargar los posts. Intenta nuevamente.');
       toast({
         variant: "destructive",
-        title: "Error de Conexión",
-        description: "No se pudieron cargar las publicaciones. Revisa tu conexión e inténtalo de nuevo.",
+        title: "Error",
+        description: "No se pudieron cargar los posts. Verifica tu conexión.",
       });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [toast, page]);
-
-  // Función para intercalar anuncios cada 8 posts
-  const createMixedContent = useCallback((posts, ads) => {
-    if (!posts.length) return [];
-    
-    const mixedContent = [];
-    let adIndex = 0;
-    
-    posts.forEach((post, index) => {
-      mixedContent.push({ type: 'post', data: post, key: `post-${post.id}` });
-      
-      // Intercalar anuncio cada 8 posts (índices 7, 15, 23, etc.)
-      if ((index + 1) % 8 === 0 && ads.length > 0) {
-        const ad = ads[adIndex % ads.length];
-        mixedContent.push({ 
-          type: 'ad', 
-          data: ad, 
-          key: `ad-${ad.id}-${Math.floor(index / 8)}`,
-          adIndex: adIndex % ads.length
-        });
-        adIndex++;
-      }
-    });
-    
-    return mixedContent;
-  }, []);
-
-  // Memoizar el contenido mixto para evitar re-renders innecesarios
-  const memoizedContent = useMemo(() => createMixedContent(posts, ads), [posts, ads, createMixedContent]);
+  }, [user, page, toast]);
 
   useEffect(() => {
-    fetchPosts(true);
-    fetchAds();
-  }, [fetchAds]);
+    if (user) {
+      fetchPosts();
+      fetchAds();
+    }
+  }, [user, fetchPosts, fetchAds]);
 
-  // Configurar realtime con debounce para evitar demasiadas actualizaciones
-  useEffect(() => {
-    let timeoutId;
-    const channel = supabase
-      .channel('public-posts-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-        // Debounce las actualizaciones
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          fetchPosts(true);
-        }, 1000);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'post_likes' }, () => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          fetchPosts(true);
-        }, 500);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'comentarios' }, () => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          fetchPosts(true);
-        }, 500);
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('Realtime channel connected for posts.');
-        }
-        if (status === 'CHANNEL_ERROR') {
-          console.error('Realtime channel error.');
-          setError(new Error("Error de conexión en tiempo real."));
-        }
-      });
-      
-    return () => {
-      clearTimeout(timeoutId);
-      db.removeChannel(channel);
-    };
-  }, [fetchPosts]);
-
-  const handlePostCreated = useCallback(() => {
+  const handleRefresh = useCallback(() => {
+    setPage(0);
+    setHasMore(true);
     fetchPosts(true);
   }, [fetchPosts]);
-  
-  const handleLikeToggle = useCallback((postId, is_liked, likes_count) => {
-    setPosts(currentPosts =>
-      currentPosts.map(p =>
-        p.id === postId ? { ...p, is_liked, likes_count } : p
-      )
-    );
-  }, []);
 
   const handleLoadMore = useCallback(() => {
     if (!loading && hasMore) {
-      setPage(prev => prev + 1);
       fetchPosts();
     }
   }, [loading, hasMore, fetchPosts]);
 
-  const renderContent = () => {
-    if (loading && !refreshing) {
-      return (
-        <div className="flex justify-center items-center py-10">
-          <Loader2 className="w-12 h-12 animate-spin text-primary" />
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="text-center py-10 card-glass">
-          <WifiOff className="mx-auto h-12 w-12 text-destructive" />
-          <h3 className="mt-2 text-lg font-semibold text-text-primary">Error de Conexión</h3>
-          <p className="mt-1 text-sm text-text-secondary">No se pudieron cargar las publicaciones.</p>
-          <Button onClick={() => fetchPosts(true)} className="mt-4 btn-action">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Reintentar
-          </Button>
-        </div>
-      );
-    }
-
-    if (memoizedContent.length > 0) {
-      return (
-        <div className="space-y-4">
-          {memoizedContent.map((item) => {
-            if (item.type === 'post') {
-              return (
-                <PostCard
-                  key={item.key}
-                  post={item.data}
-                  onLikeToggle={handleLikeToggle}
-                />
-              );
-            } else if (item.type === 'ad') {
-              return (
-                <AdCard
-                  key={item.key}
-                  ad={item.data}
-                  index={item.adIndex}
-                />
-              );
-            }
-            return null;
-          })}
-          {hasMore && (
-            <div className="text-center py-4">
-              <Button 
-                onClick={handleLoadMore} 
-                disabled={loading}
-                variant="outline"
-                className="btn-outline-action"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Cargando...
-                  </>
-                ) : (
-                  'Cargar más'
-                )}
-              </Button>
-            </div>
-          )}
-        </div>
-      );
-    }
-
+  if (!user) {
     return (
-      <div className="text-center py-10 card-glass">
-        <Frown className="mx-auto h-12 w-12 text-text-secondary" />
-        <h3 className="mt-2 text-lg font-semibold text-text-primary">No hay publicaciones</h3>
-        <p className="mt-1 text-sm text-text-secondary">Sé el primero en compartir algo.</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Frown className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Inicia sesión para ver contenido</h2>
+          <p className="text-muted-foreground">Necesitas estar autenticado para acceder a esta sección.</p>
+        </div>
       </div>
     );
-  };
+  }
 
   return (
     <>
       <Helmet>
         <title>Descubrir - AGARCH-AR</title>
-        <meta name="description" content="Descubre publicaciones de otros usuarios en AGARCH-AR." />
+        <meta name="description" content="Descubre nuevas personas y contenido interesante en AGARCH-AR" />
       </Helmet>
-      <div className="max-w-2xl mx-auto space-y-6">
-        <Stories />
-        <CreatePost onPostCreated={handlePostCreated} />
-        {renderContent()}
+
+      <div className="min-h-screen bg-background">
+        <div className="max-w-md mx-auto bg-background">
+          {/* Header */}
+          <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+            <div className="flex items-center justify-between p-4">
+              <h1 className="text-xl font-bold">Descubrir</h1>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Stories */}
+          <Stories />
+
+          {/* Create Post */}
+          <div className="p-4">
+            <CreatePost onPostCreated={handleRefresh} />
+          </div>
+
+          {/* Ads */}
+          {ads.length > 0 && (
+            <div className="px-4 mb-4">
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">Anuncios</h3>
+              <div className="space-y-2">
+                {ads.map(ad => (
+                  <AdCard key={ad.id} ad={ad} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Posts */}
+          <div className="px-4 pb-20">
+            {loading && posts.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Cargando posts...</span>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <WifiOff className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Error de conexión</h3>
+                <p className="text-muted-foreground mb-4">{error}</p>
+                <Button onClick={handleRefresh} variant="outline">
+                  Intentar nuevamente
+                </Button>
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="text-center py-8">
+                <Frown className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No hay posts</h3>
+                <p className="text-muted-foreground">Sé el primero en crear contenido.</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  {posts.map((post) => (
+                    <PostCard 
+                      key={post.id} 
+                      post={post} 
+                      onLike={() => handleRefresh()}
+                      onComment={() => handleRefresh()}
+                    />
+                  ))}
+                </div>
+
+                {/* Load More */}
+                {hasMore && (
+                  <div className="flex justify-center py-4">
+                    <Button
+                      variant="outline"
+                      onClick={handleLoadMore}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Cargando...
+                        </>
+                      ) : (
+                        'Cargar más'
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </>
   );

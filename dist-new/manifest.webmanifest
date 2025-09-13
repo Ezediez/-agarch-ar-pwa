@@ -1,0 +1,63 @@
+{
+  "name": "AGARCH-AR - Red Social",
+  "short_name": "AGARCH-AR",
+  "description": "Conéctate con personas afines a vos, cerca tuyo y con ganas de hacer lo mismo que vos cuando quieras, sin ataduras.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b121b",
+  "theme_color": "#dc2626",
+  "categories": ["social", "dating", "lifestyle", "networking"],
+  "lang": "es-AR",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "https://agarch-ar.netlify.app/pwa-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://agarch-ar.netlify.app/pwa-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "https://agarch-ar.netlify.app/pwa-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Publicaciones",
+      "short_name": "Publicaciones",
+      "description": "Ver publicaciones y stories",
+      "url": "/discover",
+      "icons": [{ "src": "https://agarch-ar.netlify.app/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Chats",
+      "short_name": "Chats",
+      "description": "Mensajes y conversaciones",
+      "url": "/chat",
+      "icons": [{ "src": "https://agarch-ar.netlify.app/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mi Perfil",
+      "short_name": "Perfil",
+      "description": "Gestiona tu perfil",
+      "url": "/profile",
+      "icons": [{ "src": "https://agarch-ar.netlify.app/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Publicidad",
+      "short_name": "Anuncios",
+      "description": "Portal de anunciantes",
+      "url": "/ad-login",
+      "icons": [{ "src": "https://agarch-ar.netlify.app/pwa-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

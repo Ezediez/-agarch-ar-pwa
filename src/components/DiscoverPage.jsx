@@ -1,263 +1,310 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Helmet } from 'react-helmet';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, X, Star, MapPin, SlidersHorizontal, Crown } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from 'firebase/firestore';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/components/ui/use-toast.jsx';
+import { Loader2, Frown, WifiOff, RefreshCw } from 'lucide-react';
+import PostCard from '@/components/discover/PostCard';
+import CreatePost from '@/components/discover/CreatePost';
+import Stories from '@/components/discover/Stories';
+import AdCard from '@/components/discover/AdCard';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
-import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from "@/components/ui/sheet";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 
 const DiscoverPage = () => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [profiles, setProfiles] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [posts, setPosts] = useState([]);
+  const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    gender: 'todos',
-    sexual_orientation: 'todos',
-    relationship_status: 'todos',
-    ageRange: [18, 70],
-  });
+  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const POSTS_PER_PAGE = 10;
 
-  const fetchProfiles = useCallback(async () => {
+  const fetchAds = useCallback(async () => {
+    try {
+      // Simular anuncios mientras se configura Firebase
+      const mockAds = [
+        {
+          id: 'ad-1',
+          title: 'Restaurante El Buen Sabor',
+          description: 'Comida casera y tradicional. Los mejores sabores de la región con ingredientes frescos y naturales.',
+          category: 'Restaurante',
+          company_info: 'Más de 20 años sirviendo a la comunidad con amor y dedicación.',
+          contact_phone: '+54 11 1234-5678',
+          contact_email: 'contacto@elbuensabor.com',
+          contact_website: 'https://elbuensabor.com',
+          cover_image: null,
+          duration: '30days'
+        },
+        {
+          id: 'ad-2', 
+          title: 'Tienda Fashion Style',
+          description: 'Ropa moderna y accesorios de última moda. Encuentra tu estilo único con nosotros.',
+          category: 'Moda',
+          company_info: 'Especialistas en tendencias y estilo personal.',
+          contact_phone: '+54 11 9876-5432',
+          contact_email: 'info@fashionstyle.com',
+          cover_image: null,
+          duration: 'once'
+        }
+      ];
+      setAds(mockAds);
+    } catch (error) {
+      console.error('Error fetching ads:', error);
+    }
+  }, []);
+
+  const fetchPosts = useCallback(async (isRefresh = false) => {
     if (!user) return;
-    setLoading(true);
-
-    let query = supabase
-      .from('profiles')
-      .select('*')
-      .not('id', 'eq', user.id) // Exclude self
-      .limit(50);
-
-    if (filters.gender !== 'todos') {
-      query = query.eq('gender', filters.gender);
-    }
-    if (filters.sexual_orientation !== 'todos') {
-      query = query.eq('sexual_orientation', filters.sexual_orientation);
-    }
-    if (filters.relationship_status !== 'todos') {
-      query = query.eq('relationship_status', filters.relationship_status);
-    }
     
-    // Note: Age filtering would ideally be done in the backend or with a database function.
-    // This client-side filtering is a placeholder.
-    
-    const { data, error } = await query;
+    try {
+      setError(null);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-    if (error) {
+      const from = isRefresh ? 0 : page * POSTS_PER_PAGE;
+
+      // Obtener posts desde Firebase
+      const postsRef = collection(db, 'posts');
+      const postsQuery = query(
+        postsRef,
+        orderBy('created_at', 'desc'),
+        limit(POSTS_PER_PAGE)
+      );
+      const postsSnapshot = await getDocs(postsQuery);
+      const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      if (!postsData || postsData.length === 0) {
+        setHasMore(false);
+        if (isRefresh) {
+          setPosts([]);
+        }
+        return;
+      }
+
+      // Obtener perfiles para cada post
+      const postsWithProfiles = await Promise.all(
+        postsData.map(async (post) => {
+          try {
+            // Obtener perfil del usuario
+            const profileRef = doc(db, 'profiles', post.user_id);
+            const profileSnap = await getDoc(profileRef);
+            const profileData = profileSnap.exists() ? profileSnap.data() : null;
+
+            // Obtener likes del post
+            let likesData = [];
+            try {
+              const likesRef = collection(db, 'post_likes');
+              const likesQuery = query(likesRef, where('post_id', '==', post.id));
+              const likesSnapshot = await getDocs(likesQuery);
+              likesData = likesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (error) {
+              console.log('Post likes not found for post:', post.id);
+            }
+
+            // Obtener comentarios
+            let commentsData = [];
+            try {
+              const commentsRef = collection(db, 'comentarios');
+              const commentsQuery = query(commentsRef, where('publicacion_id', '==', post.id));
+              const commentsSnapshot = await getDocs(commentsQuery);
+              commentsData = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (error) {
+              console.log('Comments not found for post:', post.id);
+            }
+
+            return {
+              ...post,
+              profile: profileData,
+              likes: likesData,
+              comments: commentsData,
+              likes_count: likesData.length,
+              comments_count: commentsData.length
+            };
+          } catch (error) {
+            console.error('Error processing post:', post.id, error);
+            return {
+              ...post,
+              profile: null,
+              likes: [],
+              comments: [],
+              likes_count: 0,
+              comments_count: 0
+            };
+          }
+        })
+      );
+
+      // Filtrar posts que tienen perfil válido
+      const validPosts = postsWithProfiles.filter(post => post.profile);
+
+      if (isRefresh) {
+        setPosts(validPosts);
+        setPage(1);
+      } else {
+        setPosts(prevPosts => [...prevPosts, ...validPosts]);
+        setPage(prevPage => prevPage + 1);
+      }
+
+      if (validPosts.length < POSTS_PER_PAGE) {
+        setHasMore(false);
+      }
+
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      setError('Error al cargar los posts. Intenta nuevamente.');
       toast({
         variant: "destructive",
-        title: "Error al cargar perfiles",
-        description: error.message,
+        title: "Error",
+        description: "No se pudieron cargar los posts. Verifica tu conexión.",
       });
-      setProfiles([]);
-    } else {
-      const sortedProfiles = data.sort((a, b) => (b.is_vip ? 1 : -1) - (a.is_vip ? 1 : -1) || new Date(b.created_at) - new Date(a.created_at));
-      setProfiles(sortedProfiles);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    setCurrentIndex(0);
-    setLoading(false);
-  }, [user, filters, toast]);
+  }, [user, page, toast]);
 
   useEffect(() => {
-    fetchProfiles();
-  }, [fetchProfiles]);
-
-  const handleLike = () => {
-    if (!profile?.is_vip && (profile?.monthly_contacts || 10) <= 0) {
-      toast({
-        title: "Límite alcanzado",
-        description: "Has alcanzado tu límite mensual de contactos. Hazte VIP para contactos ilimitados.",
-        variant: "destructive"
-      });
-      return;
+    if (user) {
+      fetchPosts();
+      fetchAds();
     }
-    toast({ title: "🚧 Función en desarrollo", description: "¡Puedes solicitarla en tu próximo prompt! 🚀" });
-    nextProfile();
-  };
+  }, [user, fetchPosts, fetchAds]);
 
-  const handlePass = () => {
-    nextProfile();
-  };
+  const handleRefresh = useCallback(() => {
+    setPage(0);
+    setHasMore(true);
+    fetchPosts(true);
+  }, [fetchPosts]);
 
-  const nextProfile = () => {
-    setCurrentIndex(prev => prev + 1);
-  };
-
-  const calculateAge = (birthDate) => {
-    if (!birthDate) return '';
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-      age--;
+  const handleLoadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      fetchPosts();
     }
-    return age;
-  };
+  }, [loading, hasMore, fetchPosts]);
 
-  const currentProfile = profiles[currentIndex];
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Frown className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Inicia sesión para ver contenido</h2>
+          <p className="text-muted-foreground">Necesitas estar autenticado para acceder a esta sección.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
       <Helmet>
         <title>Descubrir - AGARCH-AR</title>
-        <meta name="description" content="Encuentra y conecta con nuevos perfiles en AGARCH-AR." />
+        <meta name="description" content="Descubre nuevas personas y contenido interesante en AGARCH-AR" />
       </Helmet>
-      <div className="max-w-md mx-auto">
-        <div className="flex justify-between items-center mb-4 px-4">
-          <h1 className="text-2xl font-bold text-green-400">Descubrir</h1>
-          <FilterSheet filters={filters} setFilters={setFilters} onApply={fetchProfiles} />
-        </div>
 
-        <AnimatePresence mode="wait">
-          {loading ? (
-            <div className="flex items-center justify-center h-96">
-              <div className="loading-spinner" />
+      <div className="min-h-screen bg-background">
+        <div className="max-w-md mx-auto bg-background">
+          {/* Header */}
+          <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+            <div className="flex items-center justify-between p-4">
+              <h1 className="text-xl font-bold">Descubrir</h1>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
-          ) : currentProfile ? (
-            <motion.div
-              key={currentProfile.id}
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -50, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
-              className="relative"
-            >
-              <ProfileCard profile={currentProfile} calculateAge={calculateAge} />
-              <div className="flex justify-center space-x-8 mt-6">
-                <Button onClick={handlePass} variant="outline" className="w-20 h-20 rounded-full bg-red-500/20 border-red-500 text-red-500 hover:bg-red-500/30">
-                  <X size={40} />
-                </Button>
-                <Button onClick={handleLike} variant="outline" className="w-20 h-20 rounded-full bg-green-500/20 border-green-500 text-green-500 hover:bg-green-500/30">
-                  <Heart size={40} />
+          </div>
+
+          {/* Stories */}
+          <Stories />
+
+          {/* Create Post */}
+          <div className="p-4">
+            <CreatePost onPostCreated={handleRefresh} />
+          </div>
+
+          {/* Ads */}
+          {ads.length > 0 && (
+            <div className="px-4 mb-4">
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">Anuncios</h3>
+              <div className="space-y-2">
+                {ads.map(ad => (
+                  <AdCard key={ad.id} ad={ad} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Posts */}
+          <div className="px-4 pb-20">
+            {loading && posts.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Cargando posts...</span>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <WifiOff className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Error de conexión</h3>
+                <p className="text-muted-foreground mb-4">{error}</p>
+                <Button onClick={handleRefresh} variant="outline">
+                  Intentar nuevamente
                 </Button>
               </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12 text-white"
-            >
-              <Heart className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-300 mb-2">No hay más perfiles</h2>
-              <p className="text-gray-400">Prueba a cambiar los filtros o vuelve más tarde.</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </>
-  );
-};
+            ) : posts.length === 0 ? (
+              <div className="text-center py-8">
+                <Frown className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No hay posts</h3>
+                <p className="text-muted-foreground">Sé el primero en crear contenido.</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  {posts.map((post) => (
+                    <PostCard 
+                      key={post.id} 
+                      post={post} 
+                      onLike={() => handleRefresh()}
+                      onComment={() => handleRefresh()}
+                    />
+                  ))}
+                </div>
 
-const ProfileCard = ({ profile, calculateAge }) => (
-  <div className="relative aspect-[9/14] w-full rounded-2xl overflow-hidden shadow-2xl card-glass">
-    <img  
-      src={profile.profile_picture_url || `https://source.unsplash.com/random/400x600?portrait&sig=${profile.id}`} 
-      alt={profile.alias} 
-      className="absolute inset-0 w-full h-full object-cover" 
-    />
-    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-    {profile.is_vip && (
-      <div className="absolute top-4 right-4 flex items-center bg-yellow-400 text-gray-900 px-3 py-1 rounded-full text-sm font-bold">
-        <Crown className="w-4 h-4 mr-1" />
-        VIP
-      </div>
-    )}
-    <div className="absolute bottom-0 left-0 p-6 text-white w-full">
-      <h2 className="text-3xl font-bold">{profile.alias}, {calculateAge(profile.birth_date)}</h2>
-      <div className="flex items-center text-gray-200">
-        <MapPin className="w-4 h-4 mr-1" />
-        <span>{profile.location || 'Ubicación no disponible'}</span>
-      </div>
-      <p className="mt-2 text-gray-300 line-clamp-2">{profile.bio}</p>
-    </div>
-  </div>
-);
-
-const FilterSheet = ({ filters, setFilters, onApply }) => {
-  const [localFilters, setLocalFilters] = useState(filters);
-
-  const handleApply = () => {
-    setFilters(localFilters);
-    onApply();
-  };
-
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="outline" className="btn-outline-action">
-          <SlidersHorizontal className="w-4 h-4 mr-2" />
-          Filtros
-        </Button>
-      </SheetTrigger>
-      <SheetContent className="bg-gray-900 text-white border-l-gray-700">
-        <SheetHeader>
-          <SheetTitle className="text-green-400">Filtrar Perfiles</SheetTitle>
-        </SheetHeader>
-        <div className="grid gap-6 py-6">
-          <div className="grid gap-2">
-            <Label htmlFor="gender" className="text-green-400">Busco</Label>
-            <Select value={localFilters.gender} onValueChange={(value) => setLocalFilters(f => ({ ...f, gender: value }))}>
-              <SelectTrigger id="gender" className="input-glass"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="hombre">Hombres</SelectItem>
-                <SelectItem value="mujer">Mujeres</SelectItem>
-                <SelectItem value="no-binario">No binarios</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="sexual_orientation" className="text-green-400">Orientación Sexual</Label>
-            <Select value={localFilters.sexual_orientation} onValueChange={(value) => setLocalFilters(f => ({ ...f, sexual_orientation: value }))}>
-              <SelectTrigger id="sexual_orientation" className="input-glass"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas</SelectItem>
-                <SelectItem value="heterosexual">Heterosexual</SelectItem>
-                <SelectItem value="homosexual">Homosexual</SelectItem>
-                <SelectItem value="bisexual">Bisexual</SelectItem>
-                <SelectItem value="pansexual">Pansexual</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="relationship_status" className="text-green-400">Estado</Label>
-            <Select value={localFilters.relationship_status} onValueChange={(value) => setLocalFilters(f => ({ ...f, relationship_status: value }))}>
-              <SelectTrigger id="relationship_status" className="input-glass"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="soltero">Soltero/a</SelectItem>
-                <SelectItem value="en-una-relacion">En una relación</SelectItem>
-                <SelectItem value="es-complicado">Es complicado</SelectItem>
-                <SelectItem value="buscando-algo-casual">Algo casual</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label className="text-green-400">Rango de Edad: {localFilters.ageRange[0]} - {localFilters.ageRange[1]}</Label>
-            <Slider
-              defaultValue={localFilters.ageRange}
-              min={18}
-              max={99}
-              step={1}
-              onValueChange={(value) => setLocalFilters(f => ({ ...f, ageRange: value }))}
-            />
+                {/* Load More */}
+                {hasMore && (
+                  <div className="flex justify-center py-4">
+                    <Button
+                      variant="outline"
+                      onClick={handleLoadMore}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Cargando...
+                        </>
+                      ) : (
+                        'Cargar más'
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
-        <SheetFooter>
-          <SheetClose asChild>
-            <Button onClick={handleApply} className="w-full btn-action">Aplicar Filtros</Button>
-          </SheetClose>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </>
   );
 };
 
