@@ -36,6 +36,21 @@
                 "glob": "**/*",
                 "input": "src/assets",
                 "output": "/assets"
+              },
+              {
+                "glob": "favicon.ico",
+                "input": "public",
+                "output": "/"
+              },
+              {
+                "glob": "manifest.webmanifest",
+                "input": "public",
+                "output": "/"
+              },
+              {
+                "glob": "pwa-*.png",
+                "input": "public",
+                "output": "/"
               }
             ],
             "styles": [

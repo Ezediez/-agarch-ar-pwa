@@ -2,7 +2,7 @@ import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter, Routes } from '@angular/router';
 import { initializeApp, provideFirebaseApp, getApp } from '@angular/fire/app';
 import { getAuth, provideAuth } from '@angular/fire/auth';
-import { getFirestore, provideFirestore } from '@angular/fire/firestore';
+import { getFirestore, provideFirestore, initializeFirestore, persistentLocalCache } from '@angular/fire/firestore';
 import { environment } from '../environments/environments';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 
@@ -27,7 +27,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideAuth(() => getAuth()),
-    provideFirestore(() => getFirestore()),
+    provideFirestore(() => initializeFirestore(getApp(), { localCache: persistentLocalCache({  }) })),
     provideAI(() => getAI(getApp())),
     provideAnimationsAsync(),
   ],
