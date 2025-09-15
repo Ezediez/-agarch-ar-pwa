@@ -30,33 +30,61 @@ const MyProfilePage = () => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
     useEffect(() => {
-        if (ownProfile && user?.id) {
-            console.log('🔄 Cargando mi perfil:', user.id);
-            // Asegurar que el perfil tenga todos los campos necesarios
-            const completeProfile = {
-                ...ownProfile,
-                alias: ownProfile.alias || 'Usuario',
-                descripcion: ownProfile.descripcion || '',
-                genero: ownProfile.genero || '',
-                edad: ownProfile.edad || '',
-                ubicacion: ownProfile.ubicacion || 'Ubicación no especificada',
-                fotos: ownProfile.fotos || [],
-                videos: ownProfile.videos || [],
-                profile_picture_url: ownProfile.profile_picture_url || '/pwa-512x512.png'
-            };
-            setProfile(completeProfile);
-            setLocalProfileData(completeProfile);
+        console.log('🔄 useEffect MyProfilePage - ownProfile:', ownProfile, 'user:', user);
+        
+        if (user?.uid) {
+            console.log('🔄 Usuario autenticado:', user.uid);
+            
+            if (ownProfile) {
+                console.log('🔄 Perfil encontrado:', ownProfile);
+                // Asegurar que el perfil tenga todos los campos necesarios
+                const completeProfile = {
+                    ...ownProfile,
+                    alias: ownProfile.alias || 'Usuario',
+                    descripcion: ownProfile.descripcion || '',
+                    genero: ownProfile.genero || '',
+                    edad: ownProfile.edad || '',
+                    ubicacion: ownProfile.ubicacion || 'Ubicación no especificada',
+                    fotos: ownProfile.fotos || [],
+                    videos: ownProfile.videos || [],
+                    profile_picture_url: ownProfile.profile_picture_url || '/pwa-512x512.png'
+                };
+                setProfile(completeProfile);
+                setLocalProfileData(completeProfile);
+                setPageLoading(false);
+                console.log('✅ Mi perfil cargado:', completeProfile.alias);
+            } else {
+                console.log('⚠️ Perfil no encontrado, creando perfil básico');
+                // Crear perfil básico si no existe
+                const basicProfile = {
+                    id: user.uid,
+                    alias: user.email?.split('@')[0] || 'Usuario',
+                    email: user.email,
+                    descripcion: '',
+                    genero: '',
+                    edad: '',
+                    ubicacion: 'Ubicación no especificada',
+                    fotos: [],
+                    videos: [],
+                    profile_picture_url: '/pwa-512x512.png'
+                };
+                setProfile(basicProfile);
+                setLocalProfileData(basicProfile);
+                setPageLoading(false);
+                console.log('✅ Perfil básico creado:', basicProfile.alias);
+            }
+        } else {
+            console.log('❌ No hay usuario autenticado');
             setPageLoading(false);
-            console.log('✅ Mi perfil cargado:', completeProfile.alias);
         }
-    }, [ownProfile, user?.id]);
+    }, [ownProfile, user]);
 
     const handleSave = async () => {
-        if (!localProfileData || !user?.id) return;
+        if (!localProfileData || !user?.uid) return;
 
         setSaveLoading(true);
         try {
-            const profileRef = doc(db, 'profiles', user.id);
+            const profileRef = doc(db, 'profiles', user.uid);
             await updateDoc(profileRef, {
                 ...localProfileData,
                 updated_at: new Date().toISOString()
@@ -110,10 +138,25 @@ const MyProfilePage = () => {
         }
     };
 
-    if (authLoading || pageLoading) {
+    if (authLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
                 <div className="loading-spinner" />
+            </div>
+        );
+    }
+
+    // Si no hay usuario, mostrar mensaje de error
+    if (!user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="text-center">
+                    <h2 className="text-xl font-semibold mb-2">No autenticado</h2>
+                    <p className="text-muted-foreground mb-4">Debes iniciar sesión para ver tu perfil</p>
+                    <Button onClick={() => navigate('/login')}>
+                        Ir a Login
+                    </Button>
+                </div>
             </div>
         );
     }

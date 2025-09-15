@@ -1,0 +1,113 @@
+{"users": [
+{
+  "localId": "5wFe1XZ3ltTpU7GFIn2krOIeBQ52",
+  "email": "yamiro.2025@gmail.com",
+  "emailVerified": false,
+  "passwordHash": "HvEd5SHeqPfN5o4SpH8BUln/bshR3n7sfOJDUQtWlma5RrNKJ0cnCR72+9vpOUpnlqJ6DXvmbpV/AA6Xkaue9w==",
+  "salt": "GM1O/HpfqdUiCg==",
+  "createdAt": "1757807097344",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "7dUvxBCDebhZjiwBQ3tcrTWMaqs2",
+  "email": "ezediez75@gmail.com",
+  "emailVerified": false,
+  "passwordHash": "QpWKlSRwWW6SRanwRXQ6wzEmSKgMy2RwSzDxHzhE4aO1gbgIhvp4/PVDfvAA6Y9trPn/y5G2+E6Z5Vzh5DnCiw==",
+  "salt": "nede69JGmVd2Xg==",
+  "lastSignedInAt": "1757798553829",
+  "createdAt": "1757798553829",
+  "providerUserInfo": []
+},
+{
+  "localId": "B4S7HORJTvW0uaKwjY5pNkr3h5h1",
+  "email": "escoleandro01@gmail.com",
+  "emailVerified": false,
+  "passwordHash": "KDqHHZJfkE7yiW/HpK0iGYBNGDut2dlLTMyfnLZZOHJ7taWIw7rDcPsIK3Q5OeqRp8XA2NNMKxbgPIN8vJ5pnw==",
+  "salt": "/eQXfBad/+94Aw==",
+  "createdAt": "1757807400497",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "E2JRTtKaPthltKoEmWPdgVcIhSi1",
+  "email": "1993reyessofia.25@gmail.com",
+  "emailVerified": false,
+  "passwordHash": "Yw+pZJkYZ5BOZsX4DhW4TJvPVC9h8nFDVdJY4W1mhzIKfkMIWI8tf+o/M42uFtMThEHpOY0LOSaMRXcCKT9gaQ==",
+  "salt": "5FNyI85LUpR69Q==",
+  "createdAt": "1757807029512",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "KOgyMvWfGyT25FZ2DjGS15qz7eA2",
+  "email": "tamyve.2024@gmail.com",
+  "emailVerified": false,
+  "passwordHash": "28p1TlAo+Ely8TWxn3tkFx51N1in8RKQFiRNAW/N2LIbt5ps244oKVqPvJ83ghXQJ27WWwEQeuC6KxkCVV7sEw==",
+  "salt": "eixdN9M5PTFK6w==",
+  "createdAt": "1757807234597",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "OY5AJBWX4tO70Qt9v40mTGYYWz72",
+  "email": "yanisole0207@gmail.com",
+  "emailVerified": false,
+  "passwordHash": "yVozNTlSI/gQMXhagyN7nLZufUXDQr+AVSno/a++c2zNq0YnFfmsa6KwBLzilcFdTyB1w/JrFWwkgOdpHo/7mw==",
+  "salt": "cmxmllbUNc8Oig==",
+  "lastSignedInAt": "1757815394426",
+  "createdAt": "1757807901821",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "UijIBensKkUBiZiNKPB1jfT3Ecv2",
+  "email": "desousamateo.25@gamil.com",
+  "emailVerified": false,
+  "passwordHash": "Fme930fXyvb3MyNjqfa7pEFrtzegevlNyBAuye5I9hNU2ahtk7/5bnYxb6bQpeQpJAot9s5a0EkrSVZDF13Vlg==",
+  "salt": "F9ZlR1+XvEWjhw==",
+  "createdAt": "1757807287520",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "gRrX4SSnBmfTsoCmjkLS3hLknb43",
+  "email": "tomassosa026@gmail.com",
+  "emailVerified": false,
+  "passwordHash": "Da1L1JFO6affgyZpceCWOOh44+JQ1McuMbVDNh/+Hjv6Zj7uneYuB3ySRRwDzTWyUSK/P1+hL6QoxLtT/e5pZQ==",
+  "salt": "+Q6S6URVTo1pUw==",
+  "createdAt": "1757807335862",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "haEjZ6uw3eMum4T4rn51cuYu3r03",
+  "email": "digitalgoldonli@gmail.com",
+  "emailVerified": false,
+  "passwordHash": "U/HMpGlw+ykQ2+DqRsZIROO/V87n+WcaCoHvwfBx3Tm7jsMgsxI3jnkNFhSp69SdrT/ZYUfkM9FNxydUh1nGGw==",
+  "salt": "OP7nVJMyEIbGOQ==",
+  "lastSignedInAt": "1757803138531",
+  "createdAt": "1757803138531",
+  "providerUserInfo": []
+},
+{
+  "localId": "xS3ioe8SGbQwMZmIsspjXrnv7W93",
+  "email": "ezequieldiez@hotmail.com",
+  "emailVerified": false,
+  "passwordHash": "whKUe5YEN6XmEMauFxHgznWK6kPoLLdH7Vj/QmnSu8quKUx2nYaqJAYob0q2gEQ2aJtkdlKaph1E/sCtZ+XzqA==",
+  "salt": "apK8QBp2O7wepQ==",
+  "lastSignedInAt": "1757965548185",
+  "createdAt": "1757534812935",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "zUlCpSfLpSNZ0OBFqBxsi5LgnXJ2",
+  "email": "goludmy.25@gmail.com",
+  "emailVerified": false,
+  "passwordHash": "zNkkPnRz25RNsK68bYS/qqVSQEExT0v/+lJozdtQ0Zg7T90KEpEUL/69HqYddBuAudiK8zfJ18ur7TgrmAA1dQ==",
+  "salt": "+Aa62R3PKWZnlw==",
+  "createdAt": "1757807192017",
+  "disabled": false,
+  "providerUserInfo": []
+}]}
