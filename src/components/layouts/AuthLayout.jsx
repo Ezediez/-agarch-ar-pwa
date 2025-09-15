@@ -7,7 +7,7 @@ const AuthLayout = () => {
     <div className="min-h-screen bg-background text-text-primary flex flex-col items-center justify-center p-4 overflow-hidden relative">
       <div 
         className="absolute inset-0 bg-cover bg-center opacity-5" 
-        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1516528387618-afa90b13e000?q=80&w=1974&auto=format&fit=crop')" }}
+        style={{ backgroundImage: "url('/pwa-512x512.png')" }}
       />
       <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
       <motion.div

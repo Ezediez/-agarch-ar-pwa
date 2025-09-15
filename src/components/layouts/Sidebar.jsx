@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Home, MessageSquare, User, Settings, LogOut, Shield, Search } from 'lucide-react';
 
 const navItems = [
-  { icon: Home, text: 'Publicaciones', path: '/' },
+  { icon: Home, text: 'Publicaciones', path: '/discover' },
   { icon: MessageSquare, text: 'Chats', path: '/chat' },
-  { icon: User, text: 'Mi Perfil', path: '/profile' },
+  { icon: User, text: 'Mi Perfil', path: '/my-profile' },
   { icon: Search, text: 'Buscar', path: '/search' },
   { icon: Settings, text: 'Ajustes', path: '/settings' },
 ];
@@ -45,7 +45,7 @@ const Sidebar = () => {
           <NavLink
             key={item.text}
             to={item.path}
-            end={item.path === '/'}
+            end={item.path === '/discover'}
             style={({ isActive }) => (isActive ? activeLinkStyle : {})}
             className="flex items-center px-4 py-3 text-text-secondary rounded-lg hover:bg-border-color hover:text-text-primary transition-colors"
           >
@@ -71,7 +71,7 @@ const Sidebar = () => {
             <img  
               className="w-10 h-10 rounded-full object-cover mr-3" 
               alt={profile?.alias || 'User avatar'}
-             src={profile?.profile_picture_url || 'https://images.unsplash.com/photo-1639268230206-ef0e0f308a06'} />
+             src={profile?.profile_picture_url || '/pwa-512x512.png'} />
             <div className="flex-1 overflow-hidden">
               <p className="font-semibold text-text-primary truncate">{profile?.alias || 'Usuario'}</p>
               <p className="text-sm text-text-secondary truncate">{user.email}</p>

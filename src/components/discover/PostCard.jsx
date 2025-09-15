@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { collection, addDoc, deleteDoc, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import CommentModal from './CommentModal';
 
@@ -44,22 +45,37 @@ const PostCard = ({ post, onLikeToggle }) => {
 
         onLikeToggle(id, !currentlyLiked, currentlyLiked ? likes_count - 1 : likes_count + 1);
 
-        if (currentlyLiked) {
-            const { error } = await db.from('post_likes').delete().match({ post_id: id, user_id: user.id });
-            if (error) {
-                setOptimisticLiked(true);
-                setOptimisticLikesCount(prev => prev + 1);
-                onLikeToggle(id, true, likes_count);
-                toast({ variant: 'destructive', title: 'Error al quitar el Me Gusta' });
+        try {
+            if (currentlyLiked) {
+                // Buscar y eliminar el like existente
+                const likesQuery = query(
+                    collection(db, 'post_likes'),
+                    where('post_id', '==', id),
+                    where('user_id', '==', user.id)
+                );
+                const likesSnapshot = await getDocs(likesQuery);
+                
+                for (const likeDoc of likesSnapshot.docs) {
+                    await deleteDoc(likeDoc.ref);
+                }
+            } else {
+                // Agregar nuevo like
+                await addDoc(collection(db, 'post_likes'), {
+                    post_id: id,
+                    user_id: user.id,
+                    created_at: new Date().toISOString()
+                });
             }
-        } else {
-            const { error } = await db.from('post_likes').insert({ post_id: id, user_id: user.id });
-            if (error) {
-                setOptimisticLiked(false);
-                setOptimisticLikesCount(prev => prev - 1);
-                onLikeToggle(id, false, likes_count);
-                toast({ variant: 'destructive', title: 'Error al dar Me Gusta' });
-            }
+        } catch (error) {
+            console.error('Error handling like:', error);
+            // Revertir cambios optimistas
+            setOptimisticLiked(currentlyLiked);
+            setOptimisticLikesCount(prev => currentlyLiked ? prev + 1 : prev - 1);
+            onLikeToggle(id, currentlyLiked, likes_count);
+            toast({ 
+                variant: 'destructive', 
+                title: currentlyLiked ? 'Error al quitar el Me Gusta' : 'Error al dar Me Gusta' 
+            });
         }
     };
 

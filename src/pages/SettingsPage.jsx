@@ -32,6 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { doc, updateDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import LocationSettings from '@/components/settings/LocationSettings';
 
@@ -159,21 +160,13 @@ const SettingsPage = () => {
   const handleSaveSettings = async (settingsData) => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update(settingsData)
-        .eq('id', profile.id);
-
-      if (error) {
-        toast({ variant: "destructive", title: "Error", description: `No se pudieron guardar los cambios. ${error.message}` });
-        setSaving(false);
-        return false;
-      } else {
-        toast({ title: "¡Éxito!", description: "Tus ajustes se han guardado." });
-        await refreshProfile();
-        setSaving(false);
-        return true;
-      }
+      const profileRef = doc(db, 'profiles', profile.id);
+      await updateDoc(profileRef, settingsData);
+      
+      toast({ title: "¡Éxito!", description: "Tus ajustes se han guardado." });
+      await refreshProfile();
+      setSaving(false);
+      return true;
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "Error inesperado al guardar configuración." });
       setSaving(false);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
     import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { collection, query, where, getDocs, addDoc, orderBy, doc, getDoc } from 'firebase/firestore';
     import { useAuth } from '@/hooks/useAuth';
     import { useToast } from '@/components/ui/use-toast';
     import { Button } from '@/components/ui/button';
@@ -21,28 +22,36 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
     
       const fetchComments = useCallback(async () => {
         setLoading(true);
-        const { data, error } = await supabase
-          .from('comentarios')
-          .select(`
-            *,
-            profile:usuario_id (
-              alias,
-              profile_picture_url
-            )
-          `)
-          .eq('publicacion_id', postId)
-          .order('creado_en', { ascending: true });
+        const commentsRef = collection(db, 'comentarios');
+        const commentsQuery = query(
+          commentsRef,
+          where('publicacion_id', '==', postId),
+          orderBy('creado_en', 'asc')
+        );
+        
+        const snapshot = await getDocs(commentsQuery);
+        const commentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Obtener perfiles para cada comentario
+        const commentsWithProfiles = await Promise.all(
+          commentsData.map(async (comment) => {
+            try {
+              const profileRef = doc(db, 'profiles', comment.usuario_id);
+              const profileSnap = await getDoc(profileRef);
+              const profileData = profileSnap.exists() ? profileSnap.data() : null;
+              
+              return {
+                ...comment,
+                profile: profileData ? { id: profileSnap.id, ...profileData } : null
+              };
+            } catch (error) {
+              console.error('Error fetching profile for comment:', error);
+              return { ...comment, profile: null };
+            }
+          })
+        );
     
-        if (error) {
-          console.error('Error fetching comments:', error);
-          toast({
-            variant: 'destructive',
-            title: 'Error al cargar comentarios',
-            description: 'No se pudieron obtener los comentarios.',
-          });
-        } else {
-          setComments(data || []);
-        }
+        setComments(commentsWithProfiles);
         setLoading(false);
       }, [postId, toast]);
     
@@ -51,24 +60,13 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
       }, [fetchComments]);
       
       useEffect(() => {
-        const channel = supabase
-          .channel(`comments-for-post-${postId}`)
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'comentarios', filter: `publicacion_id=eq.${postId}` },
-            (payload) => {
-              fetchComments();
-              if (payload.eventType === 'INSERT') {
-                setCommentsCount(prev => (prev || 0) + 1);
-              } else if (payload.eventType === 'DELETE') {
-                setCommentsCount(prev => Math.max(0, (prev || 0) - 1));
-              }
-            }
-          )
-          .subscribe();
-    
+        // Para Firebase, usamos polling cada 5 segundos para actualizar comentarios
+        const interval = setInterval(() => {
+          fetchComments();
+        }, 5000);
+
         return () => {
-          db.removeChannel(channel);
+          clearInterval(interval);
         };
       }, [postId, fetchComments]);
     
@@ -84,13 +82,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
     
         setIsPosting(true);
     
-        const { error } = await supabase
-          .from('comentarios')
-          .insert({
-            publicacion_id: postId,
-            usuario_id: user.id,
-            texto: newComment,
-          });
+        await addDoc(collection(db, 'comentarios'), {
+          publicacion_id: postId,
+          usuario_id: user.id,
+          texto: newComment,
+          creado_en: new Date().toISOString()
+        });
     
         if (error) {
           console.error('Error posting comment:', error);

@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { DollarSign, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
@@ -19,26 +20,33 @@ const PaymentsPage = () => {
 
     useEffect(() => {
         const fetchPayments = async () => {
-            if (!user) {
+            if (!user?.id) {
+                console.log('❌ No hay usuario autenticado para cargar pagos');
                 setLoading(false);
                 return;
             }
             
             setLoading(true);
-            const { data, error } = await supabase
-                .from('payments')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false });
-
-            if (error) {
+            try {
+                const paymentsRef = collection(db, 'payments');
+                const paymentsQuery = query(
+                    paymentsRef,
+                    where('user_id', '==', user.id),
+                    orderBy('created_at', 'desc')
+                );
+                
+                const snapshot = await getDocs(paymentsQuery);
+                const paymentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                setPayments(paymentsData);
+            } catch (error) {
+                console.error('Error fetching payments:', error);
                 toast({
                     variant: "destructive",
                     title: "Error al cargar pagos",
                     description: "No se pudo obtener tu historial de transacciones.",
                 });
-            } else {
-                setPayments(data);
+                setPayments([]);
             }
             
             setLoading(false);

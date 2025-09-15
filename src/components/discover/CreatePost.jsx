@@ -12,7 +12,7 @@ const CreatePost = () => {
       <div className="mb-6 p-4 rounded-lg card-glass">
         <div className="flex items-center gap-3">
           <img
-            src={profile?.profile_picture_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100'}
+            src={profile?.profile_picture_url || '/pwa-512x512.png'}
             alt="Tu perfil"
             className="w-10 h-10 rounded-full object-cover"
           />

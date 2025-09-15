@@ -5,6 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { doc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useNavigate } from 'react-router-dom';
 
@@ -77,13 +78,11 @@ const StoryViewer = ({ storyGroup, onClose }) => {
 
   const handleDeleteStory = async () => {
     if (!isOwnStory) return;
-    const { error } = await db.from('stories').delete().eq('id', currentStory.id);
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar la historia.' });
-    } else {
-      toast({ title: 'Historia eliminada' });
-      onClose(); // Or navigate to next/prev
-    }
+    const storyRef = doc(db, 'stories', currentStory.id);
+    await deleteDoc(storyRef);
+    
+    toast({ title: 'Historia eliminada' });
+    onClose(); // Or navigate to next/prev
   };
 
   return (

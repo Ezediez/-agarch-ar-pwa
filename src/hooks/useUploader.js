@@ -95,33 +95,36 @@ export const useUploader = () => {
     setIsUploading(true);
     setProgress(0);
 
-    const uploadPromises = files.map(file => {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${folder}/${uuidv4()}.${fileExt}`;
-      
-      return db.storage
-        .from(bucket)
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type,
-        });
-    });
-
     try {
-      const results = await Promise.all(uploadPromises);
-      const urls = [];
+      const uploadPromises = files.map(async (file) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${folder}/${uuidv4()}.${fileExt}`;
+        
+        const storageRef = ref(storage, `${bucket}/${fileName}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
 
-      for (const result of results) {
-        if (result.error) {
-          throw result.error;
-        }
-        const { data: publicUrlData } = db.storage.from(bucket).getPublicUrl(result.data.path);
-        if (!publicUrlData.publicUrl) {
-          throw new Error("No se pudo obtener la URL pública del archivo subido.");
-        }
-        urls.push(publicUrlData.publicUrl);
-      }
+        return new Promise((resolve, reject) => {
+          uploadTask.on('state_changed',
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setProgress(progress);
+            },
+            (error) => {
+              reject(error);
+            },
+            async () => {
+              try {
+                const url = await getDownloadURL(uploadTask.snapshot.ref);
+                resolve(url);
+              } catch (error) {
+                reject(error);
+              }
+            }
+          );
+        });
+      });
+
+      const urls = await Promise.all(uploadPromises);
       
       if (urls.length > 0) {
         toast({

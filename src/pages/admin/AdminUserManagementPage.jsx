@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { collection, getDocs, doc, updateDoc, orderBy, query, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,23 +22,35 @@ const AdminUserManagementPage = () => {
 
     const fetchUsers = async () => {
         setLoading(true);
-        let query = supabase
-            .from('profiles')
-            .select('*', { count: 'exact' })
-            .order('created_at', { ascending: false })
-            .range(page * USERS_PER_PAGE, (page + 1) * USERS_PER_PAGE - 1);
-
-        if (searchTerm) {
-            query = query.or(`email.ilike.%${searchTerm}%,alias.ilike.%${searchTerm}%,nombre_completo.ilike.%${searchTerm}%`);
-        }
-
-        const { data, error, count } = await query;
-        
-        if (error) {
+        try {
+            const profilesRef = collection(db, 'profiles');
+            const profilesQuery = query(profilesRef, orderBy('created_at', 'desc'));
+            
+            const snapshot = await getDocs(profilesQuery);
+            let allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            // Filtrar por término de búsqueda en el cliente
+            if (searchTerm) {
+                const searchLower = searchTerm.toLowerCase();
+                allUsers = allUsers.filter(user => 
+                    user.email?.toLowerCase().includes(searchLower) ||
+                    user.alias?.toLowerCase().includes(searchLower) ||
+                    user.nombre_completo?.toLowerCase().includes(searchLower)
+                );
+            }
+            
+            // Aplicar paginación
+            const startIndex = page * USERS_PER_PAGE;
+            const endIndex = startIndex + USERS_PER_PAGE;
+            const paginatedUsers = allUsers.slice(startIndex, endIndex);
+            
+            setUsers(paginatedUsers);
+            setCount(allUsers.length);
+        } catch (error) {
+            console.error('Error fetching users:', error);
             toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los usuarios." });
-        } else {
-            setUsers(data);
-            setCount(count);
+            setUsers([]);
+            setCount(0);
         }
         setLoading(false);
     };
@@ -52,25 +65,22 @@ const AdminUserManagementPage = () => {
 
     const handleSave = async () => {
         const { id, ...updateData } = editingUser;
-        const { error } = await db.from('profiles').update(updateData).eq('id', id);
-        if (error) {
-            toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el usuario." });
-        } else {
-            toast({ title: "Éxito", description: "Usuario actualizado correctamente." });
-            setEditingUser(null);
-            fetchUsers();
-        }
+        const profileRef = doc(db, 'profiles', id);
+        await updateDoc(profileRef, updateData);
+        
+        toast({ title: "Éxito", description: "Usuario actualizado correctamente." });
+        setEditingUser(null);
+        fetchUsers();
     };
     
     const handleDelete = async (userId) => {
          if (window.confirm('¿Estás seguro de que quieres eliminar a este usuario de forma permanente? Esta acción no se puede deshacer.')) {
-            const { error } = await db.rpc('delete_user_by_id_admin', { user_id_to_delete: userId });
-            if (error) {
-                toast({ variant: "destructive", title: "Error", description: `No se pudo eliminar el usuario: ${error.message}` });
-            } else {
-                toast({ title: "Éxito", description: "Usuario eliminado correctamente." });
-                fetchUsers();
-            }
+            // Eliminar usuario de Firebase
+            const userRef = doc(db, 'profiles', userId);
+            await deleteDoc(userRef);
+            
+            toast({ title: "Éxito", description: "Usuario eliminado correctamente." });
+            fetchUsers();
         }
     };
     

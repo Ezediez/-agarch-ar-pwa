@@ -4,6 +4,7 @@ import React, { useState } from 'react';
     import { useAuth } from '@/hooks/useAuth';
     import { useToast } from '@/components/ui/use-toast.jsx';
     import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { collection, addDoc } from 'firebase/firestore';
     import { Button } from '@/components/ui/button';
     import { Textarea } from '@/components/ui/textarea';
     import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,6 +66,11 @@ import React, { useState } from 'react';
   };
       
       const createPost = async (mediaUrl, type) => {
+        if (!user?.id) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No hay usuario autenticado.' });
+            return;
+        }
+        
         if (!text.trim() && !mediaUrl) {
             toast({ variant: 'destructive', title: 'Error', description: 'La publicación no puede estar vacía.' });
             return;
@@ -77,34 +83,35 @@ import React, { useState } from 'react';
             ...(mediaUrl && type === 'video' && { video_url: mediaUrl }),
         };
 
-        const { error } = await db.from('posts').insert(postData);
-
-        if (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo crear la publicación.' });
-        } else {
-            toast({ title: '¡Publicación creada con éxito!' });
-            navigate('/discover');
-        }
+        await addDoc(collection(db, 'posts'), {
+            ...postData,
+            created_at: new Date().toISOString()
+        });
+        
+        toast({ title: '¡Publicación creada con éxito!' });
+        navigate('/discover');
       };
 
       const createStory = async (mediaUrl, type) => {
+        if (!user?.id) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No hay usuario autenticado.' });
+            return;
+        }
+        
         if (!mediaUrl) {
             toast({ variant: 'destructive', title: 'Error', description: 'Debes seleccionar un archivo para tu historia.' });
             return;
         }
 
-        const { error } = await db.from('stories').insert({
+        await addDoc(collection(db, 'stories'), {
             user_id: user.id,
             media_url: mediaUrl,
-            media_type: type
+            media_type: type,
+            created_at: new Date().toISOString()
         });
-
-        if (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo crear la historia.' });
-        } else {
-            toast({ title: '¡Historia creada con éxito!' });
-            navigate('/discover');
-        }
+        
+        toast({ title: '¡Historia creada con éxito!' });
+        navigate('/discover');
       };
       
       const isSubmitDisabled = isSubmitting || uploading;

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { collection, addDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { UploadCloud, X, FileImage } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -117,7 +118,7 @@ IP/Origen: ${window.location.origin}
       window.location.href = mailtoLink;
 
       // También guardar en la base de datos
-      const { error } = await db.from('reports').insert({
+      await addDoc(collection(db, 'reports'), {
         user_id: user?.id,
         email: formData.email,
         reported_profile_alias: formData.reported_profile_alias,

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useAuth } from '@/hooks/useAuth';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { doc, updateDoc } from 'firebase/firestore';
 
 const LocationSettings = () => {
   const { profile, refreshProfile } = useAuth();
@@ -37,28 +38,18 @@ const LocationSettings = () => {
           return;
         }
 
-        const { error } = await supabase
-          .from('profiles')
-          .update({ 
-            latitud: latitude, 
-            longitud: longitude, 
-            updated_at: new Date().toISOString() 
-          })
-          .eq('id', profile.id);
-
-        if (error) {
-          toast({
-            variant: "destructive",
-            title: "Error al guardar ubicación",
-            description: error.message,
-          });
-        } else {
-          toast({
-            title: "¡Éxito!",
-            description: "Tu ubicación ha sido actualizada correctamente.",
-          });
-          await refreshProfile();
-        }
+        const profileRef = doc(db, 'profiles', profile.id);
+        await updateDoc(profileRef, { 
+          latitud: latitude, 
+          longitud: longitude, 
+          updated_at: new Date().toISOString() 
+        });
+        
+        toast({
+          title: "¡Éxito!",
+          description: "Tu ubicación ha sido actualizada correctamente.",
+        });
+        await refreshProfile();
         setLoading(false);
       },
       (error) => {

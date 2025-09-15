@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { collection, query, where, getDocs, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Heart, MessageCircle, User, MapPin } from 'lucide-react';
@@ -22,21 +23,40 @@ const FollowingList = ({ isOwnProfile = false }) => {
     try {
       setLoading(true);
       
-      // Usar la función RPC para obtener los likes del usuario
-      const { data: likesData, error: likesError } = await db.rpc('get_user_likes_list');
-
-      if (likesError) {
-        console.error('Error fetching following:', likesError);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'No se pudieron cargar tus seguidos.'
-        });
+      // Validar que user.id existe
+      if (!user?.id) {
+        console.log('❌ No hay usuario autenticado');
+        setFollowing([]);
         return;
       }
-
-      // Los datos ya vienen en el formato correcto de la función RPC
-      const followingProfiles = (likesData || []).map(profile => ({
+      
+      // Obtener likes del usuario desde Firebase
+      const likesRef = collection(db, 'user_likes');
+      const likesQuery = query(likesRef, where('user_id', '==', user.id));
+      const likesSnapshot = await getDocs(likesQuery);
+      
+      const likedUserIds = likesSnapshot.docs.map(doc => doc.data().liked_user_id);
+      
+      if (likedUserIds.length === 0) {
+        setFollowing([]);
+        return;
+      }
+      
+      // Obtener perfiles de los usuarios seguidos
+      const profilesData = [];
+      for (const userId of likedUserIds) {
+        try {
+          const profileRef = doc(db, 'profiles', userId);
+          const profileSnap = await getDoc(profileRef);
+          if (profileSnap.exists()) {
+            profilesData.push({ id: profileSnap.id, ...profileSnap.data() });
+          }
+        } catch (error) {
+          console.error('Error fetching profile for user:', userId, error);
+        }
+      }
+      
+      const followingProfiles = profilesData.map(profile => ({
         id: profile.id,
         alias: profile.alias,
         profile_picture_url: profile.profile_picture_url,
@@ -44,9 +64,9 @@ const FollowingList = ({ isOwnProfile = false }) => {
         gender: profile.gender,
         is_vip: profile.is_vip,
         is_verified: profile.is_verified,
-        ubicacion_lat: profile.ubicacion_lat,
-        ubicacion_lng: profile.ubicacion_lng,
-        followed_at: profile.liked_at
+        ubicacion_lat: profile.latitud,
+        ubicacion_lng: profile.longitud,
+        followed_at: new Date().toISOString()
       }));
 
       setFollowing(followingProfiles);
@@ -64,19 +84,16 @@ const FollowingList = ({ isOwnProfile = false }) => {
 
   const handleUnfollow = async (profileId) => {
     try {
-      const { error } = await supabase
-        .from('user_likes')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('liked_user_id', profileId);
-
-      if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'No se pudo dejar de seguir este perfil.'
-        });
-        return;
+      const likesRef = collection(db, 'user_likes');
+      const likesQuery = query(
+        likesRef,
+        where('user_id', '==', user.id),
+        where('liked_user_id', '==', profileId)
+      );
+      
+      const snapshot = await getDocs(likesQuery);
+      for (const likeDoc of snapshot.docs) {
+        await deleteDoc(likeDoc.ref);
       }
 
       // Actualizar la lista local

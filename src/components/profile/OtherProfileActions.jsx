@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { collection, query, where, getDocs, addDoc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Button } from '@/components/ui/button';
@@ -16,49 +17,53 @@ const OtherProfileActions = ({ profile }) => {
 
   useEffect(() => {
     const checkLikeStatus = async () => {
-      if (!user || !profile) return;
+      if (!user?.id || !profile?.id) return;
       setLoadingLike(true);
-      const { data, error } = await supabase
-        .from('user_likes')
-        .select('id, user_id, liked_user_id')
-        .eq('user_id', user.id)
-        .eq('liked_user_id', profile.id)
-        .maybeSingle();
+      const likesRef = collection(db, 'user_likes');
+      const likesQuery = query(
+        likesRef,
+        where('user_id', '==', user.id),
+        where('liked_user_id', '==', profile.id)
+      );
       
-      if (error) {
-        console.error("Error checking like status:", error);
-      } else {
-        setLikeStatus(data);
-      }
+      const snapshot = await getDocs(likesQuery);
+      const likeData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      setLikeStatus(likeData.length > 0 ? likeData[0] : null);
       setLoadingLike(false);
     };
     checkLikeStatus();
   }, [user, profile]);
 
   const handleLikeAction = async () => {
+    if (!user?.id || !profile?.id) return;
+    
     setLoadingLike(true);
     try {
       if (likeStatus) {
-        // Unlike
-        const { error } = await supabase
-          .from('user_likes')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('liked_user_id', profile.id);
+        // Unlike - buscar y eliminar el like existente
+        const likesRef = collection(db, 'user_likes');
+        const likesQuery = query(
+          likesRef,
+          where('user_id', '==', user.id),
+          where('liked_user_id', '==', profile.id)
+        );
         
-        if (error) throw error;
+        const snapshot = await getDocs(likesQuery);
+        for (const likeDoc of snapshot.docs) {
+          await deleteDoc(likeDoc.ref);
+        }
+        
         setLikeStatus(null);
         toast({ title: "Me gusta removido" });
       } else {
-        // Like
-        const { error } = await supabase
-          .from('user_likes')
-          .insert({
-            user_id: user.id,
-            liked_user_id: profile.id
-          });
+        // Like - agregar nuevo like
+        await addDoc(collection(db, 'user_likes'), {
+          user_id: user.id,
+          liked_user_id: profile.id,
+          created_at: new Date().toISOString()
+        });
         
-        if (error) throw error;
         setLikeStatus({ user_id: user.id, liked_user_id: profile.id });
         toast({ title: "¡Me gusta enviado!" });
       }

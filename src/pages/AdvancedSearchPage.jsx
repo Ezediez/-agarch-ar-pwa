@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
@@ -62,98 +63,87 @@ const AdvancedSearchPage = () => {
     setError(null);
 
     try {
-        const hasLocation = currentUserProfile?.latitud && currentUserProfile?.longitud;
-        let data, queryError;
+        // Obtener todos los perfiles desde Firebase
+        const profilesRef = collection(db, 'profiles');
+        let searchQuery = query(profilesRef, limit(100)); // Limitar para evitar sobrecarga
 
-        // Usar función RPC si hay ubicación y filtro de distancia activo
-        if (hasLocation && filters.distance < 500) {
-            // Usar función de búsqueda por distancia
-            const { data: rpcData, error: rpcError } = await db.rpc('get_nearby_profiles', {
-                user_lat: currentUserProfile.latitud,
-                user_lng: currentUserProfile.longitud,
-                radius_km: filters.distance
-            });
-            
-            data = rpcData;
-            queryError = rpcError;
-            
-            // Aplicar filtros adicionales en el cliente
-            if (data && !queryError) {
-                let filteredData = data;
-                
-                if (filters.keyword.trim()) {
-                    filteredData = filteredData.filter(p => 
-                        (p.alias && p.alias.toLowerCase().includes(filters.keyword.toLowerCase())) ||
-                        (p.bio && p.bio.toLowerCase().includes(filters.keyword.toLowerCase()))
-                    );
-                }
-                if (filters.gender !== 'Todos') {
-                    filteredData = filteredData.filter(p => p.gender === filters.gender);
-                }
-                if (filters.sexualOrientation !== 'Todas') {
-                    filteredData = filteredData.filter(p => p.sexual_orientation === filters.sexualOrientation);
-                }
-                if (filters.relationshipStatus !== 'Todos') {
-                    filteredData = filteredData.filter(p => p.relationship_status === filters.relationshipStatus);
-                }
-                
-                // Aplicar paginación en el cliente
-                const from = isLoadMore ? page * RESULTS_PER_PAGE : 0;
-                const to = from + RESULTS_PER_PAGE;
-                data = filteredData.slice(from, to);
-            }
-        } else {
-            // Usar función RPC de búsqueda general o query tradicional
-            if (!hasLocation && filters.distance < 500) {
-                toast({
-                    title: "Ubicación no disponible",
-                    description: "Para una búsqueda por distancia más precisa, activa tu ubicación en Ajustes.",
-                });
-            }
+        const snapshot = await getDocs(searchQuery);
+        let allProfiles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            // Usar función RPC search_profiles para mejor rendimiento
-            const { data: rpcData, error: rpcError } = await db.rpc('search_profiles', {
-                search_keyword: filters.keyword.trim() || null,
-                filter_gender: filters.gender !== 'Todos' ? filters.gender : null,
-                filter_orientation: filters.sexualOrientation !== 'Todas' ? filters.sexualOrientation : null,
-                filter_status: filters.relationshipStatus !== 'Todos' ? filters.relationshipStatus : null,
-                min_age: filters.ageRange[0],
-                max_age: filters.ageRange[1],
-                result_limit: RESULTS_PER_PAGE,
-                result_offset: isLoadMore ? page * RESULTS_PER_PAGE : 0
-            });
-            
-            data = rpcData;
-            queryError = rpcError;
-        }
-
-        if (queryError) throw queryError;
-      
-        let filteredData = data || [];
-
-        // Filtros adicionales en el cliente
-        if (filters.intentions.length > 0) {
-            filteredData = filteredData.filter(p => 
-              p.preferences && filters.intentions.some(i => p.preferences.includes(i))
+        // Filtrar por keyword en el cliente
+        if (filters.keyword.trim()) {
+            const keyword = filters.keyword.toLowerCase();
+            allProfiles = allProfiles.filter(p => 
+                (p.alias && p.alias.toLowerCase().includes(keyword)) ||
+                (p.bio && p.bio.toLowerCase().includes(keyword)) ||
+                (p.interests && p.interests.some(interest => interest.toLowerCase().includes(keyword)))
             );
         }
 
-        // Filtro de edad en el cliente (temporal)
+        // Filtrar por género
+        if (filters.gender !== 'Todos') {
+            allProfiles = allProfiles.filter(p => p.gender === filters.gender);
+        }
+
+        // Filtrar por orientación sexual
+        if (filters.sexualOrientation !== 'Todas') {
+            allProfiles = allProfiles.filter(p => p.sexual_orientation === filters.sexualOrientation);
+        }
+
+        // Filtrar por estado de relación
+        if (filters.relationshipStatus !== 'Todos') {
+            allProfiles = allProfiles.filter(p => p.relationship_status === filters.relationshipStatus);
+        }
+
+        // Filtrar por edad
         if (filters.ageRange[0] !== 18 || filters.ageRange[1] !== 70) {
-            filteredData = filteredData.filter(p => {
+            allProfiles = allProfiles.filter(p => {
                 if (!p.birth_date) return true;
                 const age = new Date().getFullYear() - new Date(p.birth_date).getFullYear();
                 return age >= filters.ageRange[0] && age <= filters.ageRange[1];
             });
         }
 
+        // Filtrar por distancia si hay ubicación
+        const hasLocation = currentUserProfile?.latitud && currentUserProfile?.longitud;
+        if (hasLocation && filters.distance < 500) {
+            allProfiles = allProfiles.filter(p => {
+                if (!p.latitud || !p.longitud) return false;
+                
+                // Cálculo simple de distancia (aproximado)
+                const distance = Math.sqrt(
+                    Math.pow(p.latitud - currentUserProfile.latitud, 2) + 
+                    Math.pow(p.longitud - currentUserProfile.longitud, 2)
+                ) * 111; // Conversión aproximada a km
+                
+                return distance <= filters.distance;
+            });
+        } else if (!hasLocation && filters.distance < 500) {
+            toast({
+                title: "Ubicación no disponible",
+                description: "Para una búsqueda por distancia más precisa, activa tu ubicación en Ajustes.",
+            });
+        }
+
+        // Filtrar por intenciones
+        if (filters.intentions.length > 0) {
+            allProfiles = allProfiles.filter(p => 
+                p.preferences && filters.intentions.some(i => p.preferences.includes(i))
+            );
+        }
+
+        // Aplicar paginación
+        const from = isLoadMore ? page * RESULTS_PER_PAGE : 0;
+        const to = from + RESULTS_PER_PAGE;
+        const paginatedResults = allProfiles.slice(from, to);
+
         if (isLoadMore) {
-          setResults(prev => [...prev, ...filteredData]);
+          setResults(prev => [...prev, ...paginatedResults]);
         } else {
-          setResults(filteredData);
+          setResults(paginatedResults);
         }
         
-        setHasMore(filteredData.length === RESULTS_PER_PAGE);
+        setHasMore(paginatedResults.length === RESULTS_PER_PAGE);
 
     } catch (error) {
       console.error('Search error:', error);

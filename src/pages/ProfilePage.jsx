@@ -31,24 +31,29 @@ const ProfilePage = () => {
 
     const fetchProfile = useCallback(async (profileId) => {
         setPageLoading(true);
+        console.log('🔄 Cargando perfil:', profileId);
+        
         try {
             const profileRef = doc(db, 'profiles', profileId);
             const profileSnap = await getDoc(profileRef);
 
             if (profileSnap.exists()) {
                 const data = { id: profileSnap.id, ...profileSnap.data() };
+                console.log('✅ Perfil cargado:', data.alias);
                 setProfile(data);
                 setLocalProfileData(data);
             } else {
+                console.error('❌ Perfil no encontrado:', profileId);
                 toast({ variant: 'destructive', title: 'Error', description: 'No se pudo cargar el perfil.' });
                 navigate('/discover');
             }
         } catch (error) {
-            console.error('Error fetching profile:', error);
+            console.error('❌ Error fetching profile:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo cargar el perfil.' });
             navigate('/discover');
+        } finally {
+            setPageLoading(false);
         }
-        setPageLoading(false);
     }, [toast, navigate]);
 
     useEffect(() => {
@@ -101,16 +106,12 @@ const ProfilePage = () => {
             interests: localProfileData.interests,
         };
 
-        const { error } = await db.from('profiles').update(updates).eq('id', user.id);
-        setSaveLoading(false);
-
-        if (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar tu perfil.' });
-        } else {
-            toast({ title: '¡Éxito!', description: 'Tu perfil ha sido actualizado.' });
-            setEditMode(false);
-            await refreshProfile();
-        }
+        const profileRef = doc(db, 'profiles', user.id);
+        await updateDoc(profileRef, updates);
+        
+        toast({ title: '¡Éxito!', description: 'Tu perfil ha sido actualizado.' });
+        setEditMode(false);
+        await refreshProfile();
     };
 
     const handleOpenUploadModal = () => {
@@ -151,15 +152,12 @@ const ProfilePage = () => {
                     updatedField = { [column]: url };
                 }
 
-                const { error: dbError } = await db.from('profiles').update(updatedField).eq('id', user.id);
-
-                if (dbError) {
-                    toast({ variant: 'destructive', title: 'Error', description: `No se pudo guardar la ${mediaType}.` });
-                } else {
-                    toast({ title: '¡Éxito!', description: `Tu ${mediaType} ha sido actualizada.` });
-                    await refreshProfile();
-                    setIsUploadModalOpen(false);
-                }
+                const profileRef = doc(db, 'profiles', user.id);
+                await updateDoc(profileRef, updatedField);
+                
+                toast({ title: '¡Éxito!', description: `Tu ${mediaType} ha sido actualizada.` });
+                await refreshProfile();
+                setIsUploadModalOpen(false);
             }
         });
     };
@@ -169,14 +167,11 @@ const ProfilePage = () => {
         const currentMedia = profile[column] || [];
         const updatedMedia = currentMedia.filter(url => url !== urlToRemove);
 
-        const { error } = await db.from('profiles').update({ [column]: updatedMedia }).eq('id', user.id);
-
-        if (error) {
-            toast({ variant: 'destructive', title: 'Error', description: `No se pudo eliminar la ${mediaType}.` });
-        } else {
-            toast({ title: 'Eliminado', description: `La ${mediaType} ha sido eliminada.` });
-            await refreshProfile();
-        }
+        const profileRef = doc(db, 'profiles', user.id);
+        await updateDoc(profileRef, { [column]: updatedMedia });
+        
+        toast({ title: 'Eliminado', description: `La ${mediaType} ha sido eliminada.` });
+        await refreshProfile();
     };
 
     if (pageLoading || !localProfileData) {

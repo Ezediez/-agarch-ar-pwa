@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { collection, query, where, orderBy, limit, getDocs, addDoc, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -64,35 +65,34 @@ const ChatPage = () => {
     setLoadingConversations(true);
     
     try {
-      // Obtener todos los mensajes del usuario
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('messages')
-        .select('sender_id, recipient_id, sent_at')
-        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
-        .order('sent_at', { ascending: false })
-        .limit(500);
+      // Obtener todos los mensajes del usuario desde Firebase
+      const messagesRef = collection(db, 'messages');
+      const messagesQuery = query(
+        messagesRef,
+        where('sender_id', '==', user.id),
+        orderBy('sent_at', 'desc'),
+        limit(500)
+      );
+      
+      const messagesSnapshot = await getDocs(messagesQuery);
+      const sentMessages = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      if (messagesError) {
-        // Manejo silencioso de errores ignorables
-        const isIgnorable = ['42P01', '42501'].includes(messagesError.code) || 
-          messagesError.message?.toLowerCase().includes('does not exist') ||
-          messagesError.message?.toLowerCase().includes('permission');
-        
-        if (!isIgnorable) {
-          console.error('Error fetching conversations:', messagesError);
-          toast({ 
-            variant: 'destructive', 
-            title: 'Error', 
-            description: 'No se pudieron cargar las conversaciones.' 
-          });
-        }
-        setConversations([]);
-        return;
-      }
+      // Obtener mensajes recibidos
+      const receivedMessagesQuery = query(
+        messagesRef,
+        where('recipient_id', '==', user.id),
+        orderBy('sent_at', 'desc'),
+        limit(500)
+      );
+      
+      const receivedSnapshot = await getDocs(receivedMessagesQuery);
+      const receivedMessages = receivedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      // Agrupar por usuarios únicos
+      // Combinar y agrupar por usuarios únicos
+      const allMessages = [...sentMessages, ...receivedMessages];
       const userMap = new Map();
-      (messagesData || []).forEach(msg => {
+      
+      allMessages.forEach(msg => {
         const otherUserId = msg.sender_id === user.id ? msg.recipient_id : msg.sender_id;
         if (otherUserId && !userMap.has(otherUserId)) {
           userMap.set(otherUserId, msg.sent_at);
@@ -106,20 +106,22 @@ const ChatPage = () => {
         return;
       }
 
-      // Obtener perfiles de usuarios
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, alias, profile_picture_url, is_vip')
-        .in('id', uniqueUserIds);
-
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        setConversations([]);
-        return;
+      // Obtener perfiles de usuarios desde Firebase
+      const profilesData = [];
+      for (const userId of uniqueUserIds) {
+        try {
+          const profileRef = doc(db, 'profiles', userId);
+          const profileSnap = await getDoc(profileRef);
+          if (profileSnap.exists()) {
+            profilesData.push({ id: profileSnap.id, ...profileSnap.data() });
+          }
+        } catch (error) {
+          console.error('Error fetching profile for user:', userId, error);
+        }
       }
 
       // Ordenar por última interacción
-      const sortedConversations = (profilesData || [])
+      const sortedConversations = profilesData
         .map(profile => ({
           ...profile,
           lastMessageAt: userMap.get(profile.id)
@@ -141,6 +143,11 @@ const ChatPage = () => {
 
     } catch (error) {
       console.error('Unexpected error in fetchConversations:', error);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Error', 
+        description: 'No se pudieron cargar las conversaciones.' 
+      });
       setConversations([]);
     } finally {
       setLoadingConversations(false);
@@ -166,25 +173,40 @@ const ChatPage = () => {
     setMessages([]);
 
     try {
-      const { data: messagesData, error } = await supabase
-        .from('messages')
-        .select('*')
-        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${conversation.id}),and(sender_id.eq.${conversation.id},recipient_id.eq.${user.id})`)
-        .order('sent_at', { ascending: true });
+      // Obtener mensajes enviados por el usuario actual al otro usuario
+      const sentMessagesQuery = query(
+        collection(db, 'messages'),
+        where('sender_id', '==', user.id),
+        where('recipient_id', '==', conversation.id),
+        orderBy('sent_at', 'asc')
+      );
+      
+      const sentSnapshot = await getDocs(sentMessagesQuery);
+      const sentMessages = sentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      if (error) {
-        console.error('Error loading messages:', error);
-        toast({ 
-          variant: 'destructive', 
-          title: 'Error', 
-          description: 'No se pudieron cargar los mensajes.' 
-        });
-        setMessages([]);
-      } else {
-        setMessages(messagesData || []);
-      }
+      // Obtener mensajes recibidos del otro usuario
+      const receivedMessagesQuery = query(
+        collection(db, 'messages'),
+        where('sender_id', '==', conversation.id),
+        where('recipient_id', '==', user.id),
+        orderBy('sent_at', 'asc')
+      );
+      
+      const receivedSnapshot = await getDocs(receivedMessagesQuery);
+      const receivedMessages = receivedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Combinar y ordenar mensajes
+      const allMessages = [...sentMessages, ...receivedMessages];
+      allMessages.sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at));
+      
+      setMessages(allMessages);
     } catch (error) {
       console.error('Unexpected error loading messages:', error);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Error', 
+        description: 'No se pudieron cargar los mensajes.' 
+      });
       setMessages([]);
     } finally {
       setLoadingMessages(false);
@@ -233,35 +255,37 @@ const ChatPage = () => {
   }, [user?.id, activeChat?.id]);
 
   /**
-   * Configurar suscripción en tiempo real
+   * Configurar suscripción en tiempo real con Firebase
    */
   useEffect(() => {
     if (!user?.id) return;
 
-    // Limpiar canal anterior
+    // Limpiar suscripción anterior
     if (realtimeChannelRef.current) {
-      db.removeChannel(realtimeChannelRef.current);
+      realtimeChannelRef.current();
     }
 
-    // Crear nuevo canal
-    const channel = supabase
-      .channel(`chat-messages-${user.id}`)
-      .on(
-        'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'messages'
-        },
-        handleRealtimeMessage
-      )
-      .subscribe();
+    // Crear nueva suscripción a mensajes
+    const unsubscribe = onSnapshot(
+      collection(db, 'messages'),
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const newMessage = { id: change.doc.id, ...change.doc.data() };
+            handleRealtimeMessage({ new: newMessage });
+          }
+        });
+      },
+      (error) => {
+        console.error('Error en suscripción de mensajes:', error);
+      }
+    );
 
-    realtimeChannelRef.current = channel;
+    realtimeChannelRef.current = unsubscribe;
 
     return () => {
       if (realtimeChannelRef.current) {
-        db.removeChannel(realtimeChannelRef.current);
+        realtimeChannelRef.current();
       }
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
@@ -301,27 +325,24 @@ const ChatPage = () => {
     setMessages(current => [...current, optimisticMessage]);
 
     try {
-      const { error } = await supabase
-        .from('messages')
-        .insert({ 
-          ...messageData, 
-          sender_id: user.id,
-          recipient_id: activeChat.id,
-          temp_id: tempId 
-        });
+      const messageToSave = {
+        ...messageData, 
+        sender_id: user.id,
+        recipient_id: activeChat.id,
+        temp_id: tempId,
+        sent_at: new Date().toISOString()
+      };
 
-      if (error) {
-        console.error('Error sending message:', error);
-        toast({ 
-          variant: 'destructive', 
-          title: 'Error', 
-          description: 'No se pudo enviar el mensaje.' 
-        });
-        // Remover mensaje optimista fallido
-        setMessages(current => current.filter(m => m.id !== tempId));
-      }
+      await addDoc(collection(db, 'messages'), messageToSave);
+      
     } catch (error) {
       console.error('Unexpected error sending message:', error);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Error', 
+        description: 'No se pudo enviar el mensaje.' 
+      });
+      // Remover mensaje optimista fallido
       setMessages(current => current.filter(m => m.id !== tempId));
     }
   }, [user?.id, activeChat?.id, toast]);
@@ -351,26 +372,17 @@ const ChatPage = () => {
       const uploadedUrls = await uploadFiles(files, 'media', 'chat-media');
       
       if (uploadedUrls?.length > 0) {
-        const { error } = await supabase
-          .from('messages')
-          .insert({
-            recipient_id: activeChat.id,
-            sender_id: user.id,
-            contenido: text,
-            message_type: 'media',
-            media_urls: uploadedUrls,
-            temp_id: tempId
-          });
+        const messageToSave = {
+          recipient_id: activeChat.id,
+          sender_id: user.id,
+          contenido: text,
+          message_type: 'media',
+          media_urls: uploadedUrls,
+          temp_id: tempId,
+          sent_at: new Date().toISOString()
+        };
 
-        if (error) {
-          console.error('Error sending media message:', error);
-          toast({ 
-            variant: 'destructive', 
-            title: 'Error', 
-            description: 'No se pudo enviar el mensaje con archivos.' 
-          });
-          setMessages(current => current.filter(m => m.id !== tempId));
-        }
+        await addDoc(collection(db, 'messages'), messageToSave);
       } else {
         toast({ 
           variant: 'destructive', 
@@ -381,6 +393,11 @@ const ChatPage = () => {
       }
     } catch (error) {
       console.error('Error uploading files:', error);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Error', 
+        description: 'No se pudo enviar el mensaje con archivos.' 
+      });
       setMessages(current => current.filter(m => m.id !== tempId));
     }
   }, [user?.id, activeChat?.id, uploadFiles, toast]);

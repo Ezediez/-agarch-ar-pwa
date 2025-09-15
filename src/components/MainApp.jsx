@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from '@/components/layouts/MainLayout';
 import DiscoverPage from '@/pages/DiscoverPage';
 import ProfilePage from '@/pages/ProfilePage';
+import MyProfilePage from '@/pages/MyProfilePage';
 import ChatPage from '@/pages/ChatPage';
 import SettingsPage from '@/pages/SettingsPage';
 import CreatePostPage from '@/pages/CreatePostPage';
@@ -30,7 +31,7 @@ const MainApp = () => {
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/search" element={<AdvancedSearchPage />} />
         <Route path="/profile/:id" element={<ProfilePage />} />
-        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/my-profile" element={<MyProfilePage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/chat/:userId" element={<ChatPage />} />
         <Route path="/settings" element={<SettingsPage />} />

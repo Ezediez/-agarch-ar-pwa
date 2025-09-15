@@ -37,7 +37,7 @@ const ProfileCard = ({ profile }) => {
       <img 
         alt={profile.alias || 'Profile picture'}
         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-        src={profile.profile_picture_url || `https://source.unsplash.com/random/400x600?portrait&sig=${profile.id}`} 
+        src={profile.profile_picture_url || '/pwa-512x512.png'} 
       />
       
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>

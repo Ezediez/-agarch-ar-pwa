@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Heart, MessageCircle, User, X } from 'lucide-react';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast.jsx';
@@ -38,81 +39,85 @@ const NotificationBell = () => {
     try {
       setLoading(true);
       
+      // Validar que user.id existe
+      if (!user?.id) {
+        console.log('❌ No hay usuario autenticado');
+        setNotifications([]);
+        setUnreadCount(0);
+        return;
+      }
+      
       // Crear notificaciones virtuales basadas en likes y mensajes recientes
       const notifications = [];
       
       // 1. Notificaciones de nuevos likes (últimas 24 horas)
-      const { data: likesData, error: likesError } = await supabase
-        .from('user_likes')
-        .select(`
-          id,
-          created_at,
-          user_id,
-          profiles!user_id (
-            id,
-            alias,
-            profile_picture_url
-          )
-        `)
-        .eq('liked_user_id', user.id)
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (!likesError && likesData) {
-        likesData.forEach(like => {
-          if (like.profiles) {
+      const likesRef = collection(db, 'user_likes');
+      const likesQuery = query(
+        likesRef,
+        where('liked_user_id', '==', user.id),
+        orderBy('created_at', 'desc'),
+        limit(10)
+      );
+      
+      const likesSnapshot = await getDocs(likesQuery);
+      const likesData = likesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      for (const like of likesData) {
+        try {
+          const profileRef = doc(db, 'profiles', like.user_id);
+          const profileSnap = await getDoc(profileRef);
+          if (profileSnap.exists()) {
+            const profileData = profileSnap.data();
             notifications.push({
               id: `like-${like.id}`,
               type: 'like',
               title: 'Nuevo Me Gusta',
-              message: `A ${like.profiles.alias} le gustó tu perfil`,
-              avatar: like.profiles.profile_picture_url,
+              message: `A ${profileData.alias} le gustó tu perfil`,
+              avatar: profileData.profile_picture_url,
               created_at: like.created_at,
               user_id: like.user_id,
               read: false
             });
           }
-        });
+        } catch (error) {
+          console.error('Error fetching profile for like:', error);
+        }
       }
 
       // 2. Notificaciones de nuevos mensajes (últimas 24 horas)
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('messages')
-        .select(`
-          id,
-          contenido,
-          message_type,
-          sent_at,
-          sender_id,
-          profiles!sender_id (
-            id,
-            alias,
-            profile_picture_url
-          )
-        `)
-        .eq('recipient_id', user.id)
-        .gte('sent_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-        .order('sent_at', { ascending: false })
-        .limit(10);
-
-      if (!messagesError && messagesData) {
-        messagesData.forEach(message => {
-          if (message.profiles) {
+      const messagesRef = collection(db, 'messages');
+      const messagesQuery = query(
+        messagesRef,
+        where('recipient_id', '==', user.id),
+        orderBy('sent_at', 'desc'),
+        limit(10)
+      );
+      
+      const messagesSnapshot = await getDocs(messagesQuery);
+      const messagesData = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      for (const message of messagesData) {
+        try {
+          const profileRef = doc(db, 'profiles', message.sender_id);
+          const profileSnap = await getDoc(profileRef);
+          if (profileSnap.exists()) {
+            const profileData = profileSnap.data();
             notifications.push({
               id: `message-${message.id}`,
               type: 'message',
               title: 'Nuevo Mensaje',
               message: message.message_type === 'text' 
-                ? `${message.profiles.alias}: ${message.contenido?.substring(0, 50)}${message.contenido?.length > 50 ? '...' : ''}`
-                : `${message.profiles.alias} te envió ${message.message_type === 'media' ? 'una imagen' : 'un archivo'}`,
-              avatar: message.profiles.profile_picture_url,
+                ? `${profileData.alias}: ${message.contenido?.substring(0, 50)}${message.contenido?.length > 50 ? '...' : ''}`
+                : `${profileData.alias} te envió ${message.message_type === 'media' ? 'una imagen' : 'un archivo'}`,
+              avatar: profileData.profile_picture_url,
               created_at: message.sent_at,
               user_id: message.sender_id,
               read: false
             });
           }
-        });
+        } catch (error) {
+          console.error('Error fetching profile for message:', error);
+        }
       }
 
       // Ordenar por fecha y limitar

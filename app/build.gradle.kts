@@ -8,16 +8,13 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.agarch.ar"
-        minSdk = 24
+        applicationId = "com.agarchar.app"
+        minSdk = 21
         targetSdk = 34
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 1
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
-        // Configuración para Play Store
-        vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
@@ -27,22 +24,22 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
         debug {
             isMinifyEnabled = false
-            isDebuggable = true
         }
     }
-
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-
+    
     kotlinOptions {
         jvmTarget = "1.8"
     }
-
+    
     buildFeatures {
         viewBinding = true
     }
@@ -54,7 +51,7 @@ dependencies {
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.webkit:webkit:1.8.0")
-
+    
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

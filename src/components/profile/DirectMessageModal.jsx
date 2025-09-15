@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { collection, addDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Button } from '@/components/ui/button';
@@ -21,25 +22,27 @@ const DirectMessageModal = ({ profile, onClose }) => {
     }
     setSending(true);
     
-    console.log('🔥🔥🔥 ENVIANDO MENSAJE VIA FIREBASE RPC');
-    const { data, error } = await db.rpc('handle_user_interaction', {
-      target_user_id: profile.id,
-      initial_message: message,
-    });
-    setSending(false);
-
-    if (error) {
-      console.error('🔥🔥🔥 ERROR FIREBASE RPC:', error);
+    console.log('🔥🔥🔥 ENVIANDO MENSAJE VIA FIREBASE');
+    
+    try {
+      // Crear mensaje directo en Firebase
+      await addDoc(collection(db, 'messages'), {
+        sender_id: user.id,
+        recipient_id: profile.id,
+        contenido: message,
+        message_type: 'text',
+        sent_at: new Date().toISOString(),
+        read: false
+      });
+      
+      toast({ title: 'Éxito', description: 'Mensaje enviado correctamente' });
+      onClose();
+      navigate('/chat', { state: { openChatWith: profile.id } });
+    } catch (error) {
+      console.error('🔥🔥🔥 ERROR FIREBASE:', error);
       toast({ variant: 'destructive', title: 'Error al enviar mensaje', description: error.message });
-    } else {
-      console.log('🔥🔥🔥 FIREBASE RPC EXITOSO:', data);
-      if (data && data.success) {
-        toast({ title: 'Éxito', description: data.message || 'Mensaje enviado correctamente' });
-        onClose();
-        navigate('/chat', { state: { openChatWith: profile.id } });
-      } else {
-        toast({ variant: 'destructive', title: 'Error', description: data.error || 'No se pudo enviar el mensaje' });
-      }
+    } finally {
+      setSending(false);
     }
   };
 
