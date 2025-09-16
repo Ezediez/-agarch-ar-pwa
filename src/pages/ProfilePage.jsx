@@ -40,6 +40,7 @@ const ProfilePage = () => {
             if (profileSnap.exists()) {
                 const data = { id: profileSnap.id, ...profileSnap.data() };
                 console.log('✅ Perfil cargado:', data.alias);
+                console.log('🔍 Datos del perfil:', data);
                 setProfile(data);
                 setLocalProfileData(data);
                 setPageLoading(false); // Mover aquí para evitar race conditions
@@ -174,7 +175,8 @@ const ProfilePage = () => {
         await refreshProfile();
     };
 
-    if (pageLoading || !profile) {
+    if (pageLoading || !profile || !localProfileData) {
+        console.log('🔄 Estado de carga:', { pageLoading, profile: !!profile, localProfileData: !!localProfileData });
         return <div className="flex justify-center items-center h-screen"><Loader2 className="w-12 h-12 animate-spin text-primary"/></div>;
     }
 
