@@ -13,6 +13,7 @@ import FollowingList from '@/components/profile/FollowingList';
 import { Loader2, Edit3, Save, X } from 'lucide-react';
 import { useUploader } from '@/hooks/useUploader';
 import UploadModal from '@/components/profile/UploadModal';
+import CreateMediaButton from '@/components/profile/CreateMediaButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -117,24 +118,24 @@ const MyProfilePage = () => {
         }));
     };
 
-    const handleFilesUpload = async (files, type) => {
-        if (!files || files.length === 0) return;
+    const handleFilesUpload = async (url, type) => {
+        if (!url) return;
 
-        const folder = type === 'photos' ? 'profile-photos' : 'profile-videos';
-        
-        for (const file of files) {
-            uploadFile(file, 'media', folder, async (url, error) => {
-                if (error) {
-                    toast({ variant: 'destructive', title: 'Error de subida', description: error.message });
-                    return;
-                }
-                
-                if (url) {
-                    const field = type === 'photos' ? 'profile_picture_url' : 'profile_video_url';
-                    handleInputChange(field, url);
-                    toast({ title: `${type === 'photos' ? 'Foto' : 'Video'} subido con éxito` });
-                }
-            });
+        if (type === 'photos') {
+            // Agregar foto a la galería
+            const currentPhotos = localProfileData?.fotos || [];
+            const updatedPhotos = [...currentPhotos, url];
+            handleInputChange('fotos', updatedPhotos);
+            
+            // Si es la primera foto, también actualizar la foto de perfil
+            if (currentPhotos.length === 0) {
+                handleInputChange('profile_picture_url', url);
+            }
+        } else if (type === 'videos') {
+            // Agregar video a la galería
+            const currentVideos = localProfileData?.videos || [];
+            const updatedVideos = [...currentVideos, url];
+            handleInputChange('videos', updatedVideos);
         }
     };
 
@@ -228,12 +229,13 @@ const MyProfilePage = () => {
                     </CardHeader>
                 </Card>
 
-                {/* Header del perfil */}
+                {/* Header del perfil - Diseño exacto de las fotos */}
                 <div className="relative">
                     <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
-                        <div className="flex items-center space-x-4">
+                        <div className="flex flex-col items-center space-y-4">
+                            {/* Avatar circular con gradiente */}
                             <div className="relative">
-                                <div className="w-20 h-20 rounded-full border-4 border-white overflow-hidden bg-gray-300">
+                                <div className="w-24 h-24 rounded-full border-4 border-green-400 overflow-hidden bg-gradient-to-br from-green-400 to-red-400 flex items-center justify-center">
                                     <img 
                                         src={profile.profile_picture_url} 
                                         alt="Foto de perfil"
@@ -252,47 +254,80 @@ const MyProfilePage = () => {
                                     </button>
                                 )}
                             </div>
-                            <div className="flex-1">
-                                <h1 className="text-2xl font-bold text-white">
-                                    {profile.alias}
+                            
+                            {/* Nombre con gradiente */}
+                            <div className="text-center">
+                                <h1 className="text-2xl font-bold">
+                                    <span className="text-green-300">{profile.alias?.split(' ')[0] || profile.alias}</span>
+                                    <span className="text-red-300">{profile.alias?.split(' ')[1] || ''}</span>
                                 </h1>
-                                <p className="text-green-100">
+                                <p className="text-gray-300 text-sm">
                                     {profile.ubicacion}
                                 </p>
+                            </div>
+                            
+                            {/* Botones de acción */}
+                            <div className="flex gap-2 w-full max-w-sm">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setEditMode(!editMode)}
+                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                >
+                                    <Edit3 className="w-4 h-4 mr-2" />
+                                    Editar Perfil
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => navigate('/chat')}
+                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                >
+                                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                                    </svg>
+                                    Mensajes
+                                </Button>
+                                <CreateMediaButton onMediaUploaded={handleFilesUpload} />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Información del perfil */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-green-600">Información</CardTitle>
+                {/* Información del perfil - Diseño exacto de las fotos */}
+                <Card className="bg-gray-800 border-gray-700">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-green-400 flex items-center">
+                            Información
+                            {editMode && (
+                                <Edit3 className="w-4 h-4 ml-2 text-white" />
+                            )}
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>
-                            <label className="text-green-600 font-medium">Sobre mí</label>
+                            <label className="text-green-400 font-medium block mb-1">Sobre mí</label>
                             {editMode ? (
                                 <textarea
                                     value={localProfileData?.descripcion || ''}
                                     onChange={(e) => handleInputChange('descripcion', e.target.value)}
-                                    className="w-full mt-1 p-2 border rounded-lg"
+                                    className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
                                     placeholder="Cuéntanos sobre ti..."
                                 />
                             ) : (
                                 <p className="text-white mt-1">
-                                    {profile.descripcion || 'No hay descripción disponible'}
+                                    {profile.descripcion || 'Usuario de AGARCH-AR 👋'}
                                 </p>
                             )}
                         </div>
                         
                         <div>
-                            <label className="text-green-600 font-medium">Género</label>
+                            <label className="text-green-400 font-medium block mb-1">Género</label>
                             {editMode ? (
                                 <select
                                     value={localProfileData?.genero || ''}
                                     onChange={(e) => handleInputChange('genero', e.target.value)}
-                                    className="w-full mt-1 p-2 border rounded-lg"
+                                    className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
                                 >
                                     <option value="">Seleccionar género</option>
                                     <option value="hombre">Hombre</option>
@@ -301,19 +336,19 @@ const MyProfilePage = () => {
                                 </select>
                             ) : (
                                 <p className="text-white mt-1">
-                                    {profile.genero || 'No especificado'}
+                                    {profile.genero || 'No Especificado'}
                                 </p>
                             )}
                         </div>
 
                         <div>
-                            <label className="text-green-600 font-medium">Edad</label>
+                            <label className="text-green-400 font-medium block mb-1">Edad</label>
                             {editMode ? (
                                 <input
                                     type="number"
                                     value={localProfileData?.edad || ''}
                                     onChange={(e) => handleInputChange('edad', e.target.value)}
-                                    className="w-full mt-1 p-2 border rounded-lg"
+                                    className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
                                     placeholder="Tu edad"
                                 />
                             ) : (
@@ -325,47 +360,100 @@ const MyProfilePage = () => {
                     </CardContent>
                 </Card>
 
-                {/* Galería de fotos */}
-                <Card>
+                {/* Galería de fotos - Diseño exacto de las fotos */}
+                <Card className="bg-gray-800 border-gray-700">
                     <CardHeader>
-                        <CardTitle className="text-green-600">Galería de Fotos</CardTitle>
+                        <CardTitle className="text-green-400">Galería de Fotos</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-center py-8 text-gray-500">
-                            <p>Aún no has subido fotos a tu perfil.</p>
-                            {editMode && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setIsUploadModalOpen(true)}
-                                    className="mt-2"
-                                >
-                                    Subir Fotos
-                                </Button>
-                            )}
-                        </div>
+                        {profile.fotos && profile.fotos.length > 0 ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {profile.fotos.map((photo, index) => (
+                                    <div key={index} className="relative group">
+                                        <img
+                                            src={photo}
+                                            alt={`Foto ${index + 1}`}
+                                            className="w-full h-32 object-cover rounded-lg"
+                                            onError={(e) => {
+                                                e.target.src = '/pwa-512x512.png';
+                                            }}
+                                        />
+                                        {editMode && (
+                                            <button
+                                                onClick={() => {
+                                                    const updatedPhotos = profile.fotos.filter((_, i) => i !== index);
+                                                    handleInputChange('fotos', updatedPhotos);
+                                                }}
+                                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-gray-400">
+                                <p>Aún no has subido fotos a tu perfil.</p>
+                                {editMode && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setIsUploadModalOpen(true)}
+                                        className="mt-2 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                    >
+                                        Subir Fotos
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
-                {/* Galería de videos */}
-                <Card>
+                {/* Galería de videos - Diseño exacto de las fotos */}
+                <Card className="bg-gray-800 border-gray-700">
                     <CardHeader>
-                        <CardTitle className="text-green-600">Galería de Videos</CardTitle>
+                        <CardTitle className="text-green-400">Galería de Videos</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-center py-8 text-gray-500">
-                            <p>Aún no has subido videos a tu perfil.</p>
-                            {editMode && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setIsUploadModalOpen(true)}
-                                    className="mt-2"
-                                >
-                                    Subir Videos
-                                </Button>
-                            )}
-                        </div>
+                        {profile.videos && profile.videos.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {profile.videos.map((video, index) => (
+                                    <div key={index} className="relative group">
+                                        <video
+                                            src={video}
+                                            controls
+                                            className="w-full h-48 object-cover rounded-lg"
+                                        />
+                                        {editMode && (
+                                            <button
+                                                onClick={() => {
+                                                    const updatedVideos = profile.videos.filter((_, i) => i !== index);
+                                                    handleInputChange('videos', updatedVideos);
+                                                }}
+                                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-gray-400">
+                                <p>Aún no has subido videos a tu perfil.</p>
+                                {editMode && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setIsUploadModalOpen(true)}
+                                        className="mt-2 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                    >
+                                        Subir Videos
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

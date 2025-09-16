@@ -3,8 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
 import App from '@/App';
 import '@/index.css';
-// 🧹 Limpiar Service Workers viejos
-import './unregister-sw.js';
+// 🔥 Registrar Service Worker optimizado para Firebase
+import './register-sw.js';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/useAuth.jsx';
 import { HelmetProvider } from 'react-helmet-async';

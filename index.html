@@ -8,6 +8,7 @@
     <meta name="description" content="Conéctate con personas afines a vos, cerca tuyo y con ganas de hacer lo mismo que vos cuando quieras, sin ataduras." />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#dc2626" />
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="AGARCH-AR">
@@ -18,23 +19,28 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     
-    <!-- PWA Service Worker Registration -->
+    <!-- PWA Service Worker Registration - REHABILITADO PARA MÓVILES -->
     <script>
+      // PWA REHABILITADA - Para que funcione en móviles
+      console.log('🔥 PWA Service Worker rehabilitado para móviles');
+      
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw-config.js')
+          navigator.serviceWorker.register('/sw-config.js?v=4')
             .then((registration) => {
-              console.log('✅ SW registered: ', registration);
+              console.log('🔥 SW registered - Firebase v4: ', registration);
+              
+              // Force update check
+              registration.update();
               
               // Check for updates
               registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
                 newWorker.addEventListener('statechange', () => {
                   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // New version available
-                    if (confirm('Nueva versión disponible. ¿Recargar la app?')) {
-                      window.location.reload();
-                    }
+                    // New version available - Force reload
+                    console.log('🔄 Nueva versión disponible - Forzando recarga');
+                    window.location.reload(true);
                   }
                 });
               });

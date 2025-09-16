@@ -31,7 +31,7 @@ export const useUploader = () => {
     });
 
     const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/${folder}/${uuidv4()}.${fileExt}`;
+    const fileName = `${user.uid}/${folder}/${uuidv4()}.${fileExt}`;
 
     try {
       const storageRef = ref(storage, `${bucket}/${fileName}`);
@@ -98,7 +98,7 @@ export const useUploader = () => {
     try {
       const uploadPromises = files.map(async (file) => {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${folder}/${uuidv4()}.${fileExt}`;
+        const fileName = `${user.uid}/${folder}/${uuidv4()}.${fileExt}`;
         
         const storageRef = ref(storage, `${bucket}/${fileName}`);
         const uploadTask = uploadBytesResumable(storageRef, file);

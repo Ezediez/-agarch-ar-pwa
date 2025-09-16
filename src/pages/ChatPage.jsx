@@ -60,7 +60,7 @@ const ChatPage = () => {
    * Agrupa por usuarios únicos y obtiene sus perfiles
    */
   const fetchConversations = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.uid) return;
     
     setLoadingConversations(true);
     
@@ -69,7 +69,7 @@ const ChatPage = () => {
       const messagesRef = collection(db, 'messages');
       const messagesQuery = query(
         messagesRef,
-        where('sender_id', '==', user.id),
+        where('sender_id', '==', user.uid),
         orderBy('sent_at', 'desc'),
         limit(500)
       );
@@ -80,7 +80,7 @@ const ChatPage = () => {
       // Obtener mensajes recibidos
       const receivedMessagesQuery = query(
         messagesRef,
-        where('recipient_id', '==', user.id),
+        where('recipient_id', '==', user.uid),
         orderBy('sent_at', 'desc'),
         limit(500)
       );
@@ -93,7 +93,7 @@ const ChatPage = () => {
       const userMap = new Map();
       
       allMessages.forEach(msg => {
-        const otherUserId = msg.sender_id === user.id ? msg.recipient_id : msg.sender_id;
+        const otherUserId = msg.sender_id === user.uid ? msg.recipient_id : msg.sender_id;
         if (otherUserId && !userMap.has(otherUserId)) {
           userMap.set(otherUserId, msg.sent_at);
         }
@@ -176,7 +176,7 @@ const ChatPage = () => {
       // Obtener mensajes enviados por el usuario actual al otro usuario
       const sentMessagesQuery = query(
         collection(db, 'messages'),
-        where('sender_id', '==', user.id),
+        where('sender_id', '==', user.uid),
         where('recipient_id', '==', conversation.id),
         orderBy('sent_at', 'asc')
       );
@@ -188,7 +188,7 @@ const ChatPage = () => {
       const receivedMessagesQuery = query(
         collection(db, 'messages'),
         where('sender_id', '==', conversation.id),
-        where('recipient_id', '==', user.id),
+        where('recipient_id', '==', user.uid),
         orderBy('sent_at', 'asc')
       );
       

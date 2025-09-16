@@ -14,17 +14,12 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "https://agarch-ar.netlify.app/pwa-192x192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "https://agarch-ar.netlify.app/pwa-512x512.png",
+      "src": "/pwa-512x512.png",
       "type": "image/png",
       "sizes": "512x512"
     },
     {
-      "src": "https://agarch-ar.netlify.app/pwa-512x512.png",
+      "src": "/pwa-512x512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
@@ -36,28 +31,28 @@
       "short_name": "Publicaciones",
       "description": "Ver publicaciones y stories",
       "url": "/discover",
-      "icons": [{ "src": "https://agarch-ar.netlify.app/pwa-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/pwa-512x512.png", "sizes": "512x512" }]
     },
     {
       "name": "Chats",
       "short_name": "Chats",
       "description": "Mensajes y conversaciones",
       "url": "/chat",
-      "icons": [{ "src": "https://agarch-ar.netlify.app/pwa-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/pwa-512x512.png", "sizes": "512x512" }]
     },
     {
       "name": "Mi Perfil",
       "short_name": "Perfil",
       "description": "Gestiona tu perfil",
-      "url": "/profile",
-      "icons": [{ "src": "https://agarch-ar.netlify.app/pwa-192x192.png", "sizes": "192x192" }]
+      "url": "/my-profile",
+      "icons": [{ "src": "/pwa-512x512.png", "sizes": "512x512" }]
     },
     {
-      "name": "Publicidad",
-      "short_name": "Anuncios",
-      "description": "Portal de anunciantes",
-      "url": "/ad-login",
-      "icons": [{ "src": "https://agarch-ar.netlify.app/pwa-192x192.png", "sizes": "192x192" }]
+      "name": "Buscar",
+      "short_name": "Buscar",
+      "description": "Buscar perfiles cercanos",
+      "url": "/search",
+      "icons": [{ "src": "/pwa-512x512.png", "sizes": "512x512" }]
     }
   ]
 }
