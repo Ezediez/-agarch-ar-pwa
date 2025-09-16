@@ -211,8 +211,8 @@ const ProfilePage = () => {
     return (
         <>
             <Helmet>
-                <title>{profile.alias || 'Perfil'} - AGARCH-AR</title>
-                <meta name="description" content={`Explora el perfil de ${profile.alias || 'un usuario'}.`} />
+                <title>{profile?.alias || 'Perfil'} - AGARCH-AR</title>
+                <meta name="description" content={`Explora el perfil de ${profile?.alias || 'un usuario'}.`} />
             </Helmet>
             
             <div className="max-w-4xl mx-auto p-4 space-y-6">
@@ -224,7 +224,7 @@ const ProfilePage = () => {
                             <div className="relative">
                                 <div className="w-24 h-24 rounded-full border-4 border-green-400 overflow-hidden bg-gradient-to-br from-green-400 to-red-400 flex items-center justify-center">
                                     <img 
-                                        src={profile.profile_picture_url} 
+                                        src={profile?.profile_picture_url || '/pwa-512x512.png'} 
                                         alt="Foto de perfil"
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
@@ -245,11 +245,11 @@ const ProfilePage = () => {
                             {/* Nombre con gradiente */}
                             <div className="text-center">
                                 <h1 className="text-2xl font-bold">
-                                    <span className="text-green-300">{profile.alias?.split(' ')[0] || profile.alias}</span>
-                                    <span className="text-red-300">{profile.alias?.split(' ')[1] || ''}</span>
+                                    <span className="text-green-300">{profile?.alias?.split(' ')[0] || profile?.alias || 'Usuario'}</span>
+                                    <span className="text-red-300">{profile?.alias?.split(' ')[1] || ''}</span>
                                 </h1>
                                 <p className="text-gray-300 text-sm">
-                                    {profile.ubicacion}
+                                    {profile?.ubicacion || 'Ubicación no especificada'}
                                 </p>
                             </div>
                             
@@ -325,7 +325,7 @@ const ProfilePage = () => {
                                 />
                             ) : (
                                 <p className="text-white mt-1">
-                                    {profile.descripcion || 'Usuario de AGARCH-AR 👋'}
+                                    {profile?.descripcion || 'Usuario de AGARCH-AR 👋'}
                                 </p>
                             )}
                         </div>
@@ -345,7 +345,7 @@ const ProfilePage = () => {
                                 </select>
                             ) : (
                                 <p className="text-white mt-1">
-                                    {profile.genero || 'No Especificado'}
+                                    {profile?.genero || 'No Especificado'}
                                 </p>
                             )}
                         </div>
@@ -362,7 +362,7 @@ const ProfilePage = () => {
                                 />
                             ) : (
                                 <p className="text-white mt-1">
-                                    {profile.edad || 'No especificada'}
+                                    {profile?.edad || 'No especificada'}
                                 </p>
                             )}
                         </div>
@@ -375,7 +375,7 @@ const ProfilePage = () => {
                         <CardTitle className="text-green-400">Galería de Fotos</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {profile.fotos && profile.fotos.length > 0 ? (
+                        {profile?.fotos && profile.fotos.length > 0 ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {profile.fotos.map((photo, index) => (
                                     <div key={index} className="relative group">
@@ -390,7 +390,7 @@ const ProfilePage = () => {
                                         {isOwnProfile && editMode && (
                                             <button
                                                 onClick={() => {
-                                                    const updatedPhotos = profile.fotos.filter((_, i) => i !== index);
+                                                    const updatedPhotos = profile?.fotos?.filter((_, i) => i !== index) || [];
                                                     handleInputChange('fotos', updatedPhotos);
                                                 }}
                                                 className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
@@ -425,7 +425,7 @@ const ProfilePage = () => {
                         <CardTitle className="text-green-400">Galería de Videos</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {profile.videos && profile.videos.length > 0 ? (
+                        {profile?.videos && profile.videos.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {profile.videos.map((video, index) => (
                                     <div key={index} className="relative group">
@@ -437,7 +437,7 @@ const ProfilePage = () => {
                                         {isOwnProfile && editMode && (
                                             <button
                                                 onClick={() => {
-                                                    const updatedVideos = profile.videos.filter((_, i) => i !== index);
+                                                    const updatedVideos = profile?.videos?.filter((_, i) => i !== index) || [];
                                                     handleInputChange('videos', updatedVideos);
                                                 }}
                                                 className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
