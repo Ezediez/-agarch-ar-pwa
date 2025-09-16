@@ -25,7 +25,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw-config.js')
+          // Service Worker desactivado
             .then((registration) => {
               console.log('✅ SW registered: ', registration);
               

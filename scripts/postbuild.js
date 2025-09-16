@@ -42,7 +42,6 @@ const filesToCopy = [
   { source: 'public/manifest.webmanifest', dest: 'manifest.webmanifest' },
   { source: 'public/pwa-192x192.png', dest: 'pwa-192x192.png' },
   { source: 'public/pwa-512x512.png', dest: 'pwa-512x512.png' },
-  { source: 'public/sw-config.js', dest: 'sw-config.js' },
   { source: 'netlify.toml', dest: 'netlify.toml' }
 ];
 
