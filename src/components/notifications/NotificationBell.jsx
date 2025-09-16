@@ -135,100 +135,10 @@ const NotificationBell = () => {
   };
 
   const setupRealtimeSubscription = () => {
-    // Suscripción a nuevos likes
-    const likesChannel = supabase
-      .channel(`notifications-likes-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'likes',
-          filter: `liked_user_id=eq.${user.id}`
-        },
-        async (payload) => {
-          // Obtener datos del perfil que dio like
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('id, alias, profile_picture_url')
-            .eq('id', payload.new.user_id)
-            .single();
-
-          if (profileData) {
-            const newNotification = {
-              id: `like-${payload.new.id}`,
-              type: 'like',
-              title: 'Nuevo Me Gusta',
-              message: `A ${profileData.alias} le gustó tu perfil`,
-              avatar: profileData.profile_picture_url,
-              created_at: payload.new.created_at,
-              user_id: payload.new.user_id,
-              read: false
-            };
-
-            setNotifications(prev => [newNotification, ...prev].slice(0, 15));
-            setUnreadCount(prev => prev + 1);
-            
-            // Mostrar toast
-            toast({
-              title: '❤️ Nuevo Me Gusta',
-              description: `A ${profileData.alias} le gustó tu perfil`,
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    // Suscripción a nuevos mensajes
-    const messagesChannel = supabase
-      .channel(`notifications-messages-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `recipient_id=eq.${user.id}`
-        },
-        async (payload) => {
-          // Obtener datos del perfil que envió el mensaje
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('id, alias, profile_picture_url')
-            .eq('id', payload.new.sender_id)
-            .single();
-
-          if (profileData) {
-            const newNotification = {
-              id: `message-${payload.new.id}`,
-              type: 'message',
-              title: 'Nuevo Mensaje',
-              message: payload.new.message_type === 'text' 
-                ? `${profileData.alias}: ${payload.new.contenido?.substring(0, 50)}${payload.new.contenido?.length > 50 ? '...' : ''}`
-                : `${profileData.alias} te envió ${payload.new.message_type === 'media' ? 'una imagen' : 'un archivo'}`,
-              avatar: profileData.profile_picture_url,
-              created_at: payload.new.sent_at,
-              user_id: payload.new.sender_id,
-              read: false
-            };
-
-            setNotifications(prev => [newNotification, ...prev].slice(0, 15));
-            setUnreadCount(prev => prev + 1);
-            
-            // Mostrar toast
-            toast({
-              title: '💬 Nuevo Mensaje',
-              description: `Mensaje de ${profileData.alias}`,
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      db.removeChannel(likesChannel);
-      db.removeChannel(messagesChannel);
-    };
+    // Firebase realtime subscriptions serán implementadas cuando el chat esté funcionando
+    // Por ahora solo mostramos notificaciones estáticas
+    console.log('🔔 Notificaciones en tiempo real deshabilitadas temporalmente');
+    return () => {};
   };
 
   const handleNotificationClick = (notification) => {

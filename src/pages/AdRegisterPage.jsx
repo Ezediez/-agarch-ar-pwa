@@ -62,7 +62,7 @@ const AdRegisterPage = () => {
     setLoading(true);
     
     try {
-      // Crear cuenta de anunciante en Firebase/Supabase
+      // Crear cuenta de anunciante en Firebase
       const advertiserData = {
         ...formData,
         account_type: 'advertiser',
