@@ -189,7 +189,7 @@ const ProfilePage = () => {
                     
                     await updateDoc(userProfileRef, {
                         following: updatedFollowing,
-                        updated_at: new Date().toISOString()
+                        updatedAt: serverTimestamp()
                     });
                     
                     toast({ 

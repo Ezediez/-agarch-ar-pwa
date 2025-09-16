@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/use-toast.jsx';
 import { Heart, MessageCircle, User, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const FollowingList = ({ isOwnProfile = false }) => {
+const FollowingList = ({ followingIds = [] }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -14,37 +14,26 @@ const FollowingList = ({ isOwnProfile = false }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.id) {
+    if (followingIds && followingIds.length > 0) {
       fetchFollowing();
+    } else {
+      setFollowing([]);
+      setLoading(false);
     }
-  }, [user?.id]);
+  }, [followingIds]);
 
   const fetchFollowing = async () => {
     try {
       setLoading(true);
       
-      // Validar que user.id existe
-      if (!user?.id) {
-        console.log('❌ No hay usuario autenticado');
-        setFollowing([]);
-        return;
-      }
-      
-      // Obtener likes del usuario desde Firebase
-      const likesRef = collection(db, 'user_likes');
-      const likesQuery = query(likesRef, where('user_id', '==', user.id));
-      const likesSnapshot = await getDocs(likesQuery);
-      
-      const likedUserIds = likesSnapshot.docs.map(doc => doc.data().liked_user_id);
-      
-      if (likedUserIds.length === 0) {
+      if (!followingIds || followingIds.length === 0) {
         setFollowing([]);
         return;
       }
       
       // Obtener perfiles de los usuarios seguidos
       const profilesData = [];
-      for (const userId of likedUserIds) {
+      for (const userId of followingIds) {
         try {
           const profileRef = doc(db, 'profiles', userId);
           const profileSnap = await getDoc(profileRef);
@@ -56,20 +45,7 @@ const FollowingList = ({ isOwnProfile = false }) => {
         }
       }
       
-      const followingProfiles = profilesData.map(profile => ({
-        id: profile.id,
-        alias: profile.alias,
-        profile_picture_url: profile.profile_picture_url,
-        bio: profile.bio,
-        gender: profile.gender,
-        is_vip: profile.is_vip,
-        is_verified: profile.is_verified,
-        ubicacion_lat: profile.latitud,
-        ubicacion_lng: profile.longitud,
-        followed_at: new Date().toISOString()
-      }));
-
-      setFollowing(followingProfiles);
+      setFollowing(profilesData);
     } catch (error) {
       console.error('Error in fetchFollowing:', error);
       toast({

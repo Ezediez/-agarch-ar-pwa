@@ -206,10 +206,9 @@ export default function ChatRoom() {
         <div className="flex items-center gap-2">
           {/* Adjuntar fotos */}
           <button onClick={() => mediaInputRef.current?.click()}
-                  className="px-3 py-2 rounded-xl bg-slate-800">＋</button>
+                  className="px-3 py-2 rounded-xl bg-slate-800">📷</button>
           <input ref={mediaInputRef}
                  type="file" accept="image/*" multiple
-                 capture="environment"
                  className="hidden" onChange={onPickImages} />
 
           {/* Adjuntar video */}
@@ -217,7 +216,6 @@ export default function ChatRoom() {
                   className="px-3 py-2 rounded-xl bg-slate-800">🎬</button>
           <input ref={videoInputRef}
                  type="file" accept="video/*"
-                 capture="environment"
                  className="hidden" onChange={onPickVideo} />
 
           {/* Campo de texto */}
