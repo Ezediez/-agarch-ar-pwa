@@ -1,0 +1,12 @@
+// REGLAS DE FIRESTORE TEMPORALES - MÁS PERMISIVAS PARA SOLUCIONAR ERRORES
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regla temporal: permitir lectura y escritura para usuarios autenticados
+    // TODO: Refinar estas reglas después de que la app funcione
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

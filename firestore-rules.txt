@@ -1,4 +1,4 @@
-// REGLAS DE FIRESTORE - Copiar y pegar en Firebase Console → Firestore → Rules
+// REGLAS DE FIRESTORE COMPLETAS - Copiar y pegar en Firebase Console → Firestore → Rules
 
 rules_version = '2';
 service cloud.firestore {
@@ -8,6 +8,24 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if request.auth != null;
       allow create, update: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Posts: todos los usuarios autenticados pueden leer, solo el autor puede escribir
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+    }
+
+    // Stories: todos los usuarios autenticados pueden leer, solo el autor puede escribir
+    match /stories/{storyId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+    }
+
+    // Profiles: todos los usuarios autenticados pueden leer, solo el dueño puede escribir
+    match /profiles/{profileId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == profileId;
     }
 
     // Conversaciones: solo miembros pueden ver/crear/borrar
@@ -28,6 +46,11 @@ service cloud.firestore {
         allow create: if isMember() && request.resource.data.authorId == request.auth.uid;
         allow update, delete: if isMember() && request.auth.uid == resource.data.authorId;
       }
+    }
+
+    // Cualquier otra colección: permitir lectura para usuarios autenticados
+    match /{document=**} {
+      allow read: if request.auth != null;
     }
   }
 }
