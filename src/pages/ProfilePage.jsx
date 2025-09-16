@@ -42,6 +42,7 @@ const ProfilePage = () => {
                 console.log('✅ Perfil cargado:', data.alias);
                 setProfile(data);
                 setLocalProfileData(data);
+                setPageLoading(false); // Mover aquí para evitar race conditions
             } else {
                 console.error('❌ Perfil no encontrado:', profileId);
                 toast({ variant: 'destructive', title: 'Error', description: 'No se pudo cargar el perfil.' });
@@ -51,7 +52,6 @@ const ProfilePage = () => {
             console.error('❌ Error fetching profile:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo cargar el perfil.' });
             navigate('/discover');
-        } finally {
             setPageLoading(false);
         }
     }, [toast, navigate]);
@@ -174,7 +174,7 @@ const ProfilePage = () => {
         await refreshProfile();
     };
 
-    if (pageLoading || !localProfileData) {
+    if (pageLoading || !profile) {
         return <div className="flex justify-center items-center h-screen"><Loader2 className="w-12 h-12 animate-spin text-primary"/></div>;
     }
 
