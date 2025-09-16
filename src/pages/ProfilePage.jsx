@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUploader } from '@/hooks/useUploader';
 import UploadModal from '@/components/profile/UploadModal';
-import DirectMessageModal from '@/components/profile/DirectMessageModal';
 import FollowingList from '@/components/profile/FollowingList';
 
 const ProfilePage = () => {
@@ -26,7 +25,6 @@ const ProfilePage = () => {
     const [editMode, setEditMode] = useState(false);
     const [localProfileData, setLocalProfileData] = useState(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-    const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
     const [isOwnProfile, setIsOwnProfile] = useState(false);
 
     const fetchProfile = useCallback(async (profileId) => {
@@ -338,7 +336,7 @@ const ProfilePage = () => {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => setIsMessageModalOpen(true)}
+                                            onClick={() => navigate(`/chat/${profile?.id}`)}
                                             className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
                                         >
                                             <MessageSquare className="w-4 h-4 mr-2" />
@@ -569,11 +567,6 @@ const ProfilePage = () => {
                     progress={progress}
                 />
 
-                <DirectMessageModal
-                    isOpen={isMessageModalOpen}
-                    onClose={() => setIsMessageModalOpen(false)}
-                    recipient={profile}
-                />
             </div>
         </>
     );
