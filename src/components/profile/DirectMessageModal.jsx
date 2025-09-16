@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
-import { collection, addDoc } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Send, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { startConversation } from '@/utils/chatUtils';
 
 const DirectMessageModal = ({ profile, onClose }) => {
   const { user } = useAuth();
@@ -22,24 +23,61 @@ const DirectMessageModal = ({ profile, onClose }) => {
     }
     setSending(true);
     
-    console.log('🔥🔥🔥 ENVIANDO MENSAJE VIA FIREBASE');
-    
     try {
-      // Crear mensaje directo en Firebase
-      await addDoc(collection(db, 'messages'), {
-        sender_id: user.id,
-        recipient_id: profile.id,
-        contenido: message,
-        message_type: 'text',
-        sent_at: new Date().toISOString(),
-        read: false
+      // Verificar si ya existe una conversación
+      const conversationsRef = collection(db, 'conversations');
+      const existingConvQuery = query(
+        conversationsRef,
+        where('members', 'array-contains', user.id)
+      );
+      
+      const existingSnapshot = await getDocs(existingConvQuery);
+      let conversationId = null;
+      
+      // Buscar conversación existente con este usuario
+      for (const doc of existingSnapshot.docs) {
+        const data = doc.data();
+        if (data.members.includes(profile.id)) {
+          conversationId = doc.id;
+          break;
+        }
+      }
+      
+      // Si no existe conversación, crear una nueva
+      if (!conversationId) {
+        const newConversation = {
+          members: [user.id, profile.id],
+          lastMessage: message.slice(0, 80),
+          lastSenderId: user.id,
+          updatedAt: serverTimestamp(),
+        };
+        const convRef = await addDoc(collection(db, 'conversations'), newConversation);
+        conversationId = convRef.id;
+      }
+      
+      // Enviar el mensaje
+      await addDoc(collection(db, 'conversations', conversationId, 'messages'), {
+        authorId: user.id,
+        type: 'text',
+        text: message,
+        media: [],
+        createdAt: serverTimestamp(),
+      });
+      
+      // Actualizar última conversación
+      const convRef = doc(db, 'conversations', conversationId);
+      await updateDoc(convRef, {
+        lastMessage: message.slice(0, 80),
+        lastSenderId: user.id,
+        updatedAt: serverTimestamp(),
       });
       
       toast({ title: 'Éxito', description: 'Mensaje enviado correctamente' });
       onClose();
-      navigate('/chat', { state: { openChatWith: profile.id } });
+      navigate(`/chat/${conversationId}`);
+      
     } catch (error) {
-      console.error('🔥🔥🔥 ERROR FIREBASE:', error);
+      console.error('Error sending message:', error);
       toast({ variant: 'destructive', title: 'Error al enviar mensaje', description: error.message });
     } finally {
       setSending(false);
