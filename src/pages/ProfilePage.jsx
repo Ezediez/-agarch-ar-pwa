@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Loader2, Edit3, Save, X, Heart, MessageSquare } from 'lucide-react';
@@ -166,19 +166,21 @@ const ProfilePage = () => {
     };
 
     const handleLike = async () => {
-        if (!user?.id || !profile?.id) {
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar el like.' });
+        if (!user?.uid || !profile?.id) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar el like: usuario o perfil no identificados.' });
             return;
         }
         
         try {
+            console.log('DEBUG: Intentando dar like. User ID:', user.uid, 'Profile ID:', profile.id);
             // Obtener el perfil actual del usuario
-            const userProfileRef = doc(db, 'profiles', user.id);
+            const userProfileRef = doc(db, 'profiles', user.uid);
             const userProfileSnap = await getDoc(userProfileRef);
             
             if (userProfileSnap.exists()) {
                 const userProfileData = userProfileSnap.data();
                 const followingList = userProfileData.following || [];
+                console.log('DEBUG: Perfil del usuario actual encontrado. Siguiendo:', followingList);
                 
                 // Verificar si ya está en la lista
                 if (!followingList.includes(profile.id)) {
@@ -194,6 +196,7 @@ const ProfilePage = () => {
                         title: '¡Me gusta!', 
                         description: `Ahora sigues a ${profile?.alias || 'este usuario'}. Se agregó a tu lista de seguidos.` 
                     });
+                    console.log('DEBUG: Like procesado y perfil actualizado.');
                     
                     // Refrescar el perfil del usuario
                     await refreshProfile();
@@ -202,12 +205,14 @@ const ProfilePage = () => {
                         title: 'Ya sigues a este usuario', 
                         description: `${profile?.alias || 'Este usuario'} ya está en tu lista de seguidos.` 
                     });
+                    console.log('DEBUG: Usuario ya estaba en la lista de seguidos.');
                 }
             } else {
-                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar tu perfil.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'Tu perfil no se encontró para guardar el like.' });
+                console.error('DEBUG: Perfil del usuario actual no encontrado para dar like.');
             }
         } catch (error) {
-            console.error('Error al dar like:', error);
+            console.error('DEBUG: Error al dar like:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar el like.' });
         }
     };
@@ -216,6 +221,58 @@ const ProfilePage = () => {
         // Scroll hacia abajo para ver más contenido del perfil
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         toast({ title: 'Perfil completo', description: 'Desplazándose por el perfil completo' });
+    };
+
+    const handleStartChat = async () => {
+        if (!user?.uid || !profile?.id) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo iniciar el chat.' });
+            return;
+        }
+        
+        try {
+            console.log('DEBUG: Iniciando chat. User ID:', user.uid, 'Profile ID:', profile.id);
+            
+            // Verificar si ya existe una conversación
+            const conversationsRef = collection(db, 'conversations');
+            const existingConvQuery = query(
+                conversationsRef,
+                where('members', 'array-contains', user.uid)
+            );
+            
+            const existingSnapshot = await getDocs(existingConvQuery);
+            let conversationId = null;
+            
+            // Buscar conversación existente con este usuario
+            for (const doc of existingSnapshot.docs) {
+                const data = doc.data();
+                if (data.members.includes(profile.id)) {
+                    conversationId = doc.id;
+                    break;
+                }
+            }
+            
+            // Si no existe conversación, crear una nueva
+            if (!conversationId) {
+                const newConversation = {
+                    members: [user.uid, profile.id],
+                    lastMessage: 'Conversación iniciada',
+                    lastSenderId: user.uid,
+                    updatedAt: serverTimestamp(),
+                };
+                const convRef = await addDoc(collection(db, 'conversations'), newConversation);
+                conversationId = convRef.id;
+                console.log('DEBUG: Nueva conversación creada:', conversationId);
+            } else {
+                console.log('DEBUG: Conversación existente encontrada:', conversationId);
+            }
+            
+            // Navegar al chat
+            navigate(`/chat/${conversationId}`);
+            
+        } catch (error) {
+            console.error('DEBUG: Error al iniciar chat:', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo iniciar el chat.' });
+        }
     };
 
     if (authLoading || pageLoading) {
@@ -336,7 +393,7 @@ const ProfilePage = () => {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => navigate(`/chat/${profile?.id}`)}
+                                            onClick={handleStartChat}
                                             className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
                                         >
                                             <MessageSquare className="w-4 h-4 mr-2" />
