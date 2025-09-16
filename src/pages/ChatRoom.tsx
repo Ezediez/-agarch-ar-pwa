@@ -206,14 +206,14 @@ export default function ChatRoom() {
         <div className="flex items-center gap-2">
           {/* Adjuntar fotos */}
           <button onClick={() => mediaInputRef.current?.click()}
-                  className="px-3 py-2 rounded-xl bg-slate-800">📷</button>
+                  className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-600">📷</button>
           <input ref={mediaInputRef}
                  type="file" accept="image/*" multiple
                  className="hidden" onChange={onPickImages} />
 
           {/* Adjuntar video */}
           <button onClick={() => videoInputRef.current?.click()}
-                  className="px-3 py-2 rounded-xl bg-slate-800">🎬</button>
+                  className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-600">🎬</button>
           <input ref={videoInputRef}
                  type="file" accept="video/*"
                  className="hidden" onChange={onPickVideo} />
@@ -223,19 +223,19 @@ export default function ChatRoom() {
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, limits.maxTextLen))}
             placeholder={`Escribe un mensaje… (${limits.maxTextLen})`}
-            className="flex-1 rounded-xl bg-slate-800 px-3 py-2 text-white"
+            className="flex-1 rounded-xl bg-slate-800 px-3 py-2 text-white placeholder-gray-400 border border-slate-600 focus:border-green-500 focus:outline-none"
           />
 
           {/* Audio */}
           <button onMouseDown={startRecording}
                   onMouseUp={stopRecording}
-                  className="px-3 py-2 rounded-xl bg-red-600">
+                  className="px-3 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-white border border-red-600">
             🎤
           </button>
 
           {/* Enviar */}
           <button disabled={sending} onClick={sendText}
-                  className="px-4 py-2 rounded-xl bg-green-500 disabled:opacity-50">
+                  className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white border border-green-500">
             Enviar
           </button>
         </div>
