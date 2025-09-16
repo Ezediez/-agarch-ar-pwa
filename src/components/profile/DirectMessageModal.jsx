@@ -37,7 +37,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
       // Buscar conversación existente con este usuario
       for (const doc of existingSnapshot.docs) {
         const data = doc.data();
-        if (data.members.includes(profile.id)) {
+        if (data.members.includes(profile?.id)) {
           conversationId = doc.id;
           break;
         }
@@ -46,7 +46,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
       // Si no existe conversación, crear una nueva
       if (!conversationId) {
         const newConversation = {
-          members: [user.id, profile.id],
+          members: [user.id, profile?.id],
           lastMessage: message.slice(0, 80),
           lastSenderId: user.id,
           updatedAt: serverTimestamp(),
@@ -88,7 +88,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
       <div className="card-glass rounded-2xl shadow-xl w-full max-w-md flex flex-col mx-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center p-4 border-b border-border-color">
-          <h2 className="text-xl font-bold">Enviar mensaje a {profile.alias}</h2>
+          <h2 className="text-xl font-bold">Enviar mensaje a {profile?.alias || 'Usuario'}</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-6 w-6" />
           </Button>
