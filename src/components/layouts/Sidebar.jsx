@@ -7,7 +7,7 @@ import { Home, MessageSquare, User, Settings, LogOut, Shield, Search } from 'luc
 
 const navItems = [
   { icon: Home, text: 'Publicaciones', path: '/discover' },
-  { icon: MessageSquare, text: 'Chats', path: '/chat' },
+  { icon: MessageSquare, text: 'Chats', path: '/chats' },
   { icon: User, text: 'Mi Perfil', path: '/my-profile' },
   { icon: Search, text: 'Buscar', path: '/search' },
   { icon: Settings, text: 'Ajustes', path: '/settings' },

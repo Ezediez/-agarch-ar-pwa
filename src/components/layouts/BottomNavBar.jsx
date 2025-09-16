@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
   { icon: Home, text: 'Publicaciones', path: '/discover' },
-  { icon: MessageSquare, text: 'Chats', path: '/chat' },
+  { icon: MessageSquare, text: 'Chats', path: '/chats' },
   { icon: User, text: 'Perfil', path: '/profile' },
 ];
 

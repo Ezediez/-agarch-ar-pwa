@@ -6,7 +6,7 @@ import Notifications from '@/components/Notifications';
 
 const navItems = [
   { icon: Home, text: 'Publicaciones', path: '/' },
-  { icon: MessageSquare, text: 'Chats', path: '/chat' },
+  { icon: MessageSquare, text: 'Chats', path: '/chats' },
   { icon: User, text: 'Perfil', path: '/profile' },
   { icon: Search, text: 'Buscar', path: '/search' },
   { icon: Settings, text: 'Ajustes', path: '/settings' },
