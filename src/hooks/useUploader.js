@@ -70,10 +70,20 @@ export const useUploader = () => {
 
     } catch (error) {
       console.error('Upload Error:', error);
+      
+      let errorMessage = error.message;
+      if (error.code === 'storage/unauthorized') {
+        errorMessage = "Firebase Storage no está configurado. Contacta al administrador.";
+      } else if (error.code === 'storage/canceled') {
+        errorMessage = "La subida fue cancelada.";
+      } else if (error.code === 'storage/unknown') {
+        errorMessage = "Error desconocido de Firebase Storage. Verifica la configuración.";
+      }
+      
       toast({
         variant: "destructive",
         title: "Error al subir el archivo",
-        description: error.message,
+        description: errorMessage,
       });
       onUploadComplete(null, error);
     } finally {
@@ -137,10 +147,20 @@ export const useUploader = () => {
 
     } catch (error) {
       console.error('Upload Error:', error);
+      
+      let errorMessage = error.message;
+      if (error.code === 'storage/unauthorized') {
+        errorMessage = "Firebase Storage no está configurado. Contacta al administrador.";
+      } else if (error.code === 'storage/canceled') {
+        errorMessage = "La subida fue cancelada.";
+      } else if (error.code === 'storage/unknown') {
+        errorMessage = "Error desconocido de Firebase Storage. Verifica la configuración.";
+      }
+      
       toast({
         variant: "destructive",
         title: "Error al subir archivos",
-        description: error.message,
+        description: errorMessage,
       });
       return null;
     } finally {

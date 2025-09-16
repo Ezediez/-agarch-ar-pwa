@@ -1,0 +1,37 @@
+rules_version = '2';
+
+// Reglas para Firebase Storage - AGARCH-AR
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Reglas para media de usuarios
+    match /media/{userId}/{allPaths=**} {
+      // Solo el usuario autenticado puede leer y escribir sus propios archivos
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Reglas para fotos de perfil
+    match /media/{userId}/profile-photos/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Reglas para fotos de posts
+    match /media/{userId}/posts/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Reglas para videos
+    match /media/{userId}/videos/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Reglas para stories
+    match /media/{userId}/stories/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Reglas para archivos públicos (solo lectura)
+    match /public/{allPaths=**} {
+      allow read: if request.auth != null;
+    }
+  }
+}
