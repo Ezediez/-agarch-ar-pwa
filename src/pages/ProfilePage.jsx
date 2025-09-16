@@ -167,9 +167,57 @@ const ProfilePage = () => {
         }
     };
 
-    const handleLike = () => {
-        // TODO: Implementar funcionalidad de "Me gusta"
-        toast({ title: '¡Me gusta!', description: 'Has dado like a este perfil' });
+    const handleLike = async () => {
+        if (!user?.id || !profile?.id) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar el like.' });
+            return;
+        }
+        
+        try {
+            // Obtener el perfil actual del usuario
+            const userProfileRef = doc(db, 'profiles', user.id);
+            const userProfileSnap = await getDoc(userProfileRef);
+            
+            if (userProfileSnap.exists()) {
+                const userProfileData = userProfileSnap.data();
+                const followingList = userProfileData.following || [];
+                
+                // Verificar si ya está en la lista
+                if (!followingList.includes(profile.id)) {
+                    // Agregar el perfil a la lista de seguidos
+                    const updatedFollowing = [...followingList, profile.id];
+                    
+                    await updateDoc(userProfileRef, {
+                        following: updatedFollowing,
+                        updated_at: new Date().toISOString()
+                    });
+                    
+                    toast({ 
+                        title: '¡Me gusta!', 
+                        description: `Ahora sigues a ${profile?.alias || 'este usuario'}. Se agregó a tu lista de seguidos.` 
+                    });
+                    
+                    // Refrescar el perfil del usuario
+                    await refreshProfile();
+                } else {
+                    toast({ 
+                        title: 'Ya sigues a este usuario', 
+                        description: `${profile?.alias || 'Este usuario'} ya está en tu lista de seguidos.` 
+                    });
+                }
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar tu perfil.' });
+            }
+        } catch (error) {
+            console.error('Error al dar like:', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar el like.' });
+        }
+    };
+
+    const handleViewFullProfile = () => {
+        // Scroll hacia abajo para ver más contenido del perfil
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        toast({ title: 'Perfil completo', description: 'Desplazándose por el perfil completo' });
     };
 
     if (authLoading || pageLoading) {
@@ -295,6 +343,18 @@ const ProfilePage = () => {
                                         >
                                             <MessageSquare className="w-4 h-4 mr-2" />
                                             Mensaje
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleViewFullProfile}
+                                            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white border-blue-400"
+                                        >
+                                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 12a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                                            </svg>
+                                            Ver Perfil
                                         </Button>
                                     </>
                                 )}

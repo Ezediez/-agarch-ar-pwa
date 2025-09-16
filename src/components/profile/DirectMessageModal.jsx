@@ -21,6 +21,12 @@ const DirectMessageModal = ({ profile, onClose }) => {
       toast({ variant: 'destructive', title: 'El mensaje no puede estar vacío.' });
       return;
     }
+    
+    if (!user?.id || !profile?.id) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario o destinatario.' });
+      return;
+    }
+    
     setSending(true);
     
     try {
