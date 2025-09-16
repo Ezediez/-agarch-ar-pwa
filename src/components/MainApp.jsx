@@ -4,7 +4,8 @@ import MainLayout from '@/components/layouts/MainLayout';
 import DiscoverPage from '@/pages/DiscoverPage';
 import ProfilePage from '@/pages/ProfilePage';
 import MyProfilePage from '@/pages/MyProfilePage';
-import ChatPage from '@/pages/ChatPage';
+import ChatsPage from '@/pages/ChatsPage';
+import ChatRoom from '@/pages/ChatRoom';
 import SettingsPage from '@/pages/SettingsPage';
 import CreatePostPage from '@/pages/CreatePostPage';
 import PaymentsPage from '@/pages/PaymentsPage';
@@ -32,8 +33,8 @@ const MainApp = () => {
         <Route path="/search" element={<AdvancedSearchPage />} />
         <Route path="/profile/:id" element={<ProfilePage />} />
         <Route path="/my-profile" element={<MyProfilePage />} />
-        <Route path="/chat" element={<ChatPage />} />
-        <Route path="/chat/:userId" element={<ChatPage />} />
+        <Route path="/chats" element={<ChatsPage />} />
+        <Route path="/chat/:id" element={<ChatRoom />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/create-post" element={<CreatePostPage />} />
         <Route path="/payments" element={<PaymentsPage />} />
