@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate } from 'react-router-dom';
-import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
+import { db, auth } from '@/lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
-import ProfileHeader from '@/components/profile/ProfileHeader';
-import ProfileInfo from '@/components/profile/ProfileInfo';
-import ProfileGallery from '@/components/profile/ProfileGallery';
-import ProfileVideos from '@/components/profile/ProfileVideos';
-import FollowingList from '@/components/profile/FollowingList';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Edit3, Save, X, Heart, MessageSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUploader } from '@/hooks/useUploader';
 import UploadModal from '@/components/profile/UploadModal';
+import DirectMessageModal from '@/components/profile/DirectMessageModal';
+import FollowingList from '@/components/profile/FollowingList';
 
 const ProfilePage = () => {
     const { id } = useParams();
@@ -24,14 +23,15 @@ const ProfilePage = () => {
     const [profile, setProfile] = useState(null);
     const [pageLoading, setPageLoading] = useState(true);
     const [saveLoading, setSaveLoading] = useState(false);
-    const [isOwnProfile, setIsOwnProfile] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [localProfileData, setLocalProfileData] = useState(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+    const [isOwnProfile, setIsOwnProfile] = useState(false);
 
     const fetchProfile = useCallback(async (profileId) => {
-        setPageLoading(true);
         console.log('🔄 Cargando perfil:', profileId);
+        setPageLoading(true);
         
         try {
             const profileRef = doc(db, 'profiles', profileId);
@@ -41,9 +41,23 @@ const ProfilePage = () => {
                 const data = { id: profileSnap.id, ...profileSnap.data() };
                 console.log('✅ Perfil cargado:', data.alias);
                 console.log('🔍 Datos del perfil:', data);
-                setProfile(data);
-                setLocalProfileData(data);
-                setPageLoading(false); // Mover aquí para evitar race conditions
+                
+                // Asegurar que el perfil tenga todos los campos necesarios
+                const completeProfile = {
+                    ...data,
+                    alias: data.alias || 'Usuario',
+                    descripcion: data.descripcion || data.bio || '',
+                    genero: data.genero || '',
+                    edad: data.edad || '',
+                    ubicacion: data.ubicacion || data.location || 'Ubicación no especificada',
+                    fotos: data.fotos || data.photos || [],
+                    videos: data.videos || [],
+                    profile_picture_url: data.profile_picture_url || '/pwa-512x512.png'
+                };
+                
+                setProfile(completeProfile);
+                setLocalProfileData(completeProfile);
+                setPageLoading(false);
             } else {
                 console.error('❌ Perfil no encontrado:', profileId);
                 toast({ variant: 'destructive', title: 'Error', description: 'No se pudo cargar el perfil.' });
@@ -53,185 +67,454 @@ const ProfilePage = () => {
             console.error('❌ Error fetching profile:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo cargar el perfil.' });
             navigate('/discover');
-            setPageLoading(false);
         }
     }, [toast, navigate]);
 
     useEffect(() => {
         if (authLoading) return;
-        const profileId = id || user?.id;
-
+        
+        const profileId = id || user?.uid;
         if (!profileId) {
             navigate('/login');
             return;
         }
         
-        setIsOwnProfile(profileId === user.id);
-        if (profileId === user.id && ownProfile) {
-            setProfile(ownProfile);
-            setLocalProfileData(ownProfile);
+        const isOwn = profileId === user?.uid;
+        setIsOwnProfile(isOwn);
+        
+        if (isOwn && ownProfile) {
+            // Usar perfil propio desde useAuth
+            const completeProfile = {
+                ...ownProfile,
+                alias: ownProfile.alias || 'Usuario',
+                descripcion: ownProfile.descripcion || ownProfile.bio || '',
+                genero: ownProfile.genero || '',
+                edad: ownProfile.edad || '',
+                ubicacion: ownProfile.ubicacion || ownProfile.location || 'Ubicación no especificada',
+                fotos: ownProfile.fotos || ownProfile.photos || [],
+                videos: ownProfile.videos || [],
+                profile_picture_url: ownProfile.profile_picture_url || '/pwa-512x512.png'
+            };
+            setProfile(completeProfile);
+            setLocalProfileData(completeProfile);
             setPageLoading(false);
         } else {
+            // Cargar perfil de otro usuario
             fetchProfile(profileId);
         }
     }, [id, user, ownProfile, authLoading, fetchProfile, navigate]);
-    
-    useEffect(() => {
-      if (ownProfile && isOwnProfile) {
-        setProfile(ownProfile);
-        setLocalProfileData(ownProfile);
-      }
-    }, [ownProfile, isOwnProfile]);
-
-    const handleInputChange = (e) => {
-        const { id, value } = e.target;
-        setLocalProfileData(prev => ({ ...prev, [id]: value }));
-    };
-
-    const handleSelectChange = (key, value) => {
-        setLocalProfileData(prev => ({ ...prev, [key]: value }));
-    };
-
-    const handleInterestsChange = (e) => {
-        setLocalProfileData(prev => ({ ...prev, interests: e.target.value.split(',').map(s => s.trim()) }));
-    };
 
     const handleSave = async () => {
+        if (!localProfileData || !user?.uid) return;
+
         setSaveLoading(true);
-        const updates = {
-            alias: localProfileData.alias,
-            bio: localProfileData.bio,
-            gender: localProfileData.gender,
-            sexual_orientation: localProfileData.sexual_orientation,
-            relationship_status: localProfileData.relationship_status,
-            interests: localProfileData.interests,
-        };
+        try {
+            const profileRef = doc(db, 'profiles', user.uid);
+            await updateDoc(profileRef, {
+                alias: localProfileData.alias,
+                descripcion: localProfileData.descripcion,
+                genero: localProfileData.genero,
+                edad: localProfileData.edad,
+                ubicacion: localProfileData.ubicacion,
+                fotos: localProfileData.fotos,
+                videos: localProfileData.videos,
+                profile_picture_url: localProfileData.profile_picture_url,
+                updated_at: new Date().toISOString()
+            });
 
-        const profileRef = doc(db, 'profiles', user.id);
-        await updateDoc(profileRef, updates);
-        
-        toast({ title: '¡Éxito!', description: 'Tu perfil ha sido actualizado.' });
-        setEditMode(false);
-        await refreshProfile();
-    };
-
-    const handleOpenUploadModal = () => {
-        setIsUploadModalOpen(true);
-    };
-
-    const handleUpload = (file, type) => {
-        if (!file) return;
-        
-        let bucket = 'media';
-        let folder, column, mediaType;
-
-        if (type === 'profile') {
-            folder = 'avatars';
-            column = 'profile_picture_url';
-            mediaType = 'photo';
-        } else if (type.includes('gallery')) {
-            folder = 'profile-photos';
-            column = 'photos';
-            mediaType = 'photo';
-        } else {
-            folder = 'profile-videos';
-            column = 'videos';
-            mediaType = 'video';
+            toast({ title: 'Perfil actualizado con éxito' });
+            setEditMode(false);
+            await refreshProfile();
+        } catch (error) {
+            console.error('Error al actualizar perfil:', error);
+            toast({ 
+                variant: 'destructive', 
+                title: 'Error', 
+                description: 'No se pudo actualizar el perfil' 
+            });
+        } finally {
+            setSaveLoading(false);
         }
-
-        uploadFile(file, bucket, folder, async (url, error) => {
-            if (error) {
-                 toast({ variant: 'destructive', title: 'Error de subida', description: error.message });
-                 return;
-            }
-            if (url) {
-                let updatedField;
-                if (column === 'photos' || column === 'videos') {
-                    const currentMedia = profile[column] || [];
-                    updatedField = { [column]: [...currentMedia, url] };
-                } else {
-                    updatedField = { [column]: url };
-                }
-
-                const profileRef = doc(db, 'profiles', user.id);
-                await updateDoc(profileRef, updatedField);
-                
-                toast({ title: '¡Éxito!', description: `Tu ${mediaType} ha sido actualizada.` });
-                await refreshProfile();
-                setIsUploadModalOpen(false);
-            }
-        });
-    };
-    
-    const handleRemoveMedia = async (urlToRemove, mediaType) => {
-        const column = mediaType === 'photo' ? 'photos' : 'videos';
-        const currentMedia = profile[column] || [];
-        const updatedMedia = currentMedia.filter(url => url !== urlToRemove);
-
-        const profileRef = doc(db, 'profiles', user.id);
-        await updateDoc(profileRef, { [column]: updatedMedia });
-        
-        toast({ title: 'Eliminado', description: `La ${mediaType} ha sido eliminada.` });
-        await refreshProfile();
     };
 
-    if (pageLoading || !profile || !localProfileData) {
-        console.log('🔄 Estado de carga:', { pageLoading, profile: !!profile, localProfileData: !!localProfileData });
-        return <div className="flex justify-center items-center h-screen"><Loader2 className="w-12 h-12 animate-spin text-primary"/></div>;
+    const handleCancel = () => {
+        setLocalProfileData(profile);
+        setEditMode(false);
+    };
+
+    const handleInputChange = (field, value) => {
+        setLocalProfileData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handleFilesUpload = async (url, type) => {
+        if (!url) return;
+
+        if (type === 'photos') {
+            const currentPhotos = localProfileData?.fotos || [];
+            const updatedPhotos = [...currentPhotos, url];
+            handleInputChange('fotos', updatedPhotos);
+            
+            if (currentPhotos.length === 0) {
+                handleInputChange('profile_picture_url', url);
+            }
+        } else if (type === 'videos') {
+            const currentVideos = localProfileData?.videos || [];
+            const updatedVideos = [...currentVideos, url];
+            handleInputChange('videos', updatedVideos);
+        }
+    };
+
+    const handleLike = () => {
+        // TODO: Implementar funcionalidad de "Me gusta"
+        toast({ title: '¡Me gusta!', description: 'Has dado like a este perfil' });
+    };
+
+    if (authLoading || pageLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="text-center">
+                    <h2 className="text-xl font-semibold mb-2">No autenticado</h2>
+                    <p className="text-muted-foreground mb-4">Debes iniciar sesión para ver perfiles</p>
+                    <Button onClick={() => navigate('/login')}>
+                        Ir a Login
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!profile) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="text-center">
+                    <h2 className="text-xl font-semibold mb-2">Perfil no encontrado</h2>
+                    <p className="text-muted-foreground mb-4">No se pudo cargar el perfil</p>
+                    <Button onClick={() => navigate('/discover')}>
+                        Volver al inicio
+                    </Button>
+                </div>
+            </div>
+        );
     }
 
     return (
         <>
             <Helmet>
-                <title>{localProfileData.alias || 'Perfil'} - AGARCH-AR</title>
-                <meta name="description" content={`Explora el perfil de ${localProfileData.alias || 'un usuario'}.`} />
+                <title>{profile.alias || 'Perfil'} - AGARCH-AR</title>
+                <meta name="description" content={`Explora el perfil de ${profile.alias || 'un usuario'}.`} />
             </Helmet>
-            <div className="max-w-4xl mx-auto p-4 space-y-8">
-                <ProfileHeader
-                    profile={profile}
-                    profileData={localProfileData}
-                    editMode={editMode}
-                    isOwnProfile={isOwnProfile}
-                    onInputChange={handleInputChange}
-                    onEditToggle={() => setEditMode(!editMode)}
-                    onSave={handleSave}
-                    onOpenUploadModal={handleOpenUploadModal}
-                    saveLoading={saveLoading}
-                />
-                
-                <ProfileInfo 
-                    profile={localProfileData} 
-                    isOwnProfile={isOwnProfile}
-                    onUpdate={setLocalProfileData}
-                    onSave={handleSave}
-                />
-                
-                <ProfileGallery 
-                    photos={profile?.photos || []} 
-                    editMode={editMode}
-                    onOpenUploadModal={handleOpenUploadModal}
-                    onRemovePhoto={(url) => handleRemoveMedia(url, 'photo')}
-                />
-                <ProfileVideos 
-                    videos={profile?.videos || []} 
-                    editMode={editMode}
-                    onOpenUploadModal={handleOpenUploadModal}
-                    onRemoveVideo={(url) => handleRemoveMedia(url, 'video')}
-                />
-                
-                {/* Lista de seguidos - solo visible en perfil propio */}
-                {isOwnProfile && (
-                    <FollowingList isOwnProfile={true} />
-                )}
-            </div>
             
-            <UploadModal
-                isOpen={isUploadModalOpen}
-                onClose={() => setIsUploadModalOpen(false)}
-                onUpload={handleUpload}
-                uploading={uploading}
-                progress={progress}
-            />
+            <div className="max-w-4xl mx-auto p-4 space-y-6">
+                {/* Header del perfil */}
+                <div className="relative">
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
+                        <div className="flex flex-col items-center space-y-4">
+                            {/* Avatar circular con gradiente */}
+                            <div className="relative">
+                                <div className="w-24 h-24 rounded-full border-4 border-green-400 overflow-hidden bg-gradient-to-br from-green-400 to-red-400 flex items-center justify-center">
+                                    <img 
+                                        src={profile.profile_picture_url} 
+                                        alt="Foto de perfil"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.target.src = '/pwa-512x512.png';
+                                        }}
+                                    />
+                                </div>
+                                {isOwnProfile && editMode && (
+                                    <button
+                                        onClick={() => setIsUploadModalOpen(true)}
+                                        className="absolute -bottom-1 -right-1 bg-green-500 text-white rounded-full p-1 hover:bg-green-600 transition-colors"
+                                    >
+                                        <Edit3 className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                            
+                            {/* Nombre con gradiente */}
+                            <div className="text-center">
+                                <h1 className="text-2xl font-bold">
+                                    <span className="text-green-300">{profile.alias?.split(' ')[0] || profile.alias}</span>
+                                    <span className="text-red-300">{profile.alias?.split(' ')[1] || ''}</span>
+                                </h1>
+                                <p className="text-gray-300 text-sm">
+                                    {profile.ubicacion}
+                                </p>
+                            </div>
+                            
+                            {/* Botones de acción */}
+                            <div className="flex gap-2 w-full max-w-sm">
+                                {isOwnProfile ? (
+                                    <>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setEditMode(!editMode)}
+                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                        >
+                                            <Edit3 className="w-4 h-4 mr-2" />
+                                            Editar Perfil
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => navigate('/chats')}
+                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                        >
+                                            <MessageSquare className="w-4 h-4 mr-2" />
+                                            Mensajes
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleLike}
+                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                        >
+                                            <Heart className="w-4 h-4 mr-2" />
+                                            Me gusta
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsMessageModalOpen(true)}
+                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                        >
+                                            <MessageSquare className="w-4 h-4 mr-2" />
+                                            Mensaje
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Información del perfil */}
+                <Card className="bg-gray-800 border-gray-700">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-green-400 flex items-center">
+                            Información
+                            {isOwnProfile && editMode && (
+                                <Edit3 className="w-4 h-4 ml-2 text-white" />
+                            )}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <label className="text-green-400 font-medium block mb-1">Sobre mí</label>
+                            {isOwnProfile && editMode ? (
+                                <textarea
+                                    value={localProfileData?.descripcion || ''}
+                                    onChange={(e) => handleInputChange('descripcion', e.target.value)}
+                                    className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
+                                    placeholder="Cuéntanos sobre ti..."
+                                />
+                            ) : (
+                                <p className="text-white mt-1">
+                                    {profile.descripcion || 'Usuario de AGARCH-AR 👋'}
+                                </p>
+                            )}
+                        </div>
+                        
+                        <div>
+                            <label className="text-green-400 font-medium block mb-1">Género</label>
+                            {isOwnProfile && editMode ? (
+                                <select
+                                    value={localProfileData?.genero || ''}
+                                    onChange={(e) => handleInputChange('genero', e.target.value)}
+                                    className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
+                                >
+                                    <option value="">Seleccionar género</option>
+                                    <option value="hombre">Hombre</option>
+                                    <option value="mujer">Mujer</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            ) : (
+                                <p className="text-white mt-1">
+                                    {profile.genero || 'No Especificado'}
+                                </p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="text-green-400 font-medium block mb-1">Edad</label>
+                            {isOwnProfile && editMode ? (
+                                <input
+                                    type="number"
+                                    value={localProfileData?.edad || ''}
+                                    onChange={(e) => handleInputChange('edad', e.target.value)}
+                                    className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
+                                    placeholder="Tu edad"
+                                />
+                            ) : (
+                                <p className="text-white mt-1">
+                                    {profile.edad || 'No especificada'}
+                                </p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Galería de fotos */}
+                <Card className="bg-gray-800 border-gray-700">
+                    <CardHeader>
+                        <CardTitle className="text-green-400">Galería de Fotos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {profile.fotos && profile.fotos.length > 0 ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {profile.fotos.map((photo, index) => (
+                                    <div key={index} className="relative group">
+                                        <img
+                                            src={photo}
+                                            alt={`Foto ${index + 1}`}
+                                            className="w-full h-32 object-cover rounded-lg"
+                                            onError={(e) => {
+                                                e.target.src = '/pwa-512x512.png';
+                                            }}
+                                        />
+                                        {isOwnProfile && editMode && (
+                                            <button
+                                                onClick={() => {
+                                                    const updatedPhotos = profile.fotos.filter((_, i) => i !== index);
+                                                    handleInputChange('fotos', updatedPhotos);
+                                                }}
+                                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-gray-400">
+                                <p>Aún no hay fotos en este perfil.</p>
+                                {isOwnProfile && editMode && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setIsUploadModalOpen(true)}
+                                        className="mt-2 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                    >
+                                        Subir Fotos
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Galería de videos */}
+                <Card className="bg-gray-800 border-gray-700">
+                    <CardHeader>
+                        <CardTitle className="text-green-400">Galería de Videos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {profile.videos && profile.videos.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {profile.videos.map((video, index) => (
+                                    <div key={index} className="relative group">
+                                        <video
+                                            src={video}
+                                            controls
+                                            className="w-full h-48 object-cover rounded-lg"
+                                        />
+                                        {isOwnProfile && editMode && (
+                                            <button
+                                                onClick={() => {
+                                                    const updatedVideos = profile.videos.filter((_, i) => i !== index);
+                                                    handleInputChange('videos', updatedVideos);
+                                                }}
+                                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-gray-400">
+                                <p>Aún no hay videos en este perfil.</p>
+                                {isOwnProfile && editMode && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setIsUploadModalOpen(true)}
+                                        className="mt-2 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                    >
+                                        Subir Videos
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Botones de guardar/cancelar para perfil propio */}
+                {isOwnProfile && editMode && (
+                    <Card className="bg-gray-800 border-gray-700">
+                        <CardContent className="pt-6">
+                            <div className="flex gap-2 justify-center">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleCancel}
+                                    disabled={saveLoading}
+                                    className="bg-gray-600 hover:bg-gray-700 text-white border-gray-500"
+                                >
+                                    <X className="w-4 h-4 mr-2" />
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    onClick={handleSave}
+                                    disabled={saveLoading}
+                                    className="bg-green-500 hover:bg-green-600 text-white"
+                                >
+                                    {saveLoading ? (
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <Save className="w-4 h-4 mr-2" />
+                                    )}
+                                    Guardar Cambios
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Lista de seguidos - solo para perfil propio */}
+                {isOwnProfile && <FollowingList profile={profile} />}
+
+                {/* Modales */}
+                <UploadModal
+                    isOpen={isUploadModalOpen}
+                    onClose={() => setIsUploadModalOpen(false)}
+                    onUpload={handleFilesUpload}
+                    uploading={uploading}
+                    progress={progress}
+                />
+
+                <DirectMessageModal
+                    isOpen={isMessageModalOpen}
+                    onClose={() => setIsMessageModalOpen(false)}
+                    recipient={profile}
+                />
+            </div>
         </>
     );
 };
