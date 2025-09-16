@@ -98,11 +98,11 @@ const ProfilePage = () => {
             setProfile(completeProfile);
             setLocalProfileData(completeProfile);
             setPageLoading(false);
-        } else {
+        } else if (!isOwn) {
             // Cargar perfil de otro usuario
             fetchProfile(profileId);
         }
-    }, [id, user, ownProfile, authLoading, fetchProfile, navigate]);
+    }, [id, user?.uid, ownProfile?.id, authLoading, navigate]); // Dependencias específicas
 
     const handleSave = async () => {
         if (!localProfileData || !user?.uid) return;
