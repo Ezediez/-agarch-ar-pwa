@@ -6,6 +6,8 @@ import {
 } from "firebase/firestore";
 import { LIMITS } from "@/features/chat/limits";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import { useMediaPermissions } from "@/hooks/useMediaPermissions";
+import MediaPermissionPrompt from "@/components/MediaPermissionPrompt";
 
 type MediaItem = { type: "image"|"video"|"audio"; url: string; durationSec?: number; };
 
@@ -16,12 +18,28 @@ export default function ChatRoom() {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
   const [sending, setSending] = useState(false);
+  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
+  const [permissionsChecked, setPermissionsChecked] = useState(false);
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const audioStreamRef = useRef<MediaStream|null>(null);
   const mediaRecorderRef = useRef<MediaRecorder|null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const limits = useMemo(()=>LIMITS[tier], [tier]);
+  const { permissions, requestCameraPermission, requestMicrophonePermission } = useMediaPermissions();
+
+  // Verificar permisos al cargar
+  useEffect(() => {
+    if (!permissionsChecked) {
+      const hasCamera = permissions.camera === 'granted';
+      const hasMicrophone = permissions.microphone === 'granted';
+      
+      if (!hasCamera || !hasMicrophone) {
+        setShowPermissionPrompt(true);
+      }
+      setPermissionsChecked(true);
+    }
+  }, [permissions, permissionsChecked]);
 
   // Suscribirse a mensajes
   useEffect(() => {
@@ -119,29 +137,46 @@ export default function ChatRoom() {
 
   // Audio grabado (MediaRecorder) con límite por plan
   async function startRecording() {
-    if (!navigator.mediaDevices?.getUserMedia) return alert("Tu navegador no soporta grabación.");
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioStreamRef.current = stream;
-    const rec = new MediaRecorder(stream);
-    mediaRecorderRef.current = rec;
-    audioChunksRef.current = [];
-    rec.ondataavailable = (ev) => audioChunksRef.current.push(ev.data);
-    rec.onstop = async () => {
-      const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-      const dur = Math.round((await blob.arrayBuffer()).byteLength / (16_000 * 2)); // aprox
-      const file = new File([blob], `audio-${Date.now()}.webm`, { type: "audio/webm" });
-      const media = await uploadFile(file, "audio");
-      await addDoc(collection(db, "conversations", conversationId!, "messages"), {
-        authorId: uid, type: "media", text: "", media: [{...media, durationSec: dur}], createdAt: serverTimestamp(),
-      });
-      await updateDoc(doc(db, "conversations", conversationId!), {
-        lastMessage: "🎤 Audio",
-        lastSenderId: uid, updatedAt: serverTimestamp(),
-      });
-    };
-    rec.start();
-    // cortar a los N segundos
-    setTimeout(() => stopRecording(), limits.maxAudioSec * 1000);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert("Tu navegador no soporta grabación.");
+      return;
+    }
+    
+    if (permissions.microphone !== 'granted') {
+      const granted = await requestMicrophonePermission();
+      if (!granted) {
+        alert("Se necesita permiso del micrófono para grabar audio.");
+        return;
+      }
+    }
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamRef.current = stream;
+      const rec = new MediaRecorder(stream);
+      mediaRecorderRef.current = rec;
+      audioChunksRef.current = [];
+      rec.ondataavailable = (ev) => audioChunksRef.current.push(ev.data);
+      rec.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const dur = Math.round((await blob.arrayBuffer()).byteLength / (16_000 * 2)); // aprox
+        const file = new File([blob], `audio-${Date.now()}.webm`, { type: "audio/webm" });
+        const media = await uploadFile(file, "audio");
+        await addDoc(collection(db, "conversations", conversationId!, "messages"), {
+          authorId: uid, type: "media", text: "", media: [{...media, durationSec: dur}], createdAt: serverTimestamp(),
+        });
+        await updateDoc(doc(db, "conversations", conversationId!), {
+          lastMessage: "🎤 Audio",
+          lastSenderId: uid, updatedAt: serverTimestamp(),
+        });
+      };
+      rec.start();
+      // cortar a los N segundos
+      setTimeout(() => stopRecording(), limits.maxAudioSec * 1000);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      alert("Error al acceder al micrófono. Verifica los permisos.");
+    }
   }
   function stopRecording() {
     mediaRecorderRef.current?.stop();
@@ -210,6 +245,14 @@ export default function ChatRoom() {
           Plan: <b>{tier}</b> • Fotos: {LIMITS[tier].maxPhotos} • Videos: {LIMITS[tier].maxVideos} • Audio: {LIMITS[tier].maxAudioSec}s
         </div>
       </div>
+
+      {/* Prompt de permisos */}
+      {showPermissionPrompt && (
+        <MediaPermissionPrompt
+          onPermissionsGranted={() => setShowPermissionPrompt(false)}
+          onSkip={() => setShowPermissionPrompt(false)}
+        />
+      )}
     </div>
   );
 }
