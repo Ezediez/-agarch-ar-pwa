@@ -613,7 +613,7 @@ const ProfilePage = () => {
                 )}
 
                 {/* Lista de seguidos - solo para perfil propio */}
-                {isOwnProfile && <FollowingList profile={profile} />}
+                {isOwnProfile && <FollowingList followingIds={profile?.following || []} isOwnProfile={isOwnProfile} />}
 
                 {/* Modales */}
                 <UploadModal

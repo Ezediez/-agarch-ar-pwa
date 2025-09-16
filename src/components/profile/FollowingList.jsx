@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/use-toast.jsx';
 import { Heart, MessageCircle, User, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const FollowingList = ({ followingIds = [] }) => {
+const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
