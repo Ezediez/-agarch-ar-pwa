@@ -48,18 +48,51 @@ export default function ChatRoom() {
     return { alias: 'Usuario', profile_picture_url: '/pwa-512x512.png' };
   };
 
-  // Verificar permisos al cargar
+  // Verificar permisos al cargar (solo la primera vez)
   useEffect(() => {
     if (!permissionsChecked) {
-      const hasCamera = permissions.camera === 'granted';
-      const hasMicrophone = permissions.microphone === 'granted';
+      // Verificar si ya se mostró el modal antes
+      const permissionModalShown = localStorage.getItem('agarch-permission-modal-shown');
       
-      if (!hasCamera || !hasMicrophone) {
-        setShowPermissionPrompt(true);
+      if (!permissionModalShown) {
+        const hasCamera = permissions.camera === 'granted';
+        const hasMicrophone = permissions.microphone === 'granted';
+        
+        if (!hasCamera || !hasMicrophone) {
+          setShowPermissionPrompt(true);
+        }
       }
       setPermissionsChecked(true);
     }
   }, [permissions, permissionsChecked]);
+
+  // Cargar información de la conversación y el otro usuario
+  useEffect(() => {
+    if (!conversationId || !uid) return;
+    
+    const loadConversationInfo = async () => {
+      try {
+        const conversationRef = doc(db, 'conversations', conversationId);
+        const conversationSnap = await getDoc(conversationRef);
+        
+        if (conversationSnap.exists()) {
+          const conversationData = conversationSnap.data();
+          const members = conversationData.members || [];
+          
+          // Encontrar el otro usuario (no el actual)
+          const otherUserId = members.find((id: string) => id !== uid);
+          if (otherUserId) {
+            const otherProfile = await loadProfile(otherUserId);
+            setOtherUserProfile(otherProfile);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading conversation info:', error);
+      }
+    };
+    
+    loadConversationInfo();
+  }, [conversationId, uid]);
 
   // Suscribirse a mensajes
   useEffect(() => {
@@ -75,13 +108,6 @@ export default function ChatRoom() {
       const uniqueUserIds = [...new Set(newMessages.map(m => m.authorId))];
       for (const userId of uniqueUserIds) {
         await loadProfile(userId);
-      }
-      
-      // Identificar el perfil del otro usuario
-      const otherUserId = uniqueUserIds.find(id => id !== uid);
-      if (otherUserId) {
-        const otherProfile = await loadProfile(otherUserId);
-        setOtherUserProfile(otherProfile);
       }
       
       setMessages(newMessages);
@@ -334,8 +360,14 @@ export default function ChatRoom() {
       {/* Prompt de permisos */}
       {showPermissionPrompt && (
         <MediaPermissionPrompt
-          onPermissionsGranted={() => setShowPermissionPrompt(false)}
-          onSkip={() => setShowPermissionPrompt(false)}
+          onPermissionsGranted={() => {
+            setShowPermissionPrompt(false);
+            localStorage.setItem('agarch-permission-modal-shown', 'true');
+          }}
+          onSkip={() => {
+            setShowPermissionPrompt(false);
+            localStorage.setItem('agarch-permission-modal-shown', 'true');
+          }}
         />
       )}
     </div>

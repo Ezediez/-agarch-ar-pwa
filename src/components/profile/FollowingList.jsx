@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
-import { collection, query, where, getDocs, deleteDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Heart, MessageCircle, User, MapPin } from 'lucide-react';
@@ -60,25 +60,36 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
 
   const handleUnfollow = async (profileId) => {
     try {
-      const likesRef = collection(db, 'user_likes');
-      const likesQuery = query(
-        likesRef,
-        where('user_id', '==', user.id),
-        where('liked_user_id', '==', profileId)
-      );
+      // Obtener el perfil actual del usuario
+      const userProfileRef = doc(db, 'profiles', user.uid);
+      const userProfileSnap = await getDoc(userProfileRef);
       
-      const snapshot = await getDocs(likesQuery);
-      for (const likeDoc of snapshot.docs) {
-        await deleteDoc(likeDoc.ref);
+      if (userProfileSnap.exists()) {
+        const userProfileData = userProfileSnap.data();
+        const followingList = userProfileData.following || [];
+        
+        // Remover el perfil de la lista de seguidos
+        const updatedFollowing = followingList.filter(id => id !== profileId);
+        
+        await updateDoc(userProfileRef, {
+          following: updatedFollowing,
+          updatedAt: serverTimestamp()
+        });
+        
+        // Actualizar la lista local
+        setFollowing(prev => prev.filter(profile => profile.id !== profileId));
+        
+        toast({
+          title: 'Dejaste de seguir',
+          description: 'Ya no sigues este perfil.'
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'No se pudo encontrar tu perfil.'
+        });
       }
-
-      // Actualizar la lista local
-      setFollowing(prev => prev.filter(profile => profile.id !== profileId));
-      
-      toast({
-        title: 'Dejaste de seguir',
-        description: 'Ya no sigues este perfil.'
-      });
     } catch (error) {
       console.error('Error unfollowing:', error);
       toast({

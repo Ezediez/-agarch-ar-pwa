@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Mic, AlertCircle, CheckCircle } from 'lucide-react';
+import { Camera, Mic, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMediaPermissions } from '@/hooks/useMediaPermissions';
 
@@ -44,7 +44,16 @@ export default function MediaPermissionPrompt({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-surface rounded-xl p-6 max-w-md w-full">
+      <div className="bg-surface rounded-xl p-6 max-w-md w-full relative">
+        {/* Botón X para cerrar */}
+        <button
+          onClick={onSkip}
+          className="absolute top-4 right-4 p-2 text-text-secondary hover:text-text-primary hover:bg-background rounded-full transition-colors"
+          title="Cerrar"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <Camera className="w-8 h-8 text-primary" />
