@@ -26,13 +26,25 @@ export default function ChatRoom() {
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [currentMediaType, setCurrentMediaType] = useState<'image' | 'video'>('image');
   const [expandedMedia, setExpandedMedia] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const audioStreamRef = useRef<MediaStream|null>(null);
   const mediaRecorderRef = useRef<MediaRecorder|null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const limits = useMemo(()=>LIMITS[tier], [tier]);
   const { permissions, requestCameraPermission, requestMicrophonePermission } = useMediaPermissions();
+
+  // Limpiar intervalos al desmontar
+  useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Función para cargar perfil de un usuario
   const loadProfile = async (userId: string) => {
@@ -248,8 +260,20 @@ export default function ChatRoom() {
         });
       };
       rec.start();
-      // cortar a los N segundos
-      setTimeout(() => stopRecording(), limits.maxAudioSec * 1000);
+      
+      // Iniciar contador
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => {
+          const newTime = prev + 1;
+          // Auto-detener al llegar al límite
+          if (newTime >= limits.maxAudioSec) {
+            stopRecording();
+          }
+          return newTime;
+        });
+      }, 1000);
     } catch (error) {
       console.error('Error starting recording:', error);
       alert("Error al acceder al micrófono. Verifica los permisos.");
@@ -258,6 +282,14 @@ export default function ChatRoom() {
   function stopRecording() {
     mediaRecorderRef.current?.stop();
     audioStreamRef.current?.getTracks().forEach(t => t.stop());
+    
+    // Detener contador
+    setIsRecording(false);
+    setRecordingTime(0);
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
   }
 
   return (
@@ -305,6 +337,33 @@ export default function ChatRoom() {
                   <div className="text-xs font-semibold text-green-400 mb-1">{authorProfile.alias}</div>
                 )}
                 {m.text && <div className="whitespace-pre-wrap">{m.text}</div>}
+                
+                {/* Timestamp del mensaje */}
+                <div className="text-xs opacity-70 mt-1 text-right">
+                  {m.createdAt && (() => {
+                    const date = new Date(m.createdAt.seconds * 1000);
+                    const authorProfile = profiles[m.authorId];
+                    
+                    if (authorProfile?.latitud && authorProfile?.longitud) {
+                      // Usar zona horaria del perfil si está disponible
+                      try {
+                        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                        return date.toLocaleString('es-AR', {
+                          timeZone,
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          day: '2-digit',
+                          month: '2-digit'
+                        });
+                      } catch {
+                        return date.toLocaleString('es-AR');
+                      }
+                    } else {
+                      // Usar hora local del dispositivo
+                      return date.toLocaleString('es-AR');
+                    }
+                  })()}
+                </div>
                 {Array.isArray(m.media) && m.media.map((mi: any, i: number) => {
                   const mediaId = `${m.id}-${i}`;
                   const isExpanded = expandedMedia === mediaId;
@@ -384,11 +443,22 @@ export default function ChatRoom() {
           />
 
           {/* Audio */}
-          <button onMouseDown={startRecording}
-                  onMouseUp={stopRecording}
-                  className="px-2 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-white border border-red-600 flex-shrink-0">
-            🎤
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onMouseDown={startRecording}
+                    onMouseUp={stopRecording}
+                    className={`px-2 py-2 rounded-xl text-white border flex-shrink-0 ${
+                      isRecording 
+                        ? 'bg-red-600 border-red-500 animate-pulse' 
+                        : 'bg-red-700 hover:bg-red-600 border-red-600'
+                    }`}>
+              🎤
+            </button>
+            {isRecording && (
+              <div className="text-red-400 text-sm font-mono">
+                {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+              </div>
+            )}
+          </div>
 
           {/* Enviar */}
           <button disabled={sending} onClick={sendText}
