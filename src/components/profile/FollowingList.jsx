@@ -14,9 +14,11 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🔍 FollowingList - followingIds recibidos:', followingIds);
     if (followingIds && followingIds.length > 0) {
       fetchFollowing();
     } else {
+      console.log('🔍 FollowingList - No hay followingIds, lista vacía');
       setFollowing([]);
       setLoading(false);
     }

@@ -150,15 +150,17 @@ const ProfilePage = () => {
     const handleFilesUpload = async (url, type) => {
         if (!url) return;
 
-        if (type === 'photos') {
+        if (type === 'photos' || type === 'gallery' || type === 'camera-gallery') {
             const currentPhotos = localProfileData?.fotos || [];
             const updatedPhotos = [...currentPhotos, url];
             handleInputChange('fotos', updatedPhotos);
             
-            if (currentPhotos.length === 0) {
+            // Si es la primera foto o no hay foto de perfil, usarla como foto de perfil
+            if (currentPhotos.length === 0 || !localProfileData?.profile_picture_url || localProfileData?.profile_picture_url === '/pwa-512x512.png') {
                 handleInputChange('profile_picture_url', url);
+                console.log('✅ Foto de perfil actualizada:', url);
             }
-        } else if (type === 'videos') {
+        } else if (type === 'videos' || type === 'video' || type === 'camera-video') {
             const currentVideos = localProfileData?.videos || [];
             const updatedVideos = [...currentVideos, url];
             handleInputChange('videos', updatedVideos);
@@ -357,7 +359,7 @@ const ProfilePage = () => {
                             </div>
                             
                             {/* Botones de acción */}
-                            <div className="flex gap-2 w-full max-w-sm">
+                            <div className="flex gap-2 w-full justify-center max-w-full">
                                 {isOwnProfile ? (
                                     <>
                                         <Button
@@ -613,7 +615,12 @@ const ProfilePage = () => {
                 )}
 
                 {/* Lista de seguidos - solo para perfil propio */}
-                {isOwnProfile && <FollowingList followingIds={profile?.following || []} isOwnProfile={isOwnProfile} />}
+                {isOwnProfile && (
+                    <>
+                        {console.log('🔍 ProfilePage - profile?.following:', profile?.following)}
+                        <FollowingList followingIds={profile?.following || []} isOwnProfile={isOwnProfile} />
+                    </>
+                )}
 
                 {/* Modales */}
                 <UploadModal
