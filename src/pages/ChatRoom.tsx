@@ -25,6 +25,7 @@ export default function ChatRoom() {
   const [otherUserProfile, setOtherUserProfile] = useState<any>(null);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [currentMediaType, setCurrentMediaType] = useState<'image' | 'video'>('image');
+  const [expandedMedia, setExpandedMedia] = useState<string | null>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const audioStreamRef = useRef<MediaStream|null>(null);
@@ -260,7 +261,7 @@ export default function ChatRoom() {
   }
 
   return (
-    <div className="flex flex-col h-[100svh] bg-slate-900 text-white">
+    <div className="flex flex-col h-[100svh] bg-slate-900 text-white max-w-full overflow-x-hidden chat-container">
       {/* Header con nombre del otro usuario */}
       {otherUserProfile && (
         <div className="bg-slate-800 p-3 border-b border-slate-700">
@@ -282,7 +283,7 @@ export default function ChatRoom() {
       )}
       
       {/* Mensajes */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div className="flex-1 overflow-y-auto p-2 space-y-2 max-w-full">
         {messages.map(m => {
           const authorProfile = profiles[m.authorId] || { alias: 'Usuario', profile_picture_url: '/pwa-512x512.png' };
           const isCurrentUser = m.authorId === uid;
@@ -304,13 +305,39 @@ export default function ChatRoom() {
                   <div className="text-xs font-semibold text-green-400 mb-1">{authorProfile.alias}</div>
                 )}
                 {m.text && <div className="whitespace-pre-wrap">{m.text}</div>}
-                {Array.isArray(m.media) && m.media.map((mi: any, i: number) => (
-                  <div key={i} className="mt-2">
-                    {mi.type === "image" && <img src={mi.url} className="rounded-xl max-h-72" />}
-                    {mi.type === "video" && <video controls src={mi.url} className="rounded-xl max-h-72" />}
-                    {mi.type === "audio" && <audio controls src={mi.url} />}
-                  </div>
-                ))}
+                {Array.isArray(m.media) && m.media.map((mi: any, i: number) => {
+                  const mediaId = `${m.id}-${i}`;
+                  const isExpanded = expandedMedia === mediaId;
+                  
+                  return (
+                    <div key={i} className="mt-2">
+                      {mi.type === "image" && (
+                        <img 
+                          src={mi.url} 
+                          className={`rounded-xl cursor-pointer transition-all duration-300 ${
+                            isExpanded 
+                              ? 'max-h-96 w-full object-contain' 
+                              : 'max-h-32 max-w-48 object-cover'
+                          }`}
+                          onClick={() => setExpandedMedia(isExpanded ? null : mediaId)}
+                        />
+                      )}
+                      {mi.type === "video" && (
+                        <video 
+                          controls 
+                          src={mi.url} 
+                          className={`rounded-xl cursor-pointer transition-all duration-300 ${
+                            isExpanded 
+                              ? 'max-h-96 w-full' 
+                              : 'max-h-32 max-w-48'
+                          }`}
+                          onClick={() => setExpandedMedia(isExpanded ? null : mediaId)}
+                        />
+                      )}
+                      {mi.type === "audio" && <audio controls src={mi.url} />}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
@@ -318,14 +345,14 @@ export default function ChatRoom() {
       </div>
 
       {/* Barra de entrada */}
-      <div className="p-3 border-t border-slate-800">
-        <div className="flex items-center gap-2">
+      <div className="p-2 border-t border-slate-800 max-w-full">
+        <div className="flex items-center gap-1 max-w-full chat-input">
           {/* Adjuntar fotos */}
           <button onClick={() => {
                   setCurrentMediaType('image');
                   setShowCameraModal(true);
                 }}
-                  className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-600">📷</button>
+                  className="px-2 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 flex-shrink-0">📷</button>
           <input ref={mediaInputRef}
                  type="file" accept="image/*" multiple
                  className="hidden" onChange={onPickImages} />
@@ -335,7 +362,7 @@ export default function ChatRoom() {
                   setCurrentMediaType('video');
                   setShowCameraModal(true);
                 }}
-                  className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-600">🎬</button>
+                  className="px-2 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 flex-shrink-0">🎬</button>
           <input ref={videoInputRef}
                  type="file" accept="video/*"
                  className="hidden" onChange={onPickVideo} />
@@ -345,7 +372,7 @@ export default function ChatRoom() {
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, limits.maxTextLen))}
             placeholder={`Escribe un mensaje… (${limits.maxTextLen})`}
-            className="flex-1 rounded-xl bg-slate-800 px-3 py-2 text-white placeholder-gray-400 border border-slate-600 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="flex-1 rounded-xl bg-slate-800 px-3 py-2 text-white placeholder-gray-400 border border-slate-600 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 min-w-0"
             autoComplete="off"
             spellCheck="false"
             style={{ 
@@ -359,13 +386,13 @@ export default function ChatRoom() {
           {/* Audio */}
           <button onMouseDown={startRecording}
                   onMouseUp={stopRecording}
-                  className="px-3 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-white border border-red-600">
+                  className="px-2 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-white border border-red-600 flex-shrink-0">
             🎤
           </button>
 
           {/* Enviar */}
           <button disabled={sending} onClick={sendText}
-                  className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white border border-green-500">
+                  className="px-3 py-2 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white border border-green-500 flex-shrink-0">
             Enviar
           </button>
         </div>
