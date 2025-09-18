@@ -280,7 +280,7 @@ const MyProfilePage = () => {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => navigate('/chat')}
+                                    onClick={() => navigate('/chats')}
                                     className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
                                 >
                                     <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">

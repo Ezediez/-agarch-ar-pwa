@@ -94,7 +94,7 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
   };
 
   const handleSendMessage = (profileId) => {
-    navigate(`/chat?user=${profileId}`);
+    navigate(`/chats?user=${profileId}`);
   };
 
   if (loading) {

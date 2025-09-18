@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 const navItems = [
   { icon: Home, text: 'Publicaciones', path: '/discover' },
   { icon: MessageSquare, text: 'Chats', path: '/chats' },
-  { icon: User, text: 'Perfil', path: '/profile' },
+  { icon: User, text: 'Perfil', path: '/my-profile' },
 ];
 
 const BottomNavBar = () => {

@@ -5,9 +5,9 @@ import { useAuth } from '@/hooks/useAuth';
 import Notifications from '@/components/Notifications';
 
 const navItems = [
-  { icon: Home, text: 'Publicaciones', path: '/' },
+  { icon: Home, text: 'Publicaciones', path: '/discover' },
   { icon: MessageSquare, text: 'Chats', path: '/chats' },
-  { icon: User, text: 'Perfil', path: '/profile' },
+  { icon: User, text: 'Perfil', path: '/my-profile' },
   { icon: Search, text: 'Buscar', path: '/search' },
   { icon: Settings, text: 'Ajustes', path: '/settings' },
 ];
