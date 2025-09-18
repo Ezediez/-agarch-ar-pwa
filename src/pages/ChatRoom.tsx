@@ -145,6 +145,14 @@ export default function ChatRoom() {
   // Texto
   async function sendText() {
     const trimmed = text.trim();
+    
+    // Si está grabando, detener grabación primero
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+    
+    // Si no hay texto, no enviar
     if (!trimmed) return;
     if (trimmed.length > limits.maxTextLen) {
       alert(`Máximo ${limits.maxTextLen} caracteres para tu plan.`);
@@ -444,26 +452,32 @@ export default function ChatRoom() {
 
           {/* Audio */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button onMouseDown={startRecording}
-                    onMouseUp={stopRecording}
-                    className={`px-2 py-2 rounded-xl text-white border flex-shrink-0 ${
-                      isRecording 
-                        ? 'bg-red-600 border-red-500 animate-pulse' 
-                        : 'bg-red-700 hover:bg-red-600 border-red-600'
-                    }`}>
-              🎤
-            </button>
-            {isRecording && (
-              <div className="text-red-400 text-sm font-mono">
-                {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
-              </div>
+            {!isRecording ? (
+              <button onMouseDown={startRecording}
+                      className="px-2 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-white border border-red-600 flex-shrink-0">
+                🎤
+              </button>
+            ) : (
+              <>
+                <button onClick={stopRecording}
+                        className="px-2 py-2 rounded-xl bg-red-600 border border-red-500 text-white flex-shrink-0 animate-pulse">
+                  ⏹️ STOP
+                </button>
+                <div className="text-red-400 text-sm font-mono">
+                  {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                </div>
+              </>
             )}
           </div>
 
           {/* Enviar */}
-          <button disabled={sending} onClick={sendText}
-                  className="px-3 py-2 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white border border-green-500 flex-shrink-0">
-            Enviar
+          <button disabled={sending || (!text.trim() && !isRecording)} onClick={sendText}
+                  className={`px-3 py-2 rounded-xl text-white border flex-shrink-0 ${
+                    (text.trim() || isRecording) 
+                      ? 'bg-green-600 hover:bg-green-500 border-green-500' 
+                      : 'bg-gray-600 border-gray-500 opacity-50'
+                  }`}>
+            {isRecording ? 'Enviar Audio' : 'Enviar'}
           </button>
         </div>
         <div className="text-xs opacity-70 mt-1">
