@@ -20,6 +20,8 @@ export default function ChatRoom() {
   const [sending, setSending] = useState(false);
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const [permissionsChecked, setPermissionsChecked] = useState(false);
+  const [profiles, setProfiles] = useState<{[key: string]: any}>({});
+  const [otherUserProfile, setOtherUserProfile] = useState<any>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const audioStreamRef = useRef<MediaStream|null>(null);
@@ -27,6 +29,24 @@ export default function ChatRoom() {
   const audioChunksRef = useRef<Blob[]>([]);
   const limits = useMemo(()=>LIMITS[tier], [tier]);
   const { permissions, requestCameraPermission, requestMicrophonePermission } = useMediaPermissions();
+
+  // Función para cargar perfil de un usuario
+  const loadProfile = async (userId: string) => {
+    if (profiles[userId]) return profiles[userId];
+    
+    try {
+      const profileRef = doc(db, 'profiles', userId);
+      const profileSnap = await getDoc(profileRef);
+      if (profileSnap.exists()) {
+        const profileData = { id: profileSnap.id, ...profileSnap.data() };
+        setProfiles(prev => ({ ...prev, [userId]: profileData }));
+        return profileData;
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
+    return { alias: 'Usuario', profile_picture_url: '/pwa-512x512.png' };
+  };
 
   // Verificar permisos al cargar
   useEffect(() => {
@@ -48,8 +68,23 @@ export default function ChatRoom() {
       collection(db, "conversations", conversationId, "messages"),
       orderBy("createdAt", "asc")
     );
-    return onSnapshot(q, snap => {
-      setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    return onSnapshot(q, async (snap) => {
+      const newMessages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      // Cargar perfiles de usuarios únicos en los mensajes
+      const uniqueUserIds = [...new Set(newMessages.map(m => m.authorId))];
+      for (const userId of uniqueUserIds) {
+        await loadProfile(userId);
+      }
+      
+      // Identificar el perfil del otro usuario
+      const otherUserId = uniqueUserIds.find(id => id !== uid);
+      if (otherUserId) {
+        const otherProfile = await loadProfile(otherUserId);
+        setOtherUserProfile(otherProfile);
+      }
+      
+      setMessages(newMessages);
     });
   }, [conversationId]);
 
@@ -82,8 +117,11 @@ export default function ChatRoom() {
       createdAt: serverTimestamp(),
     };
     await addDoc(collection(db, "conversations", conversationId!, "messages"), msg);
+    
+    // Obtener alias del usuario actual para el lastMessage
+    const currentUserProfile = await loadProfile(uid);
     await updateDoc(doc(db, "conversations", conversationId!), {
-      lastMessage: trimmed.slice(0, 80),
+      lastMessage: `${currentUserProfile.alias}: ${trimmed.slice(0, 80)}`,
       lastSenderId: uid,
       updatedAt: serverTimestamp(),
     });
@@ -105,8 +143,11 @@ export default function ChatRoom() {
     await addDoc(collection(db, "conversations", conversationId!, "messages"), {
       authorId: uid, type: "media", text: "", media: medias, createdAt: serverTimestamp(),
     });
+    
+    // Obtener alias del usuario actual para el lastMessage
+    const currentUserProfile = await loadProfile(uid);
     await updateDoc(doc(db, "conversations", conversationId!), {
-      lastMessage: "📷 Foto",
+      lastMessage: `${currentUserProfile.alias}: 📷 Foto`,
       lastSenderId: uid, updatedAt: serverTimestamp(),
     });
     e.target.value = "";
@@ -127,8 +168,11 @@ export default function ChatRoom() {
     await addDoc(collection(db, "conversations", conversationId!, "messages"), {
       authorId: uid, type: "media", text: "", media: medias, createdAt: serverTimestamp(),
     });
+    
+    // Obtener alias del usuario actual para el lastMessage
+    const currentUserProfile = await loadProfile(uid);
     await updateDoc(doc(db, "conversations", conversationId!), {
-      lastMessage: "🎬 Video",
+      lastMessage: `${currentUserProfile.alias}: 🎬 Video`,
       lastSenderId: uid, updatedAt: serverTimestamp(),
     });
     e.target.value = "";
@@ -165,8 +209,11 @@ export default function ChatRoom() {
         await addDoc(collection(db, "conversations", conversationId!, "messages"), {
           authorId: uid, type: "media", text: "", media: [{...media, durationSec: dur}], createdAt: serverTimestamp(),
         });
+        
+        // Obtener alias del usuario actual para el lastMessage
+        const currentUserProfile = await loadProfile(uid);
         await updateDoc(doc(db, "conversations", conversationId!), {
-          lastMessage: "🎤 Audio",
+          lastMessage: `${currentUserProfile.alias}: 🎤 Audio`,
           lastSenderId: uid, updatedAt: serverTimestamp(),
         });
       };
@@ -185,20 +232,60 @@ export default function ChatRoom() {
 
   return (
     <div className="flex flex-col h-[100svh] bg-slate-900 text-white">
+      {/* Header con nombre del otro usuario */}
+      {otherUserProfile && (
+        <div className="bg-slate-800 p-3 border-b border-slate-700">
+          <div className="flex items-center space-x-3">
+            <img 
+              src={otherUserProfile.profile_picture_url} 
+              alt={otherUserProfile.alias}
+              className="w-10 h-10 rounded-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = '/pwa-512x512.png';
+              }}
+            />
+            <div>
+              <div className="font-semibold text-green-400">{otherUserProfile.alias}</div>
+              <div className="text-xs opacity-70">{otherUserProfile.ubicacion || 'Ubicación no especificada'}</div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Mensajes */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {messages.map(m => (
-          <div key={m.id} className={`max-w-[80%] rounded-2xl p-3 ${m.authorId===uid ? 'bg-green-600 ml-auto' : 'bg-slate-800'}`}>
-            {m.text && <div className="whitespace-pre-wrap">{m.text}</div>}
-            {Array.isArray(m.media) && m.media.map((mi: any, i: number) => (
-              <div key={i} className="mt-2">
-                {mi.type === "image" && <img src={mi.url} className="rounded-xl max-h-72" />}
-                {mi.type === "video" && <video controls src={mi.url} className="rounded-xl max-h-72" />}
-                {mi.type === "audio" && <audio controls src={mi.url} />}
+        {messages.map(m => {
+          const authorProfile = profiles[m.authorId] || { alias: 'Usuario', profile_picture_url: '/pwa-512x512.png' };
+          const isCurrentUser = m.authorId === uid;
+          
+          return (
+            <div key={m.id} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+              {!isCurrentUser && (
+                <img 
+                  src={authorProfile.profile_picture_url} 
+                  alt={authorProfile.alias}
+                  className="w-8 h-8 rounded-full object-cover mr-2 mt-1"
+                  onError={(e) => {
+                    e.currentTarget.src = '/pwa-512x512.png';
+                  }}
+                />
+              )}
+              <div className={`max-w-[80%] rounded-2xl p-3 ${isCurrentUser ? 'bg-green-600' : 'bg-slate-800'}`}>
+                {!isCurrentUser && (
+                  <div className="text-xs font-semibold text-green-400 mb-1">{authorProfile.alias}</div>
+                )}
+                {m.text && <div className="whitespace-pre-wrap">{m.text}</div>}
+                {Array.isArray(m.media) && m.media.map((mi: any, i: number) => (
+                  <div key={i} className="mt-2">
+                    {mi.type === "image" && <img src={mi.url} className="rounded-xl max-h-72" />}
+                    {mi.type === "video" && <video controls src={mi.url} className="rounded-xl max-h-72" />}
+                    {mi.type === "audio" && <audio controls src={mi.url} />}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
 
       {/* Barra de entrada */}
