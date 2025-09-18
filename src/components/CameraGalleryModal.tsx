@@ -22,8 +22,8 @@ export default function CameraGalleryModal({
   const title = isImage ? 'Seleccionar Imagen' : 'Seleccionar Video';
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-xl p-6 max-w-sm w-full relative">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+      <div className="bg-slate-800 rounded-xl p-6 max-w-sm w-full relative" style={{ maxWidth: '90vw' }}>
         {/* Botón cerrar */}
         <button
           onClick={onClose}

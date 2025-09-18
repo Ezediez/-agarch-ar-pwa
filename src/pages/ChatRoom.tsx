@@ -348,7 +348,12 @@ export default function ChatRoom() {
             className="flex-1 rounded-xl bg-slate-800 px-3 py-2 text-white placeholder-gray-400 border border-slate-600 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
             autoComplete="off"
             spellCheck="false"
-            style={{ fontSize: '16px' }}
+            style={{ 
+              fontSize: '16px',
+              color: '#ffffff',
+              backgroundColor: '#1e293b',
+              border: '1px solid #475569'
+            }}
           />
 
           {/* Audio */}
