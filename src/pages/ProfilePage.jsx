@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUploader } from '@/hooks/useUploader';
 import UploadModal from '@/components/profile/UploadModal';
-import FollowingList from '@/components/profile/FollowingList';
+import MyLikesModal from '@/components/profile/MyLikesModal';
 
 const ProfilePage = () => {
     const { id } = useParams();
@@ -26,6 +26,7 @@ const ProfilePage = () => {
     const [localProfileData, setLocalProfileData] = useState(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isOwnProfile, setIsOwnProfile] = useState(false);
+    const [isMyLikesModalOpen, setIsMyLikesModalOpen] = useState(false);
 
     const fetchProfile = useCallback(async (profileId) => {
         console.log('🔄 Cargando perfil:', profileId);
@@ -380,6 +381,15 @@ const ProfilePage = () => {
                                             <MessageSquare className="w-4 h-4 mr-2" />
                                             Mensajes
                                         </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsMyLikesModalOpen(true)}
+                                            className="flex-1 bg-red-500 hover:bg-red-600 text-white border-red-400"
+                                        >
+                                            <Heart className="w-4 h-4 mr-2" />
+                                            Mis Likes
+                                        </Button>
                                     </>
                                 ) : (
                                     <>
@@ -614,14 +624,7 @@ const ProfilePage = () => {
                     </Card>
                 )}
 
-                {/* Lista de seguidos - solo para perfil propio */}
-                {isOwnProfile && (
-                    <>
-                        {console.log('🔍 ProfilePage - profile?.following:', profile?.following)}
-                        {console.log('🔍 ProfilePage - profile completo:', profile)}
-                        <FollowingList followingIds={profile?.following || []} isOwnProfile={isOwnProfile} />
-                    </>
-                )}
+                {/* Lista de seguidos removida - reemplazada por modal "Mis Likes" */}
 
                 {/* Modales */}
                 <UploadModal
@@ -630,6 +633,13 @@ const ProfilePage = () => {
                     onUpload={handleFilesUpload}
                     uploading={uploading}
                     progress={progress}
+                />
+                
+                {/* Modal Mis Likes */}
+                <MyLikesModal
+                    isOpen={isMyLikesModalOpen}
+                    onClose={() => setIsMyLikesModalOpen(false)}
+                    followingIds={profile?.following || []}
                 />
 
             </div>
