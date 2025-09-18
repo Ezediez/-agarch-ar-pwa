@@ -10,7 +10,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'dist',
+    outDir: 'dist-new',
     sourcemap: false,
     rollupOptions: {
       output: {
