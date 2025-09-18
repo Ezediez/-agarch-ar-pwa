@@ -1,0 +1,24 @@
+[33md2e9f7d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m 🔄 FORZAR RECOMPILACIÓN: - Cambio menor en MyLikesModal para forzar recompile - Debe aparecer modal Mis Likes en perfil
+src/components/profile/MyLikesModal.jsx
+[33mabf975d[m ✨ NUEVO MODAL MIS LIKES: - Creado MyLikesModal.jsx con lista de perfiles seguidos - Botón 'Mis Likes' agregado en perfil (rojo con corazón) - 2 opciones por perfil: Ver Perfil + Mensajes - Removido FollowingList roto, reemplazado por modal - Diseño responsive para móvil con scroll
+dist/assets/index-Cg80dVc4.js
+dist/assets/index-DJa6bUQb.js
+dist/assets/index-DuYJFOau.css
+dist/assets/index-HO1ioY1_.css
+dist/index.html
+src/components/profile/MyLikesModal.jsx
+src/pages/ProfilePage.jsx
+[33m02d6fec[m 🔧 ARREGLO LOOP INFINITO: - FollowingList useEffect arreglado (dependencia de longitud) - Debug mejorado para diagnosticar lista seguidos - Evita cascada infinita de logs en consola
+dist/assets/index-DJa6bUQb.js
+dist/index.html
+src/components/profile/FollowingList.jsx
+src/pages/ProfilePage.jsx
+[33m404e657[m 🔧 ARREGLOS PERFIL MÓVIL: - Botones centrados (justify-center, max-w-full) - Foto perfil: mejorado handleFilesUpload para todos los tipos - Lista seguidos: debug agregado para diagnosticar - CSS móvil mejorado para distribución de botones
+dist/assets/index-Da4axm1p.js
+dist/index.html
+src/components/profile/FollowingList.jsx
+src/pages/ProfilePage.jsx
+[33md7fa8b1[m ⏹️ BOTÓN STOP PARA AUDIO: - Botón STOP visual durante grabación (⏹️ STOP) - Botón Enviar cambia a 'Enviar Audio' durante grabación - Enviar detiene grabación si está activa - UX mejorada: STOP claro y visual - Animación pulse en botón STOP
+dist/assets/index-CT2jhoQC.js
+dist/index.html
+src/pages/ChatRoom.tsx

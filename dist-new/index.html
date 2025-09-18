@@ -3,89 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>AGARCH-AR - Red Social</title>
     <meta name="description" content="Conéctate con personas afines a vos, cerca tuyo y con ganas de hacer lo mismo que vos cuando quieras, sin ataduras." />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#dc2626" />
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="AGARCH-AR">
     <link rel="apple-touch-icon" href="/pwa-192x192.png">
     <link rel="apple-touch-startup-image" href="/pwa-512x512.png">
-    <script type="module" crossorigin src="/assets/index-wpq0I_-e.js"></script>
+    <script type="module" crossorigin src="/assets/index-Cg80dVc4.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-C733eHZ9.js">
-    <link rel="modulepreload" crossorigin href="/assets/firebase-C1ltrw13.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-DVZ3ZI0L.css">
+    <link rel="modulepreload" crossorigin href="/assets/firebase-CeRwBtmy.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-HO1ioY1_.css">
   </head>
   <body>
     <div id="root"></div>
     
-    <!-- PWA Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // Service Worker desactivado
-            .then((registration) => {
-              console.log('✅ SW registered: ', registration);
-              
-              // Check for updates
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // New version available
-                    if (confirm('Nueva versión disponible. ¿Recargar la app?')) {
-                      window.location.reload();
-                    }
-                  }
-                });
-              });
-            })
-            .catch((registrationError) => {
-              console.log('❌ SW registration failed: ', registrationError);
-            });
-        });
-      }
-
-      // PWA Install Prompt
-      let deferredPrompt;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        
-        // Show install button after 10 seconds
-        setTimeout(() => {
-          if (deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
-            const installBanner = document.createElement('div');
-            installBanner.innerHTML = `
-              <div style="position: fixed; bottom: 20px; left: 20px; right: 20px; background: #dc2626; color: white; padding: 16px; border-radius: 12px; z-index: 10000; box-shadow: 0 4px 20px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                  <div style="font-weight: bold; margin-bottom: 4px;">📱 Instalar AGARCH-AR</div>
-                  <div style="font-size: 14px; opacity: 0.9;">Acceso rápido desde tu pantalla de inicio</div>
-                </div>
-                <div>
-                  <button onclick="installPWA()" style="background: white; color: #dc2626; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; margin-right: 8px; cursor: pointer;">Instalar</button>
-                  <button onclick="this.parentElement.parentElement.remove()" style="background: transparent; color: white; border: 1px solid white; padding: 8px 12px; border-radius: 6px; cursor: pointer;">✕</button>
-                </div>
-              </div>
-            `;
-            document.body.appendChild(installBanner);
-          }
-        }, 10000);
-      });
-
-      window.installPWA = () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          deferredPrompt.userChoice.then((choiceResult) => {
-            if (choiceResult.outcome === 'accepted') {
-              console.log('✅ PWA installed');
-            }
-            deferredPrompt = null;
-          });
-        }
-      };
-    </script>
+    <!-- Service Worker y PWA completamente desactivados para evitar errores -->
   </body>
 </html>
