@@ -8,6 +8,7 @@ import { LIMITS } from "@/features/chat/limits";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import { useMediaPermissions } from "@/hooks/useMediaPermissions";
 import MediaPermissionPrompt from "@/components/MediaPermissionPrompt";
+import CameraGalleryModal from "@/components/CameraGalleryModal";
 
 type MediaItem = { type: "image"|"video"|"audio"; url: string; durationSec?: number; };
 
@@ -22,6 +23,8 @@ export default function ChatRoom() {
   const [permissionsChecked, setPermissionsChecked] = useState(false);
   const [profiles, setProfiles] = useState<{[key: string]: any}>({});
   const [otherUserProfile, setOtherUserProfile] = useState<any>(null);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [currentMediaType, setCurrentMediaType] = useState<'image' | 'video'>('image');
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const audioStreamRef = useRef<MediaStream|null>(null);
@@ -318,17 +321,23 @@ export default function ChatRoom() {
       <div className="p-3 border-t border-slate-800">
         <div className="flex items-center gap-2">
           {/* Adjuntar fotos */}
-          <button onClick={() => mediaInputRef.current?.click()}
+          <button onClick={() => {
+                  setCurrentMediaType('image');
+                  setShowCameraModal(true);
+                }}
                   className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-600">📷</button>
           <input ref={mediaInputRef}
-                 type="file" accept="image/*" multiple capture="environment"
+                 type="file" accept="image/*" multiple
                  className="hidden" onChange={onPickImages} />
 
           {/* Adjuntar video */}
-          <button onClick={() => videoInputRef.current?.click()}
+          <button onClick={() => {
+                  setCurrentMediaType('video');
+                  setShowCameraModal(true);
+                }}
                   className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-600">🎬</button>
           <input ref={videoInputRef}
-                 type="file" accept="video/*" capture="environment"
+                 type="file" accept="video/*"
                  className="hidden" onChange={onPickVideo} />
 
           {/* Campo de texto */}
@@ -337,9 +346,9 @@ export default function ChatRoom() {
             onChange={(e) => setText(e.target.value.slice(0, limits.maxTextLen))}
             placeholder={`Escribe un mensaje… (${limits.maxTextLen})`}
             className="flex-1 rounded-xl bg-slate-800 px-3 py-2 text-white placeholder-gray-400 border border-slate-600 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
-            autoFocus
             autoComplete="off"
             spellCheck="false"
+            style={{ fontSize: '16px' }}
           />
 
           {/* Audio */}
@@ -361,18 +370,52 @@ export default function ChatRoom() {
       </div>
 
       {/* Prompt de permisos */}
-      {showPermissionPrompt && (
-        <MediaPermissionPrompt
-          onPermissionsGranted={() => {
-            setShowPermissionPrompt(false);
-            localStorage.setItem('agarch-permission-modal-shown', 'true');
-          }}
-          onSkip={() => {
-            setShowPermissionPrompt(false);
-            localStorage.setItem('agarch-permission-modal-shown', 'true');
-          }}
-        />
-      )}
-    </div>
-  );
-}
+             {showPermissionPrompt && (
+               <MediaPermissionPrompt
+                 onPermissionsGranted={() => {
+                   setShowPermissionPrompt(false);
+                   localStorage.setItem('agarch-permission-modal-shown', 'true');
+                 }}
+                 onSkip={() => {
+                   setShowPermissionPrompt(false);
+                   localStorage.setItem('agarch-permission-modal-shown', 'true');
+                 }}
+               />
+             )}
+             
+             {/* Modal Cámara/Galería */}
+             <CameraGalleryModal
+               isOpen={showCameraModal}
+               onClose={() => setShowCameraModal(false)}
+               onSelectCamera={() => {
+                 if (currentMediaType === 'image') {
+                   // Crear input temporal para cámara
+                   const tempInput = document.createElement('input');
+                   tempInput.type = 'file';
+                   tempInput.accept = 'image/*';
+                   tempInput.capture = 'environment';
+                   tempInput.multiple = true;
+                   tempInput.onchange = onPickImages;
+                   tempInput.click();
+                 } else {
+                   // Crear input temporal para video cámara
+                   const tempInput = document.createElement('input');
+                   tempInput.type = 'file';
+                   tempInput.accept = 'video/*';
+                   tempInput.capture = 'environment';
+                   tempInput.onchange = onPickVideo;
+                   tempInput.click();
+                 }
+               }}
+               onSelectGallery={() => {
+                 if (currentMediaType === 'image') {
+                   mediaInputRef.current?.click();
+                 } else {
+                   videoInputRef.current?.click();
+                 }
+               }}
+               mediaType={currentMediaType}
+             />
+           </div>
+         );
+       }
