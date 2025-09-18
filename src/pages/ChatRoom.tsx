@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { auth, db, storage } from "@/lib/firebase";
 import {
-  addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc
+  addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc
 } from "firebase/firestore";
 import { LIMITS } from "@/features/chat/limits";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
