@@ -22,7 +22,7 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
       setFollowing([]);
       setLoading(false);
     }
-  }, [followingIds]);
+  }, [followingIds?.length]); // Solo depende de la longitud, no del array completo
 
   const fetchFollowing = async () => {
     try {

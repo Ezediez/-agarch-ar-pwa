@@ -618,6 +618,7 @@ const ProfilePage = () => {
                 {isOwnProfile && (
                     <>
                         {console.log('🔍 ProfilePage - profile?.following:', profile?.following)}
+                        {console.log('🔍 ProfilePage - profile completo:', profile)}
                         <FollowingList followingIds={profile?.following || []} isOwnProfile={isOwnProfile} />
                     </>
                 )}
