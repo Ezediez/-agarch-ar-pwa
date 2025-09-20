@@ -97,6 +97,7 @@ const MyProfilePage = () => {
         if (!user?.uid) return;
         
         try {
+            // Primero intentar cargar desde user_likes (nuevo sistema)
             const likesRef = collection(db, 'user_likes');
             const likesQuery = query(
                 likesRef,
@@ -106,8 +107,15 @@ const MyProfilePage = () => {
             const snapshot = await getDocs(likesQuery);
             const likedUserIds = snapshot.docs.map(doc => doc.data().liked_user_id);
             
-            setLikedUsers(likedUserIds);
-            console.log('✅ Usuarios liked cargados:', likedUserIds.length);
+            // Si no hay likes en user_likes, usar el array following del perfil (sistema anterior)
+            if (likedUserIds.length === 0 && profile?.following?.length > 0) {
+                console.log('🔄 Usando sistema anterior - following array:', profile.following);
+                setLikedUsers(profile.following);
+            } else {
+                setLikedUsers(likedUserIds);
+            }
+            
+            console.log('✅ Usuarios liked cargados:', likedUserIds.length > 0 ? likedUserIds.length : profile?.following?.length || 0);
         } catch (error) {
             console.error('❌ Error cargando usuarios liked:', error);
             toast({
@@ -191,13 +199,23 @@ const MyProfilePage = () => {
                 
                 if (type === 'photos' || type === 'gallery' || type === 'camera-gallery') {
                     // Agregar foto a la galería
-                    const currentPhotos = localProfileData?.fotos || [];
+                    const currentPhotos = profile?.fotos || [];
                     const updatedPhotos = [...currentPhotos, url];
                     handleInputChange('fotos', updatedPhotos);
+                    
+                    // Actualizar también el estado del perfil principal
+                    setProfile(prev => ({
+                        ...prev,
+                        fotos: updatedPhotos
+                    }));
                     
                     // Si es la primera foto, también actualizar la foto de perfil
                     if (currentPhotos.length === 0) {
                         handleInputChange('profile_picture_url', url);
+                        setProfile(prev => ({
+                            ...prev,
+                            profile_picture_url: url
+                        }));
                     }
                     
                     toast({ 
@@ -206,9 +224,15 @@ const MyProfilePage = () => {
                     });
                 } else if (type === 'videos' || type === 'video' || type === 'camera-video') {
                     // Agregar video a la galería
-                    const currentVideos = localProfileData?.videos || [];
+                    const currentVideos = profile?.videos || [];
                     const updatedVideos = [...currentVideos, url];
                     handleInputChange('videos', updatedVideos);
+                    
+                    // Actualizar también el estado del perfil principal
+                    setProfile(prev => ({
+                        ...prev,
+                        videos: updatedVideos
+                    }));
                     
                     toast({ 
                         title: 'Video agregado', 

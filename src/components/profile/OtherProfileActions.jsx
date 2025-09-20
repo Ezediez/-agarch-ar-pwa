@@ -55,7 +55,7 @@ const OtherProfileActions = ({ profile }) => {
         }
         
         setLikeStatus(null);
-        toast({ title: "Me gusta removido" });
+        toast({ title: "Ya no sigues a este usuario", description: "Has dejado de seguir a este perfil" });
       } else {
         // Like - agregar nuevo like
         await addDoc(collection(db, 'user_likes'), {
@@ -92,10 +92,10 @@ const OtherProfileActions = ({ profile }) => {
 
         <Button 
           onClick={handleLikeAction} 
-          className={`flex-1 ${likeStatus ? 'bg-red-500 hover:bg-red-600' : ''}`}
+          className={`flex-1 ${likeStatus ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}
         >
           <Heart className={`mr-2 h-4 w-4 ${likeStatus ? 'fill-current' : ''}`} />
-          {likeStatus ? 'Quitar ❤️' : 'Me gusta'}
+          {likeStatus ? 'DEJAR DE SEGUIR' : 'Me gusta'}
         </Button>
       </motion.div>
       {isMessageModalOpen && (

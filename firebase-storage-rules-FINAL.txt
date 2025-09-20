@@ -1,0 +1,43 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Reglas para chat multimedia (mantener existentes)
+    match /uploads/{uid}/{conversationId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+    
+    // Reglas para media de perfiles (mantener existentes)
+    match /media/{uid}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+    
+    // REGLAS NUEVAS PARA LOS BUCKETS QUE USA EL CÓDIGO
+    // Estructura: bucket/user.uid/folder/archivo
+    
+    // Bucket: profile-photos (usado en MyProfilePage.jsx)
+    match /profile-photos/{uid}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+    
+    // Bucket: profile-videos (usado en MyProfilePage.jsx)
+    match /profile-videos/{uid}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+    
+    // Bucket: posts (usado en CreatePostPage.jsx)
+    match /posts/{uid}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+    
+    // Bucket: stories (usado en CreatePostPage.jsx)
+    match /stories/{uid}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
