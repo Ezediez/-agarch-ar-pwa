@@ -8,50 +8,61 @@ import VideoUploader from '@/components/VideoUploader';
 const UploadModal = ({ isOpen, onClose, onUpload, uploading, progress }) => {
 
   const handleUpload = (file, type) => {
+      console.log('🔄 UploadModal: Archivo recibido:', file.name, 'Tipo:', type);
       onUpload(file, type);
       // We don't close the modal here to allow multiple uploads
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="card-glass">
-        <DialogHeader>
+      <DialogContent className="card-glass max-w-md mx-auto">
+        <DialogHeader className="text-center">
           <DialogTitle className="text-2xl font-bold text-primary">
             Subir Contenido
           </DialogTitle>
-          <DialogDescription>
-            Selecciona el tipo de contenido que deseas subir. Recuerda seguir las normas de la comunidad.
+          <DialogDescription className="text-center">
+            Selecciona el tipo de contenido que deseas subir
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="py-4 grid grid-cols-2 gap-4">
             
             <ImageUploader onUploadSuccess={(file) => handleUpload(file, 'gallery')} useCamera={false} uploading={uploading}>
-                <Button variant="outline" className="w-full h-24 flex flex-col">
-                    <Upload className="w-8 h-8 mb-2" />
-                    <span>Subir Foto</span>
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center bg-green-500 hover:bg-green-600 text-white border-green-400">
+                    <Upload className="w-6 h-6 mb-1" />
+                    <span className="text-sm">Fotos</span>
                 </Button>
             </ImageUploader>
 
             <ImageUploader onUploadSuccess={(file) => handleUpload(file, 'camera-gallery')} useCamera={true} uploading={uploading}>
-                 <Button variant="outline" className="w-full h-24 flex flex-col">
-                    <Camera className="w-8 h-8 mb-2" />
-                    <span>Tomar Foto</span>
+                 <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center bg-green-500 hover:bg-green-600 text-white border-green-400">
+                    <Camera className="w-6 h-6 mb-1" />
+                    <span className="text-sm">Cámara</span>
                 </Button>
             </ImageUploader>
             
             <VideoUploader onUploadSuccess={(file) => handleUpload(file, 'video')} useCamera={false} uploading={uploading} progress={progress}>
-                 <Button variant="outline" className="w-full h-24 flex flex-col">
-                    <Video className="w-8 h-8 mb-2" />
-                    <span>Subir Video</span>
+                 <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center bg-red-500 hover:bg-red-600 text-white border-red-400">
+                    <Video className="w-6 h-6 mb-1" />
+                    <span className="text-sm">Videos</span>
                 </Button>
             </VideoUploader>
 
             <VideoUploader onUploadSuccess={(file) => handleUpload(file, 'camera-video')} useCamera={true} uploading={uploading} progress={progress}>
-                <Button variant="outline" className="w-full h-24 flex flex-col">
-                    <Camera className="w-8 h-8 mb-2" />
-                    <span>Grabar Video</span>
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center bg-red-500 hover:bg-red-600 text-white border-red-400">
+                    <Camera className="w-6 h-6 mb-1" />
+                    <span className="text-sm">Grabar</span>
                 </Button>
             </VideoUploader>
+        </div>
+        
+        <div className="flex justify-center pt-4">
+            <Button
+                variant="outline"
+                onClick={onClose}
+                className="bg-gray-600 hover:bg-gray-700 text-white border-gray-500 px-8"
+            >
+                Cerrar
+            </Button>
         </div>
       </DialogContent>
     </Dialog>

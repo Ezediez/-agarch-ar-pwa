@@ -148,23 +148,73 @@ const ProfilePage = () => {
         }));
     };
 
-    const handleFilesUpload = async (url, type) => {
-        if (!url) return;
+    const handleFilesUpload = async (file, type) => {
+        if (!file) return;
 
-        if (type === 'photos' || type === 'gallery' || type === 'camera-gallery') {
-            const currentPhotos = localProfileData?.fotos || [];
-            const updatedPhotos = [...currentPhotos, url];
-            handleInputChange('fotos', updatedPhotos);
+        console.log('🔄 Iniciando subida de archivo:', file.name, 'Tipo:', type);
+
+        try {
+            let bucket, folder;
             
-            // Si es la primera foto o no hay foto de perfil, usarla como foto de perfil
-            if (currentPhotos.length === 0 || !localProfileData?.profile_picture_url || localProfileData?.profile_picture_url === '/pwa-512x512.png') {
-                handleInputChange('profile_picture_url', url);
-                console.log('✅ Foto de perfil actualizada:', url);
+            if (type === 'photos' || type === 'gallery' || type === 'camera-gallery') {
+                bucket = 'profile-photos';
+                folder = 'photos';
+            } else if (type === 'videos' || type === 'video' || type === 'camera-video') {
+                bucket = 'profile-videos';
+                folder = 'videos';
+            } else {
+                console.error('❌ Tipo de archivo no reconocido:', type);
+                return;
             }
-        } else if (type === 'videos' || type === 'video' || type === 'camera-video') {
-            const currentVideos = localProfileData?.videos || [];
-            const updatedVideos = [...currentVideos, url];
-            handleInputChange('videos', updatedVideos);
+
+            // Usar el hook useUploader correctamente
+            await uploadFile(file, bucket, folder, (url, error) => {
+                if (error) {
+                    console.error('❌ Error en subida:', error);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: 'No se pudo subir el archivo'
+                    });
+                    return;
+                }
+
+                if (!url) {
+                    console.error('❌ No se obtuvo URL del archivo');
+                    return;
+                }
+
+                console.log('✅ Archivo subido exitosamente:', url);
+
+                if (type === 'photos' || type === 'gallery' || type === 'camera-gallery') {
+                    const currentPhotos = localProfileData?.fotos || [];
+                    const updatedPhotos = [...currentPhotos, url];
+                    handleInputChange('fotos', updatedPhotos);
+                    
+                    // Si es la primera foto o no hay foto de perfil, usarla como foto de perfil
+                    if (currentPhotos.length === 0 || !localProfileData?.profile_picture_url || localProfileData?.profile_picture_url === '/pwa-512x512.png') {
+                        handleInputChange('profile_picture_url', url);
+                        console.log('✅ Foto de perfil actualizada:', url);
+                    }
+                } else if (type === 'videos' || type === 'video' || type === 'camera-video') {
+                    const currentVideos = localProfileData?.videos || [];
+                    const updatedVideos = [...currentVideos, url];
+                    handleInputChange('videos', updatedVideos);
+                }
+
+                toast({
+                    title: '¡Éxito!',
+                    description: 'Archivo subido correctamente'
+                });
+            });
+
+        } catch (error) {
+            console.error('❌ Error en handleFilesUpload:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudo procesar el archivo'
+            });
         }
     };
 
@@ -360,34 +410,45 @@ const ProfilePage = () => {
                             </div>
                             
                             {/* Botones de acción */}
-                            <div className="flex gap-2 w-full justify-center max-w-full">
+                            <div className="flex gap-2 w-full justify-center max-w-sm mx-auto">
                                 {isOwnProfile ? (
                                     <>
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             onClick={() => setEditMode(!editMode)}
-                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400 text-xs"
                                         >
-                                            <Edit3 className="w-4 h-4 mr-2" />
-                                            Editar Perfil
+                                            <Edit3 className="w-4 h-4 mr-1" />
+                                            Editar
                                         </Button>
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             onClick={() => navigate('/chats')}
-                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400 text-xs"
                                         >
-                                            <MessageSquare className="w-4 h-4 mr-2" />
+                                            <MessageSquare className="w-4 h-4 mr-1" />
                                             Mensajes
                                         </Button>
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => setIsMyLikesModalOpen(true)}
-                                            className="flex-1 bg-red-500 hover:bg-red-600 text-white border-red-400"
+                                            onClick={() => setIsUploadModalOpen(true)}
+                                            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white border-blue-400 text-xs"
                                         >
-                                            <Heart className="w-4 h-4 mr-2" />
+                                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                            </svg>
+                                            Crear
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsMyLikesModalOpen(true)}
+                                            className="flex-1 bg-red-500 hover:bg-red-600 text-white border-red-400 text-xs"
+                                        >
+                                            <Heart className="w-4 h-4 mr-1" />
                                             Mis Likes
                                         </Button>
                                     </>
@@ -441,6 +502,23 @@ const ProfilePage = () => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <div>
+                            <label className="text-green-400 font-medium block mb-1">Alias</label>
+                            {isOwnProfile && editMode ? (
+                                <input
+                                    type="text"
+                                    value={localProfileData?.alias || ''}
+                                    onChange={(e) => handleInputChange('alias', e.target.value)}
+                                    className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
+                                    placeholder="Tu alias o nombre público..."
+                                />
+                            ) : (
+                                <p className="text-white mt-1">
+                                    {profile?.alias || 'Usuario'}
+                                </p>
+                            )}
+                        </div>
+                        
                         <div>
                             <label className="text-green-400 font-medium block mb-1">Sobre mí</label>
                             {isOwnProfile && editMode ? (
@@ -531,15 +609,31 @@ const ProfilePage = () => {
                         ) : (
                             <div className="text-center py-8 text-gray-400">
                                 <p>Aún no hay fotos en este perfil.</p>
-                                {isOwnProfile && editMode && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setIsUploadModalOpen(true)}
-                                        className="mt-2 bg-green-500 hover:bg-green-600 text-white border-green-400"
-                                    >
-                                        Subir Fotos
-                                    </Button>
+                                {isOwnProfile && (
+                                    <div className="flex gap-2 justify-center mt-4">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsUploadModalOpen(true)}
+                                            className="bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                        >
+                                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                            </svg>
+                                            Galería
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsUploadModalOpen(true)}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white border-blue-400"
+                                        >
+                                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                            </svg>
+                                            Cámara
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -578,15 +672,31 @@ const ProfilePage = () => {
                         ) : (
                             <div className="text-center py-8 text-gray-400">
                                 <p>Aún no hay videos en este perfil.</p>
-                                {isOwnProfile && editMode && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setIsUploadModalOpen(true)}
-                                        className="mt-2 bg-green-500 hover:bg-green-600 text-white border-green-400"
-                                    >
-                                        Subir Videos
-                                    </Button>
+                                {isOwnProfile && (
+                                    <div className="flex gap-2 justify-center mt-4">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsUploadModalOpen(true)}
+                                            className="bg-red-500 hover:bg-red-600 text-white border-red-400"
+                                        >
+                                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                            </svg>
+                                            Galería
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsUploadModalOpen(true)}
+                                            className="bg-orange-500 hover:bg-orange-600 text-white border-orange-400"
+                                        >
+                                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                            </svg>
+                                            Grabar
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         )}
