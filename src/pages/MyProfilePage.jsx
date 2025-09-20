@@ -55,7 +55,10 @@ const MyProfilePage = () => {
                     videos: ownProfile.videos || [],
                     profile_picture_url: ownProfile.profile_picture_url || '/pwa-512x512.png'
                 };
-                setProfile(completeProfile);
+                // Solo actualizar si no hay cambios locales pendientes
+                if (!profile || profile.fotos?.length === 0) {
+                    setProfile(completeProfile);
+                }
                 setLocalProfileData(completeProfile);
                 setPageLoading(false);
                 console.log('✅ Mi perfil cargado:', completeProfile.alias);
