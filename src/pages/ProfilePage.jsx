@@ -70,6 +70,7 @@ const ProfilePage = () => {
     }, [toast, navigate]);
 
     useEffect(() => {
+        console.log('🔍 DEBUG useEffect - loading:', authLoading, 'user:', user?.uid, 'profileId:', id);
         if (authLoading) return;
         
         const profileId = id || user?.uid;
@@ -79,6 +80,7 @@ const ProfilePage = () => {
         }
         
         const isOwn = profileId === user?.uid;
+        console.log('🔍 DEBUG isOwnProfile:', { profileId, userUid: user?.uid, isOwn });
         setIsOwnProfile(isOwn);
         
         if (isOwn && ownProfile) {

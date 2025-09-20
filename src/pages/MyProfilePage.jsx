@@ -10,7 +10,7 @@ import ProfileInfo from '@/components/profile/ProfileInfo';
 import ProfileGallery from '@/components/profile/ProfileGallery';
 import ProfileVideos from '@/components/profile/ProfileVideos';
 import FollowingList from '@/components/profile/FollowingList';
-import { Loader2, Edit3, Save, X } from 'lucide-react';
+import { Loader2, Edit3, Save, X, MessageSquare } from 'lucide-react';
 import { useUploader } from '@/hooks/useUploader';
 import UploadModal from '@/components/profile/UploadModal';
 import CreateMediaButton from '@/components/profile/CreateMediaButton';
@@ -267,26 +267,35 @@ const MyProfilePage = () => {
                             </div>
                             
                             {/* Botones de acción */}
-                            <div className="flex gap-2 w-full max-w-sm">
+                            <div className="flex gap-2 w-full justify-center max-w-sm mx-auto">
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setEditMode(!editMode)}
-                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400 text-xs"
                                 >
-                                    <Edit3 className="w-4 h-4 mr-2" />
-                                    Editar Perfil
+                                    <Edit3 className="w-4 h-4 mr-1" />
+                                    Editar
                                 </Button>
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => navigate('/chats')}
-                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
+                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400 text-xs"
                                 >
-                                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
-                                    </svg>
+                                    <MessageSquare className="w-4 h-4 mr-1" />
                                     Mensajes
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setIsUploadModalOpen(true)}
+                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white border-blue-400 text-xs"
+                                >
+                                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                    Crear
                                 </Button>
                                 <CreateMediaButton onMediaUploaded={handleFilesUpload} />
                             </div>
