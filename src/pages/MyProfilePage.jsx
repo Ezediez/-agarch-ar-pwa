@@ -266,22 +266,13 @@ const MyProfilePage = () => {
                                 </p>
                             </div>
                             
-                            {/* Botones de acción */}
+                            {/* Botones de acción - Modelo del usuario */}
                             <div className="flex gap-2 w-full justify-center max-w-sm mx-auto">
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setEditMode(!editMode)}
-                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400 text-xs"
-                                >
-                                    <Edit3 className="w-4 h-4 mr-1" />
-                                    Editar
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
                                     onClick={() => navigate('/chats')}
-                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400 text-xs"
+                                    className="flex-1 bg-white hover:bg-gray-100 text-gray-800 border-gray-300 text-xs"
                                 >
                                     <MessageSquare className="w-4 h-4 mr-1" />
                                     Mensajes
@@ -290,6 +281,17 @@ const MyProfilePage = () => {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setIsUploadModalOpen(true)}
+                                    className="flex-1 bg-white hover:bg-gray-100 text-gray-800 border-gray-300 text-xs"
+                                >
+                                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                    </svg>
+                                    Publicar un Estado
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => navigate('/create-post')}
                                     className="flex-1 bg-blue-500 hover:bg-blue-600 text-white border-blue-400 text-xs"
                                 >
                                     <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -297,7 +299,6 @@ const MyProfilePage = () => {
                                     </svg>
                                     Crear
                                 </Button>
-                                <CreateMediaButton onMediaUploaded={handleFilesUpload} />
                             </div>
                         </div>
                     </div>
