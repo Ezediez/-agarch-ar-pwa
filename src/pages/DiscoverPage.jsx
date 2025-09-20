@@ -4,12 +4,13 @@ import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
-import { Loader2, Frown, WifiOff, RefreshCw } from 'lucide-react';
+import { Loader2, Frown, WifiOff, RefreshCw, Heart, Users, Sparkles, ArrowRight } from 'lucide-react';
 import PostCard from '@/components/discover/PostCard';
 import CreatePost from '@/components/discover/CreatePost';
 import Stories from '@/components/discover/Stories';
 import AdCard from '@/components/discover/AdCard';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 const DiscoverPage = () => {
   const { user } = useAuth();
@@ -223,6 +224,41 @@ const DiscoverPage = () => {
                 <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               </Button>
             </div>
+          </div>
+
+          {/* Banner Principal */}
+          <div className="p-4">
+            <Card className="bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 border-0 shadow-lg">
+              <CardContent className="p-6 text-center text-white">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <Sparkles className="w-6 h-6" />
+                  <h2 className="text-xl font-bold">¡Bienvenido a AGARCH-AR!</h2>
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <p className="text-white/90 mb-4 text-sm">
+                  Conéctate con personas afines, cerca tuyo y con ganas de hacer lo mismo que vos. 
+                  Sin compromisos, sin ataduras. Solo disfruta el momento, que ¡ES AHORA!
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                  >
+                    <Users className="w-4 h-4 mr-1" />
+                    Descubrir
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                  >
+                    <Heart className="w-4 h-4 mr-1" />
+                    Conectar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Stories */}

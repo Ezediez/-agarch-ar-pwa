@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { db, auth, storage } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import ProfileHeader from '@/components/profile/ProfileHeader';
@@ -10,7 +10,8 @@ import ProfileInfo from '@/components/profile/ProfileInfo';
 import ProfileGallery from '@/components/profile/ProfileGallery';
 import ProfileVideos from '@/components/profile/ProfileVideos';
 import FollowingList from '@/components/profile/FollowingList';
-import { Loader2, Edit3, Save, X, MessageSquare, Camera, Upload, Video } from 'lucide-react';
+import MyLikesModal from '@/components/profile/MyLikesModal';
+import { Loader2, Edit3, Save, X, MessageSquare, Camera, Upload, Video, Heart } from 'lucide-react';
 import { useUploader } from '@/hooks/useUploader';
 import UploadModal from '@/components/profile/UploadModal';
 import CreateMediaButton from '@/components/profile/CreateMediaButton';
@@ -31,6 +32,8 @@ const MyProfilePage = () => {
     const [editMode, setEditMode] = useState(false);
     const [localProfileData, setLocalProfileData] = useState(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isLikesModalOpen, setIsLikesModalOpen] = useState(false);
+    const [likedUsers, setLikedUsers] = useState([]);
 
     useEffect(() => {
         console.log('🔄 useEffect MyProfilePage - ownProfile:', ownProfile, 'user:', user);
@@ -82,6 +85,39 @@ const MyProfilePage = () => {
         }
     }, [ownProfile, user]);
 
+    // Cargar usuarios liked cuando el usuario esté autenticado
+    useEffect(() => {
+        if (user?.uid) {
+            loadLikedUsers();
+        }
+    }, [user?.uid]);
+
+    // Función para cargar los usuarios que el usuario actual ha dado "like"
+    const loadLikedUsers = async () => {
+        if (!user?.uid) return;
+        
+        try {
+            const likesRef = collection(db, 'user_likes');
+            const likesQuery = query(
+                likesRef,
+                where('user_id', '==', user.uid)
+            );
+            
+            const snapshot = await getDocs(likesQuery);
+            const likedUserIds = snapshot.docs.map(doc => doc.data().liked_user_id);
+            
+            setLikedUsers(likedUserIds);
+            console.log('✅ Usuarios liked cargados:', likedUserIds.length);
+        } catch (error) {
+            console.error('❌ Error cargando usuarios liked:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudieron cargar los perfiles seguidos.'
+            });
+        }
+    };
+
     const handleSave = async () => {
         if (!localProfileData || !user?.uid) return;
 
@@ -120,24 +156,73 @@ const MyProfilePage = () => {
         }));
     };
 
-    const handleFilesUpload = async (url, type) => {
-        if (!url) return;
+    const handleFilesUpload = async (file, type) => {
+        if (!file) return;
 
-        if (type === 'photos') {
-            // Agregar foto a la galería
-            const currentPhotos = localProfileData?.fotos || [];
-            const updatedPhotos = [...currentPhotos, url];
-            handleInputChange('fotos', updatedPhotos);
+        console.log('🔄 Iniciando subida de archivo:', file.name, 'Tipo:', type);
+
+        try {
+            let bucket, folder;
             
-            // Si es la primera foto, también actualizar la foto de perfil
-            if (currentPhotos.length === 0) {
-                handleInputChange('profile_picture_url', url);
+            if (type === 'photos' || type === 'gallery' || type === 'camera-gallery') {
+                bucket = 'profile-photos';
+                folder = 'photos';
+            } else if (type === 'videos' || type === 'video' || type === 'camera-video') {
+                bucket = 'profile-videos';
+                folder = 'videos';
+            } else {
+                console.error('❌ Tipo de archivo no reconocido:', type);
+                return;
             }
-        } else if (type === 'videos') {
-            // Agregar video a la galería
-            const currentVideos = localProfileData?.videos || [];
-            const updatedVideos = [...currentVideos, url];
-            handleInputChange('videos', updatedVideos);
+
+            // Subir archivo usando useUploader
+            const url = await new Promise((resolve, reject) => {
+                uploadFile(file, bucket, folder, (url, error) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(url);
+                    }
+                });
+            });
+            
+            if (url) {
+                console.log('✅ Archivo subido exitosamente:', url);
+                
+                if (type === 'photos' || type === 'gallery' || type === 'camera-gallery') {
+                    // Agregar foto a la galería
+                    const currentPhotos = localProfileData?.fotos || [];
+                    const updatedPhotos = [...currentPhotos, url];
+                    handleInputChange('fotos', updatedPhotos);
+                    
+                    // Si es la primera foto, también actualizar la foto de perfil
+                    if (currentPhotos.length === 0) {
+                        handleInputChange('profile_picture_url', url);
+                    }
+                    
+                    toast({ 
+                        title: 'Foto agregada', 
+                        description: 'La foto se ha agregado a tu galería' 
+                    });
+                } else if (type === 'videos' || type === 'video' || type === 'camera-video') {
+                    // Agregar video a la galería
+                    const currentVideos = localProfileData?.videos || [];
+                    const updatedVideos = [...currentVideos, url];
+                    handleInputChange('videos', updatedVideos);
+                    
+                    toast({ 
+                        title: 'Video agregado', 
+                        description: 'El video se ha agregado a tu galería' 
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error al subir archivo:', error);
+            toast({ 
+                variant: 'destructive', 
+                title: 'Error al subir archivo', 
+                description: 'No se pudo subir el archivo. Intenta de nuevo.' 
+            });
         }
     };
 
@@ -363,8 +448,24 @@ const MyProfilePage = () => {
 
                 {/* Galería de fotos - Diseño exacto de las fotos */}
                 <Card className="bg-gray-800 border-gray-700">
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="text-green-400">Galería de Fotos</CardTitle>
+                        {editMode && (localProfileData?.fotos?.length !== profile?.fotos?.length || 
+                                     localProfileData?.videos?.length !== profile?.videos?.length) && (
+                            <Button
+                                size="sm"
+                                onClick={handleSave}
+                                disabled={saveLoading}
+                                className="bg-green-500 hover:bg-green-600 text-white"
+                            >
+                                {saveLoading ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Save className="w-4 h-4 mr-2" />
+                                )}
+                                Guardar Cambios
+                            </Button>
+                        )}
                     </CardHeader>
                     <CardContent>
                         {profile.fotos && profile.fotos.length > 0 ? (
@@ -398,13 +499,13 @@ const MyProfilePage = () => {
                                 <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                 <p className="mb-4">Aún no has subido fotos a tu perfil.</p>
                                 <div className="flex gap-2 justify-center">
-                                    <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'gallery')} useCamera={false} uploading={uploading}>
+                                    <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={false} uploading={uploading}>
                                         <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
                                             <Upload className="w-4 h-4 mr-1" />
                                             Galería
                                         </Button>
                                     </ImageUploader>
-                                    <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'camera-gallery')} useCamera={true} uploading={uploading}>
+                                    <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={true} uploading={uploading}>
                                         <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
                                             <Camera className="w-4 h-4 mr-1" />
                                             Cámara
@@ -418,8 +519,24 @@ const MyProfilePage = () => {
 
                 {/* Galería de videos - Diseño exacto de las fotos */}
                 <Card className="bg-gray-800 border-gray-700">
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="text-green-400">Galería de Videos</CardTitle>
+                        {editMode && (localProfileData?.fotos?.length !== profile?.fotos?.length || 
+                                     localProfileData?.videos?.length !== profile?.videos?.length) && (
+                            <Button
+                                size="sm"
+                                onClick={handleSave}
+                                disabled={saveLoading}
+                                className="bg-red-500 hover:bg-red-600 text-white"
+                            >
+                                {saveLoading ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Save className="w-4 h-4 mr-2" />
+                                )}
+                                Guardar Cambios
+                            </Button>
+                        )}
                     </CardHeader>
                     <CardContent>
                         {profile.videos && profile.videos.length > 0 ? (
@@ -450,13 +567,13 @@ const MyProfilePage = () => {
                                 <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                 <p className="mb-4">Aún no has subido videos a tu perfil.</p>
                                 <div className="flex gap-2 justify-center">
-                                    <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'video')} useCamera={false} uploading={uploading} progress={progress}>
+                                    <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={false} uploading={uploading} progress={progress}>
                                         <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
                                             <Video className="w-4 h-4 mr-1" />
                                             Galería
                                         </Button>
                                     </VideoUploader>
-                                    <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'camera-video')} useCamera={true} uploading={uploading} progress={progress}>
+                                    <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={true} uploading={uploading} progress={progress}>
                                         <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
                                             <Camera className="w-4 h-4 mr-1" />
                                             Grabar
@@ -471,13 +588,26 @@ const MyProfilePage = () => {
                 {/* Lista de seguidos */}
                 <FollowingList profile={profile} />
 
-                {/* Banner para Modal "Mis Likes" */}
-                <Card className="bg-yellow-100 border-yellow-300 border-2">
+                {/* Botón para Modal "Mis Likes" */}
+                <Card className="bg-gradient-to-r from-red-500 to-pink-500 border-red-400 border-2">
                     <CardContent className="p-4 text-center">
-                        <h3 className="text-lg font-bold text-yellow-800 mb-2">MODAL PERFILES GUARDADOS</h3>
-                        <p className="text-yellow-700 text-sm">
-                            Aquí irá el modal para mostrar los perfiles que sigues (Mis Likes)
+                        <div className="flex items-center justify-center gap-3 mb-3">
+                            <Heart className="w-6 h-6 text-white" />
+                            <h3 className="text-lg font-bold text-white">Mis Likes</h3>
+                            <Heart className="w-6 h-6 text-white" />
+                        </div>
+                        <p className="text-white text-sm mb-4">
+                            {likedUsers.length > 0 
+                                ? `Sigues a ${likedUsers.length} persona${likedUsers.length !== 1 ? 's' : ''}`
+                                : 'Aún no sigues a nadie'
+                            }
                         </p>
+                        <Button
+                            onClick={() => setIsLikesModalOpen(true)}
+                            className="bg-white hover:bg-gray-100 text-red-500 font-semibold px-6 py-2"
+                        >
+                            Ver Perfiles Seguidos
+                        </Button>
                     </CardContent>
                 </Card>
 
@@ -488,6 +618,13 @@ const MyProfilePage = () => {
                     onUpload={handleFilesUpload}
                     uploading={uploading}
                     progress={progress}
+                />
+
+                {/* Modal de Mis Likes */}
+                <MyLikesModal
+                    isOpen={isLikesModalOpen}
+                    onClose={() => setIsLikesModalOpen(false)}
+                    followingIds={likedUsers}
                 />
             </div>
         </>

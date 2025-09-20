@@ -18,52 +18,59 @@ import { collection, addDoc } from 'firebase/firestore';
       const { user } = useAuth();
       const { toast } = useToast();
       const navigate = useNavigate();
-      const { uploadFile, uploading, progress, setProgress } = useUploader();
+      const { uploadFile, uploading, progress } = useUploader();
 
       const [postType, setPostType] = useState('post'); // 'post', 'story'
       const [text, setText] = useState('');
       const [isSubmitting, setIsSubmitting] = useState(false);
 
         const handleUploadAndSubmit = async (file, type) => {
-    setIsSubmitting(true);
-    let mediaUrl = null;
-    let folder;
-
-    if (file) {
-      if (postType === 'story') {
-        folder = type === 'image' ? 'stories' : 'story-videos';
-      } else {
-        folder = type === 'image' ? 'posts' : 'post-videos';
-      }
-      
-      // Usar el callback correcto de uploadFile
-      uploadFile(file, 'media', folder, async (url, error) => {
-        if (error) {
-          toast({ variant: 'destructive', title: 'Error de subida', description: error.message });
-          setIsSubmitting(false);
-          return;
-        }
-        
-        if (url) {
-          if (postType === 'story') {
-            await createStory(url, type);
-          } else {
-            await createPost(url, type);
-          }
-        }
-        setIsSubmitting(false);
-      });
-      return; // Salir aquí ya que uploadFile es asíncrono con callback
-    }
-
-    // Si no hay archivo, crear publicación solo con texto
-    if (postType === 'story') {
-      await createStory(null, type);
-    } else {
-      await createPost(null, type);
-    }
-    setIsSubmitting(false);
-  };
+            setIsSubmitting(true);
+            
+            try {
+                let mediaUrl = null;
+                
+                if (file) {
+                    let bucket, folder;
+                    
+                    if (postType === 'story') {
+                        bucket = 'stories';
+                        folder = type === 'image' ? 'images' : 'videos';
+                    } else {
+                        bucket = 'posts';
+                        folder = type === 'image' ? 'images' : 'videos';
+                    }
+                    
+                    // Subir archivo usando Promise wrapper
+                    mediaUrl = await new Promise((resolve, reject) => {
+                        uploadFile(file, bucket, folder, (url, error) => {
+                            if (error) {
+                                reject(error);
+                            } else {
+                                resolve(url);
+                            }
+                        });
+                    });
+                }
+                
+                // Crear publicación o historia
+                if (postType === 'story') {
+                    await createStory(mediaUrl, type);
+                } else {
+                    await createPost(mediaUrl, type);
+                }
+                
+            } catch (error) {
+                console.error('Error al crear publicación:', error);
+                toast({ 
+                    variant: 'destructive', 
+                    title: 'Error', 
+                    description: 'No se pudo crear la publicación. Intenta de nuevo.' 
+                });
+            } finally {
+                setIsSubmitting(false);
+            }
+        };
       
       const createPost = async (mediaUrl, type) => {
         if (!user?.uid) {
@@ -76,20 +83,27 @@ import { collection, addDoc } from 'firebase/firestore';
             return;
         }
 
-        const postData = {
-            user_id: user.uid,
-            text: text,
-            ...(mediaUrl && type === 'image' && { image_url: mediaUrl }),
-            ...(mediaUrl && type === 'video' && { video_url: mediaUrl }),
-        };
+        try {
+            const postData = {
+                user_id: user.uid,
+                text: text.trim(),
+                created_at: new Date().toISOString(),
+                ...(mediaUrl && type === 'image' && { image_url: mediaUrl }),
+                ...(mediaUrl && type === 'video' && { video_url: mediaUrl }),
+            };
 
-        await addDoc(collection(db, 'posts'), {
-            ...postData,
-            created_at: new Date().toISOString()
-        });
-        
-        toast({ title: '¡Publicación creada con éxito!' });
-        navigate('/discover');
+            await addDoc(collection(db, 'posts'), postData);
+            
+            toast({ title: '¡Publicación creada con éxito!' });
+            navigate('/discover');
+        } catch (error) {
+            console.error('Error al crear post:', error);
+            toast({ 
+                variant: 'destructive', 
+                title: 'Error', 
+                description: 'No se pudo crear la publicación. Intenta de nuevo.' 
+            });
+        }
       };
 
       const createStory = async (mediaUrl, type) => {
@@ -103,15 +117,24 @@ import { collection, addDoc } from 'firebase/firestore';
             return;
         }
 
-        await addDoc(collection(db, 'stories'), {
-            user_id: user.uid,
-            media_url: mediaUrl,
-            media_type: type,
-            created_at: new Date().toISOString()
-        });
-        
-        toast({ title: '¡Historia creada con éxito!' });
-        navigate('/discover');
+        try {
+            await addDoc(collection(db, 'stories'), {
+                user_id: user.uid,
+                media_url: mediaUrl,
+                media_type: type,
+                created_at: new Date().toISOString()
+            });
+            
+            toast({ title: '¡Historia creada con éxito!' });
+            navigate('/discover');
+        } catch (error) {
+            console.error('Error al crear story:', error);
+            toast({ 
+                variant: 'destructive', 
+                title: 'Error', 
+                description: 'No se pudo crear la historia. Intenta de nuevo.' 
+            });
+        }
       };
       
       const isSubmitDisabled = isSubmitting || uploading;
