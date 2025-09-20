@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUploader } from '@/hooks/useUploader';
 import UploadModal from '@/components/profile/UploadModal';
-import MyLikesModal from '@/components/profile/MyLikesModal';
+// import MyLikesModal from '@/components/profile/MyLikesModal'; // Temporalmente desactivado para Etapa 1
 
 const ProfilePage = () => {
     const { id } = useParams();
@@ -26,7 +26,7 @@ const ProfilePage = () => {
     const [localProfileData, setLocalProfileData] = useState(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isOwnProfile, setIsOwnProfile] = useState(false);
-    const [isMyLikesModalOpen, setIsMyLikesModalOpen] = useState(false);
+    // const [isMyLikesModalOpen, setIsMyLikesModalOpen] = useState(false); // Temporalmente desactivado para Etapa 1
 
     const fetchProfile = useCallback(async (profileId) => {
         console.log('🔄 Cargando perfil:', profileId);
@@ -442,15 +442,6 @@ const ProfilePage = () => {
                                             </svg>
                                             Crear
                                         </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setIsMyLikesModalOpen(true)}
-                                            className="flex-1 bg-red-500 hover:bg-red-600 text-white border-red-400 text-xs"
-                                        >
-                                            <Heart className="w-4 h-4 mr-1" />
-                                            Mis Likes
-                                        </Button>
                                     </>
                                 ) : (
                                     <>
@@ -745,12 +736,12 @@ const ProfilePage = () => {
                     progress={progress}
                 />
                 
-                {/* Modal Mis Likes */}
-                <MyLikesModal
+                {/* Modal Mis Likes - Temporalmente desactivado para Etapa 1 */}
+                {/* <MyLikesModal
                     isOpen={isMyLikesModalOpen}
                     onClose={() => setIsMyLikesModalOpen(false)}
                     followingIds={profile?.following || []}
-                />
+                /> */}
 
             </div>
         </>
