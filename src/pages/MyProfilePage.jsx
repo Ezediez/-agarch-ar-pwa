@@ -10,10 +10,12 @@ import ProfileInfo from '@/components/profile/ProfileInfo';
 import ProfileGallery from '@/components/profile/ProfileGallery';
 import ProfileVideos from '@/components/profile/ProfileVideos';
 import FollowingList from '@/components/profile/FollowingList';
-import { Loader2, Edit3, Save, X, MessageSquare } from 'lucide-react';
+import { Loader2, Edit3, Save, X, MessageSquare, Camera, Upload, Video } from 'lucide-react';
 import { useUploader } from '@/hooks/useUploader';
 import UploadModal from '@/components/profile/UploadModal';
 import CreateMediaButton from '@/components/profile/CreateMediaButton';
+import ImageUploader from '@/components/ImageUploader';
+import VideoUploader from '@/components/VideoUploader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -280,17 +282,6 @@ const MyProfilePage = () => {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setIsUploadModalOpen(true)}
-                                    className="flex-1 bg-white hover:bg-gray-100 text-gray-800 border-gray-300 text-xs"
-                                >
-                                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                                    </svg>
-                                    FOTOS Y VIDEOS
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
                                     onClick={() => navigate('/create-post')}
                                     className="flex-1 bg-blue-500 hover:bg-blue-600 text-white border-blue-400 text-xs"
                                 >
@@ -404,17 +395,22 @@ const MyProfilePage = () => {
                             </div>
                         ) : (
                             <div className="text-center py-8 text-gray-400">
-                                <p>Aún no has subido fotos a tu perfil.</p>
-                                {editMode && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setIsUploadModalOpen(true)}
-                                        className="mt-2 bg-green-500 hover:bg-green-600 text-white border-green-400"
-                                    >
-                                        Subir Fotos
-                                    </Button>
-                                )}
+                                <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <p className="mb-4">Aún no has subido fotos a tu perfil.</p>
+                                <div className="flex gap-2 justify-center">
+                                    <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'gallery')} useCamera={false} uploading={uploading}>
+                                        <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
+                                            <Upload className="w-4 h-4 mr-1" />
+                                            Galería
+                                        </Button>
+                                    </ImageUploader>
+                                    <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'camera-gallery')} useCamera={true} uploading={uploading}>
+                                        <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
+                                            <Camera className="w-4 h-4 mr-1" />
+                                            Cámara
+                                        </Button>
+                                    </ImageUploader>
+                                </div>
                             </div>
                         )}
                     </CardContent>
@@ -451,17 +447,22 @@ const MyProfilePage = () => {
                             </div>
                         ) : (
                             <div className="text-center py-8 text-gray-400">
-                                <p>Aún no has subido videos a tu perfil.</p>
-                                {editMode && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setIsUploadModalOpen(true)}
-                                        className="mt-2 bg-green-500 hover:bg-green-600 text-white border-green-400"
-                                    >
-                                        Subir Videos
-                                    </Button>
-                                )}
+                                <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <p className="mb-4">Aún no has subido videos a tu perfil.</p>
+                                <div className="flex gap-2 justify-center">
+                                    <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'video')} useCamera={false} uploading={uploading} progress={progress}>
+                                        <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
+                                            <Video className="w-4 h-4 mr-1" />
+                                            Galería
+                                        </Button>
+                                    </VideoUploader>
+                                    <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'camera-video')} useCamera={true} uploading={uploading} progress={progress}>
+                                        <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
+                                            <Camera className="w-4 h-4 mr-1" />
+                                            Grabar
+                                        </Button>
+                                    </VideoUploader>
+                                </div>
                             </div>
                         )}
                     </CardContent>
@@ -469,6 +470,16 @@ const MyProfilePage = () => {
 
                 {/* Lista de seguidos */}
                 <FollowingList profile={profile} />
+
+                {/* Banner para Modal "Mis Likes" */}
+                <Card className="bg-yellow-100 border-yellow-300 border-2">
+                    <CardContent className="p-4 text-center">
+                        <h3 className="text-lg font-bold text-yellow-800 mb-2">MODAL PERFILES GUARDADOS</h3>
+                        <p className="text-yellow-700 text-sm">
+                            Aquí irá el modal para mostrar los perfiles que sigues (Mis Likes)
+                        </p>
+                    </CardContent>
+                </Card>
 
                 {/* Modal de subida */}
                 <UploadModal
