@@ -66,7 +66,7 @@ import { collection, addDoc } from 'firebase/firestore';
   };
       
       const createPost = async (mediaUrl, type) => {
-        if (!user?.id) {
+        if (!user?.uid) {
             toast({ variant: 'destructive', title: 'Error', description: 'No hay usuario autenticado.' });
             return;
         }
@@ -77,7 +77,7 @@ import { collection, addDoc } from 'firebase/firestore';
         }
 
         const postData = {
-            user_id: user.id,
+            user_id: user.uid,
             text: text,
             ...(mediaUrl && type === 'image' && { image_url: mediaUrl }),
             ...(mediaUrl && type === 'video' && { video_url: mediaUrl }),
@@ -93,7 +93,7 @@ import { collection, addDoc } from 'firebase/firestore';
       };
 
       const createStory = async (mediaUrl, type) => {
-        if (!user?.id) {
+        if (!user?.uid) {
             toast({ variant: 'destructive', title: 'Error', description: 'No hay usuario autenticado.' });
             return;
         }
@@ -104,7 +104,7 @@ import { collection, addDoc } from 'firebase/firestore';
         }
 
         await addDoc(collection(db, 'stories'), {
-            user_id: user.id,
+            user_id: user.uid,
             media_url: mediaUrl,
             media_type: type,
             created_at: new Date().toISOString()
