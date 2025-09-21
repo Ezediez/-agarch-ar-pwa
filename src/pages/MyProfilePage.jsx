@@ -59,6 +59,8 @@ const MyProfilePage = () => {
                 // Solo actualizar si no hay cambios locales pendientes
                 if (!profile || (!hasLocalChanges && profile.fotos?.length === 0 && profile.videos?.length === 0)) {
                     setProfile(completeProfile);
+                } else if (hasLocalChanges) {
+                    console.log('🔄 Ignorando actualización de Firestore porque hay cambios locales');
                 }
                 setLocalProfileData(completeProfile);
                 setPageLoading(false);
@@ -565,20 +567,24 @@ const MyProfilePage = () => {
                             <div className="text-center py-8 text-gray-400">
                                 <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                 <p className="mb-4">Aún no has subido fotos a tu perfil.</p>
-                                <div className="flex gap-2 justify-center">
-                                    <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={false} uploading={uploading}>
-                                        <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
-                                            <Upload className="w-4 h-4 mr-1" />
-                                            Galería
-                                        </Button>
-                                    </ImageUploader>
-                                    <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={true} uploading={uploading}>
-                                        <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
-                                            <Camera className="w-4 h-4 mr-1" />
-                                            Cámara
-                                        </Button>
-                                    </ImageUploader>
-                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Botones de subida siempre disponibles en modo edición */}
+                        {editMode && (
+                            <div className="flex gap-2 justify-center mt-4">
+                                <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={false} uploading={uploading}>
+                                    <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
+                                        <Upload className="w-4 h-4 mr-1" />
+                                        Galería
+                                    </Button>
+                                </ImageUploader>
+                                <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={true} uploading={uploading}>
+                                    <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
+                                        <Camera className="w-4 h-4 mr-1" />
+                                        Cámara
+                                    </Button>
+                                </ImageUploader>
                             </div>
                         )}
                     </CardContent>
@@ -633,20 +639,24 @@ const MyProfilePage = () => {
                             <div className="text-center py-8 text-gray-400">
                                 <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                 <p className="mb-4">Aún no has subido videos a tu perfil.</p>
-                                <div className="flex gap-2 justify-center">
-                                    <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={false} uploading={uploading} progress={progress}>
-                                        <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
-                                            <Video className="w-4 h-4 mr-1" />
-                                            Galería
-                                        </Button>
-                                    </VideoUploader>
-                                    <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={true} uploading={uploading} progress={progress}>
-                                        <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
-                                            <Camera className="w-4 h-4 mr-1" />
-                                            Grabar
-                                        </Button>
-                                    </VideoUploader>
-                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Botones de subida siempre disponibles en modo edición */}
+                        {editMode && (
+                            <div className="flex gap-2 justify-center mt-4">
+                                <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={false} uploading={uploading} progress={progress}>
+                                    <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
+                                        <Video className="w-4 h-4 mr-1" />
+                                        Galería
+                                    </Button>
+                                </VideoUploader>
+                                <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={true} uploading={uploading} progress={progress}>
+                                    <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
+                                        <Camera className="w-4 h-4 mr-1" />
+                                        Grabar
+                                    </Button>
+                                </VideoUploader>
                             </div>
                         )}
                     </CardContent>
