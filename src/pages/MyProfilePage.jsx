@@ -549,17 +549,31 @@ const MyProfilePage = () => {
                                                 e.target.src = '/pwa-512x512.png';
                                             }}
                                         />
-                                        {editMode && (
-                                            <button
-                                                onClick={() => {
-                                                    const updatedPhotos = profile.fotos.filter((_, i) => i !== index);
-                                                    handleInputChange('fotos', updatedPhotos);
-                                                }}
-                                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                                            >
-                                                <X className="w-3 h-3" />
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => {
+                                                const updatedPhotos = profile.fotos.filter((_, i) => i !== index);
+                                                handleInputChange('fotos', updatedPhotos);
+                                                // Actualizar también el estado del perfil principal
+                                                setProfile(prev => ({
+                                                    ...prev,
+                                                    fotos: updatedPhotos
+                                                }));
+                                                // Marcar que hay cambios locales
+                                                setHasLocalChanges(true);
+                                                // Guardar directamente en Firestore
+                                                updateDoc(doc(db, 'profiles', user.uid), {
+                                                    fotos: updatedPhotos,
+                                                    updatedAt: new Date()
+                                                }).then(() => {
+                                                    console.log('✅ Foto eliminada de Firestore');
+                                                }).catch((error) => {
+                                                    console.error('❌ Error al eliminar foto:', error);
+                                                });
+                                            }}
+                                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -570,23 +584,21 @@ const MyProfilePage = () => {
                             </div>
                         )}
                         
-                        {/* Botones de subida siempre disponibles en modo edición */}
-                        {editMode && (
-                            <div className="flex gap-2 justify-center mt-4">
-                                <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={false} uploading={uploading}>
-                                    <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
-                                        <Upload className="w-4 h-4 mr-1" />
-                                        Galería
-                                    </Button>
-                                </ImageUploader>
-                                <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={true} uploading={uploading}>
-                                    <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
-                                        <Camera className="w-4 h-4 mr-1" />
-                                        Cámara
-                                    </Button>
-                                </ImageUploader>
-                            </div>
-                        )}
+                        {/* Botones de subida siempre disponibles */}
+                        <div className="flex gap-2 justify-center mt-4">
+                            <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={false} uploading={uploading}>
+                                <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
+                                    <Upload className="w-4 h-4 mr-1" />
+                                    Galería
+                                </Button>
+                            </ImageUploader>
+                            <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={true} uploading={uploading}>
+                                <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
+                                    <Camera className="w-4 h-4 mr-1" />
+                                    Cámara
+                                </Button>
+                            </ImageUploader>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -621,17 +633,31 @@ const MyProfilePage = () => {
                                             controls
                                             className="w-full h-48 object-cover rounded-lg"
                                         />
-                                        {editMode && (
-                                            <button
-                                                onClick={() => {
-                                                    const updatedVideos = profile.videos.filter((_, i) => i !== index);
-                                                    handleInputChange('videos', updatedVideos);
-                                                }}
-                                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                                            >
-                                                <X className="w-3 h-3" />
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => {
+                                                const updatedVideos = profile.videos.filter((_, i) => i !== index);
+                                                handleInputChange('videos', updatedVideos);
+                                                // Actualizar también el estado del perfil principal
+                                                setProfile(prev => ({
+                                                    ...prev,
+                                                    videos: updatedVideos
+                                                }));
+                                                // Marcar que hay cambios locales
+                                                setHasLocalChanges(true);
+                                                // Guardar directamente en Firestore
+                                                updateDoc(doc(db, 'profiles', user.uid), {
+                                                    videos: updatedVideos,
+                                                    updatedAt: new Date()
+                                                }).then(() => {
+                                                    console.log('✅ Video eliminado de Firestore');
+                                                }).catch((error) => {
+                                                    console.error('❌ Error al eliminar video:', error);
+                                                });
+                                            }}
+                                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -642,23 +668,21 @@ const MyProfilePage = () => {
                             </div>
                         )}
                         
-                        {/* Botones de subida siempre disponibles en modo edición */}
-                        {editMode && (
-                            <div className="flex gap-2 justify-center mt-4">
-                                <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={false} uploading={uploading} progress={progress}>
-                                    <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
-                                        <Video className="w-4 h-4 mr-1" />
-                                        Galería
-                                    </Button>
-                                </VideoUploader>
-                                <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={true} uploading={uploading} progress={progress}>
-                                    <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
-                                        <Camera className="w-4 h-4 mr-1" />
-                                        Grabar
-                                    </Button>
-                                </VideoUploader>
-                            </div>
-                        )}
+                        {/* Botones de subida siempre disponibles */}
+                        <div className="flex gap-2 justify-center mt-4">
+                            <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={false} uploading={uploading} progress={progress}>
+                                <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
+                                    <Video className="w-4 h-4 mr-1" />
+                                    Galería
+                                </Button>
+                            </VideoUploader>
+                            <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={true} uploading={uploading} progress={progress}>
+                                <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
+                                    <Camera className="w-4 h-4 mr-1" />
+                                    Grabar
+                                </Button>
+                            </VideoUploader>
+                        </div>
                     </CardContent>
                 </Card>
 
