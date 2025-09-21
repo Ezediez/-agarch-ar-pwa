@@ -36,7 +36,7 @@ const OtherProfileActions = ({ profile }) => {
   }, [user, profile]);
 
   const handleLikeAction = async () => {
-    if (!user?.id || !profile?.id) return;
+    if (!user?.uid || !profile?.id) return;
     
     setLoadingLike(true);
     try {

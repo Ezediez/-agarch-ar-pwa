@@ -14,33 +14,56 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('🔍 FollowingList - followingIds recibidos:', followingIds);
-    if (followingIds && followingIds.length > 0) {
+    console.log('🔍 FollowingList - Usuario:', user?.uid);
+    if (user?.uid) {
       fetchFollowing();
     } else {
-      console.log('🔍 FollowingList - No hay followingIds, lista vacía');
+      console.log('🔍 FollowingList - No hay usuario autenticado');
       setFollowing([]);
       setLoading(false);
     }
-  }, [followingIds?.length]); // Solo depende de la longitud, no del array completo
+  }, [user?.uid]); // Solo depende del usuario autenticado
 
   const fetchFollowing = async () => {
     try {
       setLoading(true);
       
-      if (!followingIds || followingIds.length === 0) {
+      if (!user?.uid) {
+        setFollowing([]);
+        return;
+      }
+      
+      console.log('🔍 FollowingList - Obteniendo seguidos para usuario:', user.uid);
+      
+      // Obtener likes del usuario desde la colección user_likes
+      const likesRef = collection(db, 'user_likes');
+      const likesQuery = query(
+        likesRef,
+        where('user_id', '==', user.uid)
+      );
+      
+      const snapshot = await getDocs(likesQuery);
+      const likedUserIds = snapshot.docs.map(doc => doc.data().liked_user_id);
+      
+      console.log('🔍 FollowingList - Usuarios seguidos encontrados:', likedUserIds);
+      
+      if (likedUserIds.length === 0) {
         setFollowing([]);
         return;
       }
       
       // Obtener perfiles de los usuarios seguidos
       const profilesData = [];
-      for (const userId of followingIds) {
+      for (const userId of likedUserIds) {
         try {
           const profileRef = doc(db, 'profiles', userId);
           const profileSnap = await getDoc(profileRef);
           if (profileSnap.exists()) {
-            profilesData.push({ id: profileSnap.id, ...profileSnap.data() });
+            profilesData.push({ 
+              id: profileSnap.id, 
+              ...profileSnap.data(),
+              followed_at: snapshot.docs.find(doc => doc.data().liked_user_id === userId)?.data().created_at || new Date().toISOString()
+            });
           }
         } catch (error) {
           console.error('Error fetching profile for user:', userId, error);
@@ -62,36 +85,31 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
 
   const handleUnfollow = async (profileId) => {
     try {
-      // Obtener el perfil actual del usuario
-      const userProfileRef = doc(db, 'profiles', user.uid);
-      const userProfileSnap = await getDoc(userProfileRef);
+      console.log('🔍 FollowingList - Dejando de seguir usuario:', profileId);
       
-      if (userProfileSnap.exists()) {
-        const userProfileData = userProfileSnap.data();
-        const followingList = userProfileData.following || [];
-        
-        // Remover el perfil de la lista de seguidos
-        const updatedFollowing = followingList.filter(id => id !== profileId);
-        
-        await updateDoc(userProfileRef, {
-          following: updatedFollowing,
-          updatedAt: serverTimestamp()
-        });
-        
-        // Actualizar la lista local
-        setFollowing(prev => prev.filter(profile => profile.id !== profileId));
-        
-        toast({
-          title: 'Dejaste de seguir',
-          description: 'Ya no sigues este perfil.'
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'No se pudo encontrar tu perfil.'
-        });
+      // Buscar y eliminar el like en la colección user_likes
+      const likesRef = collection(db, 'user_likes');
+      const likesQuery = query(
+        likesRef,
+        where('user_id', '==', user.uid),
+        where('liked_user_id', '==', profileId)
+      );
+      
+      const snapshot = await getDocs(likesQuery);
+      
+      // Eliminar todos los likes encontrados (por seguridad)
+      for (const likeDoc of snapshot.docs) {
+        await deleteDoc(likeDoc.ref);
+        console.log('✅ Like eliminado:', likeDoc.id);
       }
+      
+      // Actualizar la lista local
+      setFollowing(prev => prev.filter(profile => profile.id !== profileId));
+      
+      toast({
+        title: 'Dejaste de seguir',
+        description: 'Ya no sigues este perfil.'
+      });
     } catch (error) {
       console.error('Error unfollowing:', error);
       toast({

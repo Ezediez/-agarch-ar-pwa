@@ -5,12 +5,19 @@ import { Camera, Upload, Video } from 'lucide-react';
 import ImageUploader from '@/components/ImageUploader';
 import VideoUploader from '@/components/VideoUploader';
 
-const UploadModal = ({ isOpen, onClose, onUpload, uploading, progress }) => {
+const UploadModal = ({ isOpen, onClose, onUpload, onProfilePictureUpload, uploading, progress, modalType = 'gallery' }) => {
 
   const handleUpload = (file, type) => {
       console.log('🔄 UploadModal: Archivo recibido:', file.name, 'Tipo:', type);
-      onUpload(file, type);
-      // We don't close the modal here to allow multiple uploads
+      
+      if (modalType === 'profile' && onProfilePictureUpload) {
+          console.log('🔄 UploadModal: Subiendo foto de perfil');
+          onProfilePictureUpload(file);
+          onClose(); // Cerrar modal después de subir foto de perfil
+      } else {
+          onUpload(file, type);
+          // We don't close the modal here to allow multiple uploads
+      }
   }
 
   return (
@@ -18,10 +25,13 @@ const UploadModal = ({ isOpen, onClose, onUpload, uploading, progress }) => {
       <DialogContent className="card-glass max-w-md mx-auto">
         <DialogHeader className="text-center">
           <DialogTitle className="text-2xl font-bold text-primary">
-            Subir Contenido
+            {modalType === 'profile' ? 'Actualizar Foto de Perfil' : 'Subir Contenido'}
           </DialogTitle>
           <DialogDescription className="text-center">
-            Selecciona el tipo de contenido que deseas subir
+            {modalType === 'profile' 
+              ? 'Selecciona una nueva foto para tu perfil' 
+              : 'Selecciona el tipo de contenido que deseas subir'
+            }
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 grid grid-cols-2 gap-4">

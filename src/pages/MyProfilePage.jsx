@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { db, auth, storage } from '@/lib/firebase';
@@ -36,6 +36,7 @@ const MyProfilePage = () => {
     const [likedUsers, setLikedUsers] = useState([]);
     const [hasLocalChanges, setHasLocalChanges] = useState(false);
 
+    // useEffect optimizado para cargar perfil inicial
     useEffect(() => {
         console.log('🔄 useEffect MyProfilePage - ownProfile:', ownProfile, 'user:', user);
         
@@ -56,13 +57,12 @@ const MyProfilePage = () => {
                     videos: ownProfile.videos || [],
                     profile_picture_url: ownProfile.profile_picture_url || '/pwa-512x512.png'
                 };
-                // Solo actualizar si no hay cambios locales pendientes
-                if (!profile || (!hasLocalChanges && profile.fotos?.length === 0 && profile.videos?.length === 0)) {
+                
+                // Solo actualizar si el perfil es diferente (evitar loops)
+                if (!profile || profile.id !== completeProfile.id) {
                     setProfile(completeProfile);
-                } else if (hasLocalChanges) {
-                    console.log('🔄 Ignorando actualización de Firestore porque hay cambios locales');
+                    setLocalProfileData(completeProfile);
                 }
-                setLocalProfileData(completeProfile);
                 setPageLoading(false);
                 console.log('✅ Mi perfil cargado:', completeProfile.alias);
             } else {
@@ -89,21 +89,23 @@ const MyProfilePage = () => {
             console.log('❌ No hay usuario autenticado');
             setPageLoading(false);
         }
-    }, [ownProfile, user, hasLocalChanges]); // Added hasLocalChanges to dependencies
+    }, [ownProfile, user]); // Removido hasLocalChanges para evitar loops
 
     // Cargar usuarios liked cuando el usuario esté autenticado
     useEffect(() => {
         if (user?.uid) {
             loadLikedUsers();
         }
-    }, [user?.uid]);
+    }, [user?.uid, loadLikedUsers]);
 
     // Función para cargar los usuarios que el usuario actual ha dado "like"
-    const loadLikedUsers = async () => {
+    const loadLikedUsers = useCallback(async () => {
         if (!user?.uid) return;
         
         try {
-            // Primero intentar cargar desde user_likes (nuevo sistema)
+            console.log('🔍 MyProfilePage - Cargando usuarios seguidos desde user_likes');
+            
+            // Cargar desde user_likes (sistema unificado)
             const likesRef = collection(db, 'user_likes');
             const likesQuery = query(
                 likesRef,
@@ -113,15 +115,10 @@ const MyProfilePage = () => {
             const snapshot = await getDocs(likesQuery);
             const likedUserIds = snapshot.docs.map(doc => doc.data().liked_user_id);
             
-            // Si no hay likes en user_likes, usar el array following del perfil (sistema anterior)
-            if (likedUserIds.length === 0 && profile?.following?.length > 0) {
-                console.log('🔄 Usando sistema anterior - following array:', profile.following);
-                setLikedUsers(profile.following);
-            } else {
-                setLikedUsers(likedUserIds);
-            }
+            console.log('🔍 MyProfilePage - Usuarios seguidos encontrados:', likedUserIds);
+            setLikedUsers(likedUserIds);
             
-            console.log('✅ Usuarios liked cargados:', likedUserIds.length > 0 ? likedUserIds.length : profile?.following?.length || 0);
+            console.log('✅ Usuarios liked cargados:', likedUserIds.length);
         } catch (error) {
             console.error('❌ Error cargando usuarios liked:', error);
             toast({
@@ -130,7 +127,7 @@ const MyProfilePage = () => {
                 description: 'No se pudieron cargar los perfiles seguidos.'
             });
         }
-    };
+    }, [user?.uid, toast]);
 
     const handleSave = async () => {
         if (!localProfileData || !user?.uid) return;
@@ -291,6 +288,68 @@ const MyProfilePage = () => {
                 variant: 'destructive', 
                 title: 'Error al subir archivo', 
                 description: 'No se pudo subir el archivo. Intenta de nuevo.' 
+            });
+        }
+    };
+
+    // Función específica para actualizar la foto de perfil principal
+    const handleUpdateProfilePicture = async (file) => {
+        if (!file) return;
+
+        console.log('🔄 Actualizando foto de perfil principal:', file.name);
+
+        try {
+            // Subir archivo usando useUploader
+            const url = await new Promise((resolve, reject) => {
+                uploadFile(file, 'profile-photos', 'photos', (url, error) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(url);
+                    }
+                });
+            });
+            
+            if (url) {
+                console.log('✅ Foto de perfil subida exitosamente:', url);
+                
+                // Actualizar estado local
+                handleInputChange('profile_picture_url', url);
+                setProfile(prev => ({
+                    ...prev,
+                    profile_picture_url: url
+                }));
+                
+                // Guardar en Firestore
+                try {
+                    await updateDoc(doc(db, 'profiles', user.uid), {
+                        profile_picture_url: url,
+                        updatedAt: new Date()
+                    });
+                    console.log('✅ Foto de perfil guardada en Firestore');
+                    
+                    // Actualizar el contexto de autenticación
+                    await refreshProfile();
+                    
+                    toast({ 
+                        title: 'Foto de perfil actualizada', 
+                        description: 'Tu foto de perfil se ha actualizado correctamente' 
+                    });
+                } catch (error) {
+                    console.error('❌ Error al guardar foto de perfil:', error);
+                    toast({ 
+                        variant: 'destructive', 
+                        title: 'Error al guardar', 
+                        description: 'No se pudo guardar la foto de perfil' 
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error al subir foto de perfil:', error);
+            toast({ 
+                variant: 'destructive', 
+                title: 'Error al subir foto', 
+                description: 'No se pudo subir la foto de perfil. Intenta de nuevo.' 
             });
         }
     };
@@ -687,7 +746,7 @@ const MyProfilePage = () => {
                 </Card>
 
                 {/* Lista de seguidos */}
-                <FollowingList profile={profile} />
+                <FollowingList isOwnProfile={true} />
 
                 {/* Botón para Modal "Mis Likes" */}
                 <Card className="bg-gradient-to-r from-red-500 to-pink-500 border-red-400 border-2">
@@ -717,8 +776,10 @@ const MyProfilePage = () => {
                     isOpen={isUploadModalOpen}
                     onClose={() => setIsUploadModalOpen(false)}
                     onUpload={handleFilesUpload}
+                    onProfilePictureUpload={handleUpdateProfilePicture}
                     uploading={uploading}
                     progress={progress}
+                    modalType="profile"
                 />
 
                 {/* Modal de Mis Likes */}
