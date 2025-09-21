@@ -56,7 +56,7 @@ const MyProfilePage = () => {
                     profile_picture_url: ownProfile.profile_picture_url || '/pwa-512x512.png'
                 };
                 // Solo actualizar si no hay cambios locales pendientes
-                if (!profile || profile.fotos?.length === 0) {
+                if (!profile || (profile.fotos?.length === 0 && profile.videos?.length === 0)) {
                     setProfile(completeProfile);
                 }
                 setLocalProfileData(completeProfile);
