@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUploader } from '@/hooks/useUploader';
 import UploadModal from '@/components/profile/UploadModal';
+import OtherProfileActions from '@/components/profile/OtherProfileActions';
 // import MyLikesModal from '@/components/profile/MyLikesModal'; // Temporalmente desactivado para Etapa 1
 
 const ProfilePage = () => {
@@ -123,8 +124,13 @@ const ProfilePage = () => {
                 updated_at: new Date().toISOString()
             });
 
+            // Actualizar el estado local inmediatamente
+            setProfile(localProfileData);
+            
             toast({ title: 'Perfil actualizado con éxito' });
             setEditMode(false);
+            
+            // Refrescar el perfil desde la base de datos
             await refreshProfile();
         } catch (error) {
             console.error('Error al actualizar perfil:', error);
@@ -446,38 +452,7 @@ const ProfilePage = () => {
                                         </Button>
                                     </>
                                 ) : (
-                                    <>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleLike}
-                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
-                                        >
-                                            <Heart className="w-4 h-4 mr-2" />
-                                            Me gusta
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleStartChat}
-                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white border-green-400"
-                                        >
-                                            <MessageSquare className="w-4 h-4 mr-2" />
-                                            Mensaje
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleViewFullProfile}
-                                            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white border-blue-400"
-                                        >
-                                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M10 12a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                                                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                                            </svg>
-                                            Ver Perfil
-                                        </Button>
-                                    </>
+                                    <OtherProfileActions profile={profile} />
                                 )}
                             </div>
                         </div>
