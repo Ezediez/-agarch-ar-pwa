@@ -216,6 +216,17 @@ const MyProfilePage = () => {
                     // Marcar que hay cambios locales
                     setHasLocalChanges(true);
                     
+                    // Guardar directamente en Firestore
+                    try {
+                        await updateDoc(doc(db, 'profiles', user.uid), {
+                            fotos: updatedPhotos,
+                            updatedAt: new Date()
+                        });
+                        console.log('✅ Fotos guardadas en Firestore');
+                    } catch (error) {
+                        console.error('❌ Error al guardar en Firestore:', error);
+                    }
+                    
                     // Si es la primera foto, también actualizar la foto de perfil
                     if (currentPhotos.length === 0) {
                         handleInputChange('profile_picture_url', url);
@@ -223,6 +234,17 @@ const MyProfilePage = () => {
                             ...prev,
                             profile_picture_url: url
                         }));
+                        
+                        // Guardar foto de perfil en Firestore
+                        try {
+                            await updateDoc(doc(db, 'profiles', user.uid), {
+                                profile_picture_url: url,
+                                updatedAt: new Date()
+                            });
+                            console.log('✅ Foto de perfil guardada en Firestore');
+                        } catch (error) {
+                            console.error('❌ Error al guardar foto de perfil:', error);
+                        }
                     }
                     
                     toast({ 
@@ -243,6 +265,17 @@ const MyProfilePage = () => {
                     
                     // Marcar que hay cambios locales
                     setHasLocalChanges(true);
+                    
+                    // Guardar directamente en Firestore
+                    try {
+                        await updateDoc(doc(db, 'profiles', user.uid), {
+                            videos: updatedVideos,
+                            updatedAt: new Date()
+                        });
+                        console.log('✅ Videos guardados en Firestore');
+                    } catch (error) {
+                        console.error('❌ Error al guardar videos en Firestore:', error);
+                    }
                     
                     toast({ 
                         title: 'Video agregado', 
