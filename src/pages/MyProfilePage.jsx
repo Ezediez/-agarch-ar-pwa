@@ -91,13 +91,6 @@ const MyProfilePage = () => {
         }
     }, [ownProfile, user]); // Removido hasLocalChanges para evitar loops
 
-    // Cargar usuarios liked cuando el usuario esté autenticado
-    useEffect(() => {
-        if (user?.uid) {
-            loadLikedUsers();
-        }
-    }, [user?.uid, loadLikedUsers]);
-
     // Función para cargar los usuarios que el usuario actual ha dado "like"
     const loadLikedUsers = useCallback(async () => {
         if (!user?.uid) return;
@@ -128,6 +121,13 @@ const MyProfilePage = () => {
             });
         }
     }, [user?.uid, toast]);
+
+    // Cargar usuarios liked cuando el usuario esté autenticado
+    useEffect(() => {
+        if (user?.uid) {
+            loadLikedUsers();
+        }
+    }, [user?.uid, loadLikedUsers]);
 
     const handleSave = async () => {
         if (!localProfileData || !user?.uid) return;
