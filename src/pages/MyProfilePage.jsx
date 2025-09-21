@@ -34,6 +34,7 @@ const MyProfilePage = () => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isLikesModalOpen, setIsLikesModalOpen] = useState(false);
     const [likedUsers, setLikedUsers] = useState([]);
+    const [hasLocalChanges, setHasLocalChanges] = useState(false);
 
     useEffect(() => {
         console.log('🔄 useEffect MyProfilePage - ownProfile:', ownProfile, 'user:', user);
@@ -56,7 +57,7 @@ const MyProfilePage = () => {
                     profile_picture_url: ownProfile.profile_picture_url || '/pwa-512x512.png'
                 };
                 // Solo actualizar si no hay cambios locales pendientes
-                if (!profile || (profile.fotos?.length === 0 && profile.videos?.length === 0)) {
+                if (!profile || (!hasLocalChanges && profile.fotos?.length === 0 && profile.videos?.length === 0)) {
                     setProfile(completeProfile);
                 }
                 setLocalProfileData(completeProfile);
@@ -212,6 +213,9 @@ const MyProfilePage = () => {
                         fotos: updatedPhotos
                     }));
                     
+                    // Marcar que hay cambios locales
+                    setHasLocalChanges(true);
+                    
                     // Si es la primera foto, también actualizar la foto de perfil
                     if (currentPhotos.length === 0) {
                         handleInputChange('profile_picture_url', url);
@@ -236,6 +240,9 @@ const MyProfilePage = () => {
                         ...prev,
                         videos: updatedVideos
                     }));
+                    
+                    // Marcar que hay cambios locales
+                    setHasLocalChanges(true);
                     
                     toast({ 
                         title: 'Video agregado', 
