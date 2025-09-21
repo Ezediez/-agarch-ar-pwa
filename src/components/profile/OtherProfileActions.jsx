@@ -17,12 +17,12 @@ const OtherProfileActions = ({ profile }) => {
 
   useEffect(() => {
     const checkLikeStatus = async () => {
-      if (!user?.id || !profile?.id) return;
+      if (!user?.uid || !profile?.id) return;
       setLoadingLike(true);
       const likesRef = collection(db, 'user_likes');
       const likesQuery = query(
         likesRef,
-        where('user_id', '==', user.id),
+        where('user_id', '==', user.uid),
         where('liked_user_id', '==', profile.id)
       );
       
@@ -45,7 +45,7 @@ const OtherProfileActions = ({ profile }) => {
         const likesRef = collection(db, 'user_likes');
         const likesQuery = query(
           likesRef,
-          where('user_id', '==', user.id),
+          where('user_id', '==', user.uid),
           where('liked_user_id', '==', profile.id)
         );
         
@@ -59,12 +59,12 @@ const OtherProfileActions = ({ profile }) => {
       } else {
         // Like - agregar nuevo like
         await addDoc(collection(db, 'user_likes'), {
-          user_id: user.id,
+          user_id: user.uid,
           liked_user_id: profile.id,
           created_at: new Date().toISOString()
         });
         
-        setLikeStatus({ user_id: user.id, liked_user_id: profile.id });
+        setLikeStatus({ user_id: user.uid, liked_user_id: profile.id });
         toast({ title: "¡Me gusta enviado!" });
       }
     } catch (error) {
