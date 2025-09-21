@@ -89,7 +89,7 @@ const MyProfilePage = () => {
             console.log('❌ No hay usuario autenticado');
             setPageLoading(false);
         }
-    }, [ownProfile, user]);
+    }, [ownProfile, user, hasLocalChanges]); // Added hasLocalChanges to dependencies
 
     // Cargar usuarios liked cuando el usuario esté autenticado
     useEffect(() => {
