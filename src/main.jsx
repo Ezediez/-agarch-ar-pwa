@@ -24,3 +24,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </HelmetProvider>
   </React.StrictMode>
 );
+
+// Build timestamp: 2025-09-20 21:20:00 - Force Netlify detection
