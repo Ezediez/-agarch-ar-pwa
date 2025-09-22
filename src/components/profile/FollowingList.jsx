@@ -265,6 +265,18 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
             </div>
           </div>
         ))}
+        
+        {/* Botón Descubrir Perfiles siempre visible al final */}
+        {isOwnProfile && (
+          <div className="pt-4 border-t">
+            <button
+              onClick={() => navigate('/search')}
+              className="w-full bg-primary text-primary-foreground px-4 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium"
+            >
+              Descubrir Perfiles
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

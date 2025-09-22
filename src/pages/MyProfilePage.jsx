@@ -6,7 +6,6 @@ import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/fire
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import FollowingList from '@/components/profile/FollowingList';
-import MyLikesModal from '@/components/profile/MyLikesModal';
 import UploadModal from '@/components/profile/UploadModal';
 import { Loader2, Edit3, Save, X, MessageSquare, Camera, Upload, Video, Heart } from 'lucide-react';
 import { useUploader } from '@/hooks/useUploader';
@@ -29,7 +28,6 @@ const MyProfilePage = () => {
     const [editMode, setEditMode] = useState(false);
     const [localProfileData, setLocalProfileData] = useState(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-    const [isLikesModalOpen, setIsLikesModalOpen] = useState(false);
     const [likedUsers, setLikedUsers] = useState([]);
     const [selectedPhotos, setSelectedPhotos] = useState(new Set());
     const [selectedVideos, setSelectedVideos] = useState(new Set());
@@ -767,12 +765,9 @@ const MyProfilePage = () => {
                                     Mis Likes ({likedUsers.length})
                                 </span>
                             </div>
-                            <Button
-                                onClick={() => setIsLikesModalOpen(true)}
-                                className="bg-white hover:bg-gray-100 text-red-500 font-semibold px-6 py-2 rounded-lg"
-                            >
-                                Ver Perfiles Seguidos
-                            </Button>
+                            <p className="text-gray-400 text-sm">
+                                Los perfiles que sigues aparecen arriba en la lista
+                            </p>
                         </CardContent>
                     </Card>
 
@@ -787,12 +782,6 @@ const MyProfilePage = () => {
                         modalType="profile"
                     />
 
-                    {/* Modal de Mis Likes */}
-                    <MyLikesModal
-                        isOpen={isLikesModalOpen}
-                        onClose={() => setIsLikesModalOpen(false)}
-                        likedUsers={likedUsers}
-                    />
                 </div>
             </div>
         </>
