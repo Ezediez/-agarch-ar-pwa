@@ -328,9 +328,6 @@ const MyProfilePage = () => {
                     });
                     console.log('✅ Foto de perfil guardada en Firestore');
                     
-                    // Actualizar el contexto de autenticación
-                    await refreshProfile();
-                    
                     toast({ 
                         title: 'Foto de perfil actualizada', 
                         description: 'Tu foto de perfil se ha actualizado correctamente' 
