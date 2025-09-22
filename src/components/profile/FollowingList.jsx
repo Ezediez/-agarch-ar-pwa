@@ -11,7 +11,9 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [following, setFollowing] = useState([]);
+  const [filteredFollowing, setFilteredFollowing] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showNearbyOnly, setShowNearbyOnly] = useState(false);
 
   const fetchFollowing = async () => {
     try {
@@ -60,6 +62,7 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
       }
       
       setFollowing(profilesData);
+      setFilteredFollowing(profilesData);
     } catch (error) {
       console.error('Error in fetchFollowing:', error);
       toast({
@@ -72,6 +75,34 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
     }
   };
 
+  // Función para filtrar por distancia
+  const filterByDistance = useCallback(() => {
+    if (!showNearbyOnly || !user?.uid) {
+      setFilteredFollowing(following);
+      return;
+    }
+
+    // Obtener ubicación del usuario actual (simplificado)
+    const currentUserLocation = {
+      lat: -34.6037, // Buenos Aires por defecto
+      lng: -58.3816
+    };
+
+    const nearbyProfiles = following.filter(profile => {
+      if (!profile.latitud || !profile.longitud) return false;
+      
+      // Cálculo simple de distancia (aproximado)
+      const distance = Math.sqrt(
+        Math.pow(profile.latitud - currentUserLocation.lat, 2) + 
+        Math.pow(profile.longitud - currentUserLocation.lng, 2)
+      ) * 111; // Conversión aproximada a km
+      
+      return distance <= 50; // 50km de radio
+    });
+
+    setFilteredFollowing(nearbyProfiles);
+  }, [following, showNearbyOnly, user?.uid]);
+
   useEffect(() => {
     console.log('🔍 FollowingList - Usuario:', user?.uid);
     if (user?.uid) {
@@ -79,9 +110,15 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
     } else {
       console.log('🔍 FollowingList - No hay usuario autenticado');
       setFollowing([]);
+      setFilteredFollowing([]);
       setLoading(false);
     }
   }, [user?.uid]); // Solo depende del usuario autenticado
+
+  // Aplicar filtro cuando cambie el estado
+  useEffect(() => {
+    filterByDistance();
+  }, [filterByDistance]);
 
   const handleUnfollow = async (profileId) => {
     try {
@@ -174,16 +211,50 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
     );
   }
 
+  if (showNearbyOnly && filteredFollowing.length === 0) {
+    return (
+      <div className="bg-card rounded-lg p-6 text-center">
+        <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+        <h3 className="text-lg font-semibold mb-2 text-primary">
+          No hay perfiles cercanos
+        </h3>
+        <p className="text-muted-foreground mb-4">
+          Ninguno de los perfiles que sigues está cerca de tu ubicación.
+        </p>
+        <button
+          onClick={() => setShowNearbyOnly(false)}
+          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+        >
+          Ver todos los perfiles
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-card rounded-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-primary">
-          {isOwnProfile ? 'Perfiles que sigues' : 'Perfiles que sigue'} ({following.length})
+          {isOwnProfile ? 'Perfiles que sigues' : 'Perfiles que sigue'} 
+          {showNearbyOnly ? ' (Cercanos)' : ''} ({filteredFollowing.length})
         </h3>
+        {isOwnProfile && following.length > 0 && (
+          <button
+            onClick={() => setShowNearbyOnly(!showNearbyOnly)}
+            className={`px-3 py-1 rounded-full text-sm transition-colors ${
+              showNearbyOnly 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            <MapPin className="w-4 h-4 inline mr-1" />
+            {showNearbyOnly ? 'Ver todos' : 'Solo cercanos'}
+          </button>
+        )}
       </div>
 
       <div className="space-y-4 max-h-96 overflow-y-auto">
-        {following.map((profile) => (
+        {filteredFollowing.map((profile) => (
           <div
             key={profile.id}
             className="flex items-center space-x-4 p-3 rounded-lg border hover:bg-muted/50 transition-colors"

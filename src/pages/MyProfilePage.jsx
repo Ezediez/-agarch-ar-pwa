@@ -756,24 +756,6 @@ const MyProfilePage = () => {
                 {/* Lista de seguidos */}
                     <FollowingList isOwnProfile={true} />
 
-                    {/* Botón para Filtrar Perfiles Cercanos */}
-                    <Card className="bg-gradient-to-r from-blue-500 to-purple-500 border-blue-400 border-2 mt-6">
-                    <CardContent className="p-4 text-center">
-                        <div className="flex items-center justify-center gap-3 mb-3">
-                                <MapPin className="w-6 h-6 text-white" />
-                                <span className="text-white text-lg font-semibold">
-                                    Buscar Perfiles
-                                </span>
-                        </div>
-                        <Button
-                                onClick={() => navigate('/search?filter=nearby')}
-                                className="w-full bg-white text-blue-600 hover:bg-gray-100 font-medium"
-                        >
-                                Más Cercanos
-                        </Button>
-                    </CardContent>
-                </Card>
-
                 {/* Modal de subida */}
                 <UploadModal
                     isOpen={isUploadModalOpen}

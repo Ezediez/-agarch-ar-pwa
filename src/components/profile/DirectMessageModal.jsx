@@ -80,7 +80,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
       
       toast({ title: 'Éxito', description: 'Mensaje enviado correctamente' });
       onClose();
-      navigate(`/chat/${conversationId}`);
+      navigate(`/chats`);
       
     } catch (error) {
       console.error('Error sending message:', error);
