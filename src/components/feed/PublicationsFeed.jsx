@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, where } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -42,8 +42,8 @@ const PublicationsFeed = () => {
       );
       const postsSnapshot = await getDocs(postsQuery);
       const postsData = await Promise.all(
-        postsSnapshot.docs.map(async (doc) => {
-          const postData = { id: doc.id, ...doc.data() };
+        postsSnapshot.docs.map(async (postDoc) => {
+          const postData = { id: postDoc.id, ...postDoc.data() };
           
           // Obtener perfil del autor
           try {
@@ -54,6 +54,17 @@ const PublicationsFeed = () => {
             }
           } catch (error) {
             console.error('Error fetching profile:', error);
+          }
+          
+          // Obtener likes del post
+          try {
+            const likesRef = collection(db, 'post_likes');
+            const likesQuery = query(likesRef, where('post_id', '==', postData.id));
+            const likesSnapshot = await getDocs(likesQuery);
+            postData.likes = likesSnapshot.docs.map(likeDoc => ({ id: likeDoc.id, ...likeDoc.data() }));
+          } catch (error) {
+            console.error('Error fetching likes:', error);
+            postData.likes = [];
           }
           
           return postData;
@@ -112,11 +123,21 @@ const PublicationsFeed = () => {
     if (!user?.uid) return;
     
     try {
-      // Aquí implementarías la lógica de like
+      // Implementar lógica de like en Firestore
+      const likeRef = collection(db, 'post_likes');
+      await addDoc(likeRef, {
+        post_id: postId,
+        user_id: user.uid,
+        created_at: new Date()
+      });
+      
       toast({
         title: 'Me gusta',
         description: 'Has dado me gusta a esta publicación.'
       });
+      
+      // Refrescar datos
+      fetchPublications();
     } catch (error) {
       console.error('Error liking post:', error);
       toast({
@@ -136,7 +157,14 @@ const PublicationsFeed = () => {
     if (!user?.uid) return;
     
     try {
-      // Aquí implementarías la lógica de seguir
+      // Implementar lógica de seguir en Firestore
+      const followRef = collection(db, 'user_likes');
+      await addDoc(followRef, {
+        user_id: user.uid,
+        liked_user_id: profileId,
+        created_at: new Date()
+      });
+      
       toast({
         title: 'Perfil guardado',
         description: 'Has guardado este perfil en tu lista.'
