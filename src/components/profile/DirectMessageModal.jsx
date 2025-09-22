@@ -22,7 +22,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
       return;
     }
     
-    if (!user?.id || !profile?.id) {
+    if (!user?.uid || !profile?.id) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario o destinatario.' });
       return;
     }
@@ -34,7 +34,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
       const conversationsRef = collection(db, 'conversations');
       const existingConvQuery = query(
         conversationsRef,
-        where('members', 'array-contains', user.id)
+        where('members', 'array-contains', user.uid)
       );
       
       const existingSnapshot = await getDocs(existingConvQuery);
@@ -52,9 +52,9 @@ const DirectMessageModal = ({ profile, onClose }) => {
       // Si no existe conversación, crear una nueva
       if (!conversationId) {
         const newConversation = {
-          members: [user.id, profile?.id],
+          members: [user.uid, profile?.id],
           lastMessage: message.slice(0, 80),
-          lastSenderId: user.id,
+          lastSenderId: user.uid,
           updatedAt: serverTimestamp(),
         };
         const convRef = await addDoc(collection(db, 'conversations'), newConversation);
@@ -63,7 +63,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
       
       // Enviar el mensaje
       await addDoc(collection(db, 'conversations', conversationId, 'messages'), {
-        authorId: user.id,
+        authorId: user.uid,
         type: 'text',
         text: message,
         media: [],
@@ -74,7 +74,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
       const convRef = doc(db, 'conversations', conversationId);
       await updateDoc(convRef, {
         lastMessage: message.slice(0, 80),
-        lastSenderId: user.id,
+        lastSenderId: user.uid,
         updatedAt: serverTimestamp(),
       });
       
