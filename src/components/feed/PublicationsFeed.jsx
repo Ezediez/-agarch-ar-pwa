@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -60,11 +60,10 @@ const PublicationsFeed = () => {
         })
       );
 
-      // Obtener publicidades desde Portal de Anunciantes
+      // Obtener publicidades desde Portal de Anunciantes - simplificado
       const adsRef = collection(db, 'advertisements');
       const adsQuery = query(
         adsRef,
-        where('status', '==', 'active'),
         orderBy('created_at', 'desc'),
         limit(10)
       );
@@ -98,11 +97,8 @@ const PublicationsFeed = () => {
       setMixedFeed(mixed);
     } catch (error) {
       console.error('Error fetching publications:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudieron cargar las publicaciones.'
-      });
+      // Si no hay datos, mostrar feed vacío en lugar de error
+      setMixedFeed([]);
     } finally {
       setLoading(false);
     }

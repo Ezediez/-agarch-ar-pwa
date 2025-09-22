@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/use-toast.jsx';
 import { askNotificationPermissionIfSupported } from '@/lib/notifications';
 import AdRegisterPage from '@/pages/AdRegisterPage';
 import AdLoginPage from '@/pages/AdLoginPage';
+import AdvertisingPortal from '@/pages/AdvertisingPortal';
 import TermsPage from '@/pages/TermsPage';
 import AdminLayout from '@/components/admin/AdminLayout';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
@@ -70,6 +71,7 @@ const App = () => {
         <Route path="/advertising-contact" element={<AdvertisingContactPage />} />
         <Route path="/ad-register" element={<AdRegisterPage />} />
         <Route path="/ad-login" element={<AdLoginPage />} />
+        <Route path="/advertising-portal" element={<AdvertisingPortal />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/admin-login" element={<AdminLoginPage />} />
       </Route>

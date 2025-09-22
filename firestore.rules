@@ -82,5 +82,27 @@ service cloud.firestore {
       allow update: if request.auth.uid == resource.data.user_id || request.auth.uid == resource.data.matched_user_id;
       allow delete: if request.auth.uid == resource.data.user_id || request.auth.uid == resource.data.matched_user_id;
     }
+
+    // Reglas para publicidades (Portal de Anunciantes)
+    match /advertisements/{adId} {
+      allow read: if request.auth != null; // Todos los usuarios autenticados pueden leer publicidades
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.advertiser_id; // Solo el anunciante puede crear
+      allow update: if request.auth != null && request.auth.uid == resource.data.advertiser_id; // Solo el anunciante puede editar
+      allow delete: if request.auth != null && request.auth.uid == resource.data.advertiser_id; // Solo el anunciante puede eliminar
+    }
+
+    // Reglas para anunciantes (usuarios del Portal de Anunciantes)
+    match /advertisers/{advertiserId} {
+      allow read: if request.auth != null && request.auth.uid == advertiserId; // Solo el anunciante puede leer su perfil
+      allow create: if request.auth != null && request.auth.uid == advertiserId; // Solo puede crear su propio perfil
+      allow update: if request.auth != null && request.auth.uid == advertiserId; // Solo puede editar su perfil
+    }
+
+    // Reglas para seguidos (following) - para la funcionalidad de guardar perfil
+    match /following/{followingId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.user_id; // Solo el usuario puede leer sus seguidos
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.user_id; // Solo puede seguir desde su cuenta
+      allow delete: if request.auth != null && request.auth.uid == resource.data.user_id; // Solo puede dejar de seguir desde su cuenta
+    }
   }
 }

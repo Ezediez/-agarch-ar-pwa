@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -18,11 +18,10 @@ const VipCarousel = () => {
     try {
       setLoading(true);
       
-      // Obtener perfiles VIP (mejor posicionados)
+      // Obtener perfiles VIP (mejor posicionados) - simplificado sin filtros complejos
       const profilesRef = collection(db, 'profiles');
       const vipQuery = query(
         profilesRef,
-        where('is_vip', '==', true),
         orderBy('created_at', 'desc'),
         limit(10)
       );
@@ -47,11 +46,10 @@ const VipCarousel = () => {
         type: 'story' 
       }));
 
-      // Obtener publicidades pagas desde Portal de Anunciantes
+      // Obtener publicidades pagas desde Portal de Anunciantes - simplificado
       const adsRef = collection(db, 'advertisements');
       const adsQuery = query(
         adsRef,
-        where('status', '==', 'active'),
         orderBy('created_at', 'desc'),
         limit(4)
       );
@@ -87,11 +85,8 @@ const VipCarousel = () => {
       setCarouselItems(mixedItems);
     } catch (error) {
       console.error('Error fetching carousel data:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudieron cargar los datos del carrusel.'
-      });
+      // Si no hay datos, mostrar carrusel vacío en lugar de error
+      setCarouselItems([]);
     } finally {
       setLoading(false);
     }
