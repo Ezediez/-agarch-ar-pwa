@@ -659,7 +659,10 @@ const MyProfilePage = () => {
                                                 className="w-full h-16 md:h-20 object-cover rounded-lg hover:opacity-80 transition-opacity"
                                             />
                                             {editMode && (
-                                                <div className="absolute top-1 right-1">
+                                                <div 
+                                                    className="absolute top-1 right-1"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedPhotos.has(index)}
@@ -667,7 +670,8 @@ const MyProfilePage = () => {
                                                             e.stopPropagation();
                                                             togglePhotoSelection(index);
                                                         }}
-                                                        className="w-5 h-5 rounded border-2 border-white bg-black/50 text-red-500 focus:ring-red-500 focus:ring-2"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="w-5 h-5 rounded border-2 border-white bg-black/50 text-red-500 focus:ring-red-500 focus:ring-2 cursor-pointer"
                                                     />
                                                 </div>
                                             )}
@@ -714,7 +718,10 @@ const MyProfilePage = () => {
                                                 className="w-full h-16 md:h-20 object-cover rounded-lg hover:opacity-80 transition-opacity"
                                             />
                                             {editMode && (
-                                                <div className="absolute top-1 right-1">
+                                                <div 
+                                                    className="absolute top-1 right-1"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedVideos.has(index)}
@@ -722,7 +729,8 @@ const MyProfilePage = () => {
                                                             e.stopPropagation();
                                                             toggleVideoSelection(index);
                                                         }}
-                                                        className="w-5 h-5 rounded border-2 border-white bg-black/50 text-red-500 focus:ring-red-500 focus:ring-2"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="w-5 h-5 rounded border-2 border-white bg-black/50 text-red-500 focus:ring-red-500 focus:ring-2 cursor-pointer"
                                                     />
                                                 </div>
                                             )}
