@@ -656,7 +656,7 @@ const MyProfilePage = () => {
                                             <img
                                                 src={foto}
                                             alt={`Foto ${index + 1}`}
-                                                className="w-full h-24 md:h-32 object-cover rounded-lg hover:opacity-80 transition-opacity"
+                                                className="w-full h-16 md:h-20 object-cover rounded-lg hover:opacity-80 transition-opacity"
                                             />
                                             {editMode && (
                                                 <div className="absolute top-1 right-1">
@@ -711,7 +711,7 @@ const MyProfilePage = () => {
                                         <video
                                             src={video}
                                             controls
-                                                className="w-full h-24 md:h-32 object-cover rounded-lg"
+                                                className="w-full h-16 md:h-20 object-cover rounded-lg"
                                             />
                                             {editMode && (
                                                 <div className="absolute top-1 right-1">
