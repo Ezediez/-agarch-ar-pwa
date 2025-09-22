@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { Search, Heart, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,13 +10,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import DiscoverPage from './DiscoverPage';
 import { db, auth, storage } from '@/lib/firebase';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, addDoc, doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const SearchPage = () => {
   const { toast } = useToast();
-  const { profile: currentUserProfile } = useAuth();
+  const { profile: currentUserProfile, user } = useAuth();
+  const navigate = useNavigate();
   const [filters, setFilters] = useState({
     gender: 'todos',
     sexual_orientation: 'todos',
@@ -29,6 +31,7 @@ const SearchPage = () => {
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [likedProfiles, setLikedProfiles] = useState(new Set());
 
   const handleSearch = async () => {
     setLoading(true);
@@ -105,6 +108,60 @@ const SearchPage = () => {
     }
   };
 
+  const handleLikeProfile = async (profileId) => {
+    if (!user?.uid) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Debes estar autenticado para dar like",
+      });
+      return;
+    }
+
+    try {
+      // Verificar si ya existe el like
+      const likesRef = collection(db, 'user_likes');
+      const existingLikeQuery = query(
+        likesRef,
+        where('user_id', '==', user.uid),
+        where('liked_user_id', '==', profileId)
+      );
+      const existingLikeSnapshot = await getDocs(existingLikeQuery);
+      
+      if (existingLikeSnapshot.empty) {
+        // Crear nuevo like
+        await addDoc(likesRef, {
+          user_id: user.uid,
+          liked_user_id: profileId,
+          created_at: new Date()
+        });
+        
+        setLikedProfiles(prev => new Set([...prev, profileId]));
+        
+        toast({
+          title: "¡Like dado!",
+          description: "Has agregado este perfil a tus seguidos",
+        });
+      } else {
+        toast({
+          title: "Ya te gusta",
+          description: "Ya sigues a este perfil",
+        });
+      }
+    } catch (error) {
+      console.error('Error al dar like:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo dar like al perfil",
+      });
+    }
+  };
+
+  const handleViewProfile = (profileId) => {
+    navigate(`/profile/${profileId}`);
+  };
+
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
@@ -174,6 +231,30 @@ const SearchPage = () => {
                           {profile.bio && (
                             <p className="text-sm mt-1 line-clamp-2">{profile.bio}</p>
                           )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewProfile(profile.id)}
+                            className="bg-blue-500 hover:bg-blue-600 text-white border-blue-400"
+                          >
+                            <User className="w-4 h-4 mr-1" />
+                            Ver
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleLikeProfile(profile.id)}
+                            className={`${
+                              likedProfiles.has(profile.id)
+                                ? 'bg-red-500 hover:bg-red-600 text-white border-red-400'
+                                : 'bg-red-500 hover:bg-red-600 text-white border-red-400'
+                            }`}
+                          >
+                            <Heart className={`w-4 h-4 mr-1 ${likedProfiles.has(profile.id) ? 'fill-current' : ''}`} />
+                            {likedProfiles.has(profile.id) ? 'Liked' : 'Like'}
+                          </Button>
                         </div>
                       </div>
                     </motion.div>

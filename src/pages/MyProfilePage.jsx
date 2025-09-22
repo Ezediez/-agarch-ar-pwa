@@ -31,6 +31,8 @@ const MyProfilePage = () => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isLikesModalOpen, setIsLikesModalOpen] = useState(false);
     const [likedUsers, setLikedUsers] = useState([]);
+    const [selectedPhotos, setSelectedPhotos] = useState(new Set());
+    const [selectedVideos, setSelectedVideos] = useState(new Set());
 
     // Función para cargar usuarios seguidos (ANTES del useEffect)
     const loadLikedUsers = useCallback(async () => {
@@ -101,10 +103,16 @@ const MyProfilePage = () => {
                 
                 console.log('✅ Foto de perfil guardada en Firestore');
                 
-                // Forzar actualización del contexto de autenticación
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
+                // Actualizar el estado local inmediatamente
+                setProfile(prev => ({
+                    ...prev,
+                    profile_picture_url: url
+                }));
+                
+                // Actualizar el contexto de autenticación sin reload
+                if (refreshProfile) {
+                    refreshProfile();
+                }
                 
                 toast({ 
                     title: 'Foto de perfil actualizada', 
@@ -253,7 +261,88 @@ const MyProfilePage = () => {
     const handleCancel = useCallback(() => {
         setLocalProfileData(profile);
         setEditMode(false);
+        setSelectedPhotos(new Set());
+        setSelectedVideos(new Set());
     }, [profile]);
+
+    // Funciones para manejar selección múltiple
+    const togglePhotoSelection = (index) => {
+        const newSelected = new Set(selectedPhotos);
+        if (newSelected.has(index)) {
+            newSelected.delete(index);
+        } else {
+            newSelected.add(index);
+        }
+        setSelectedPhotos(newSelected);
+    };
+
+    const toggleVideoSelection = (index) => {
+        const newSelected = new Set(selectedVideos);
+        if (newSelected.has(index)) {
+            newSelected.delete(index);
+        } else {
+            newSelected.add(index);
+        }
+        setSelectedVideos(newSelected);
+    };
+
+    const handleDeleteSelectedPhotos = async () => {
+        if (selectedPhotos.size === 0) return;
+        
+        try {
+            const updatedPhotos = profile.fotos.filter((_, index) => !selectedPhotos.has(index));
+            setProfile(prev => ({ ...prev, fotos: updatedPhotos }));
+            setLocalProfileData(prev => ({ ...prev, fotos: updatedPhotos }));
+            
+            await updateDoc(doc(db, 'profiles', user.uid), {
+                fotos: updatedPhotos,
+                updatedAt: new Date()
+            });
+            
+            setSelectedPhotos(new Set());
+            
+            toast({
+                title: 'Fotos eliminadas',
+                description: `${selectedPhotos.size} foto(s) eliminada(s) exitosamente`
+            });
+        } catch (error) {
+            console.error('Error al eliminar fotos:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudieron eliminar las fotos'
+            });
+        }
+    };
+
+    const handleDeleteSelectedVideos = async () => {
+        if (selectedVideos.size === 0) return;
+        
+        try {
+            const updatedVideos = profile.videos.filter((_, index) => !selectedVideos.has(index));
+            setProfile(prev => ({ ...prev, videos: updatedVideos }));
+            setLocalProfileData(prev => ({ ...prev, videos: updatedVideos }));
+            
+            await updateDoc(doc(db, 'profiles', user.uid), {
+                videos: updatedVideos,
+                updatedAt: new Date()
+            });
+            
+            setSelectedVideos(new Set());
+            
+            toast({
+                title: 'Videos eliminados',
+                description: `${selectedVideos.size} video(s) eliminado(s) exitosamente`
+            });
+        } catch (error) {
+            console.error('Error al eliminar videos:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudieron eliminar los videos'
+            });
+        }
+    };
 
     // useEffect para cargar perfil inicial
     useEffect(() => {
@@ -424,7 +513,7 @@ const MyProfilePage = () => {
                             <CardTitle className="text-green-400 flex items-center justify-between">
                                 Información
                                 {editMode ? (
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 flex-wrap">
                                         <Button
                                             size="sm"
                                             onClick={handleCancel}
@@ -433,6 +522,28 @@ const MyProfilePage = () => {
                                             <X className="w-4 h-4 mr-2" />
                                             Cancelar
                                         </Button>
+                                        {selectedPhotos.size > 0 && (
+                                            <Button
+                                                variant="destructive"
+                                                size="sm"
+                                                onClick={handleDeleteSelectedPhotos}
+                                                className="bg-red-500 hover:bg-red-600 text-white"
+                                            >
+                                                <X className="w-4 h-4 mr-1" />
+                                                Eliminar Fotos ({selectedPhotos.size})
+                                            </Button>
+                                        )}
+                                        {selectedVideos.size > 0 && (
+                                            <Button
+                                                variant="destructive"
+                                                size="sm"
+                                                onClick={handleDeleteSelectedVideos}
+                                                className="bg-red-500 hover:bg-red-600 text-white"
+                                            >
+                                                <X className="w-4 h-4 mr-1" />
+                                                Eliminar Videos ({selectedVideos.size})
+                                            </Button>
+                                        )}
                                         <Button
                                             size="sm"
                                             onClick={handleSave}
@@ -541,29 +652,26 @@ const MyProfilePage = () => {
                         </CardHeader>
                         <CardContent>
                             {profile.fotos && profile.fotos.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                                     {profile.fotos.map((foto, index) => (
-                                        <div key={index} className="relative group">
+                                        <div key={index} className="relative group cursor-pointer" onClick={() => window.open(foto, '_blank')}>
                                             <img
                                                 src={foto}
                                                 alt={`Foto ${index + 1}`}
-                                                className="w-full h-48 object-cover rounded-lg"
+                                                className="w-full h-24 md:h-32 object-cover rounded-lg hover:opacity-80 transition-opacity"
                                             />
                                             {editMode && (
-                                                <button
-                                                    onClick={() => {
-                                                        const updatedPhotos = profile.fotos.filter((_, i) => i !== index);
-                                                        setProfile(prev => ({ ...prev, fotos: updatedPhotos }));
-                                                        setLocalProfileData(prev => ({ ...prev, fotos: updatedPhotos }));
-                                                        updateDoc(doc(db, 'profiles', user.uid), {
-                                                            fotos: updatedPhotos,
-                                                            updatedAt: new Date()
-                                                        });
-                                                    }}
-                                                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                                                >
-                                                    <X className="w-3 h-3" />
-                                                </button>
+                                                <div className="absolute top-1 right-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedPhotos.has(index)}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            togglePhotoSelection(index);
+                                                        }}
+                                                        className="w-5 h-5 rounded border-2 border-white bg-black/50 text-red-500 focus:ring-red-500 focus:ring-2"
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                     ))}
@@ -599,29 +707,26 @@ const MyProfilePage = () => {
                         </CardHeader>
                         <CardContent>
                             {profile.videos && profile.videos.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                     {profile.videos.map((video, index) => (
                                         <div key={index} className="relative group">
                                             <video
                                                 src={video}
                                                 controls
-                                                className="w-full h-48 object-cover rounded-lg"
+                                                className="w-full h-24 md:h-32 object-cover rounded-lg"
                                             />
                                             {editMode && (
-                                                <button
-                                                    onClick={() => {
-                                                        const updatedVideos = profile.videos.filter((_, i) => i !== index);
-                                                        setProfile(prev => ({ ...prev, videos: updatedVideos }));
-                                                        setLocalProfileData(prev => ({ ...prev, videos: updatedVideos }));
-                                                        updateDoc(doc(db, 'profiles', user.uid), {
-                                                            videos: updatedVideos,
-                                                            updatedAt: new Date()
-                                                        });
-                                                    }}
-                                                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                                                >
-                                                    <X className="w-3 h-3" />
-                                                </button>
+                                                <div className="absolute top-1 right-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedVideos.has(index)}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleVideoSelection(index);
+                                                        }}
+                                                        className="w-5 h-5 rounded border-2 border-white bg-black/50 text-red-500 focus:ring-red-500 focus:ring-2"
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                     ))}
