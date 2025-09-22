@@ -9,6 +9,8 @@ import PostCard from '@/components/discover/PostCard';
 import CreatePost from '@/components/discover/CreatePost';
 import Stories from '@/components/discover/Stories';
 import AdCard from '@/components/discover/AdCard';
+import VipCarousel from '@/components/feed/VipCarousel';
+import PublicationsFeed from '@/components/feed/PublicationsFeed';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -226,118 +228,33 @@ const DiscoverPage = () => {
             </div>
           </div>
 
-          {/* Banner Principal */}
+          {/* Search Bar */}
           <div className="p-4">
-            <Card className="bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 border-0 shadow-lg">
-              <CardContent className="p-6 text-center text-white">
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Sparkles className="w-6 h-6" />
-                  <h2 className="text-xl font-bold">¡Bienvenido a AGARCH-AR!</h2>
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <p className="text-white/90 mb-4 text-sm">
-                  Conéctate con personas afines, cerca tuyo y con ganas de hacer lo mismo que vos. 
-                  Sin compromisos, sin ataduras. Solo disfruta el momento, que ¡ES AHORA!
-                </p>
-                <div className="flex gap-2 justify-center">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-                  >
-                    <Users className="w-4 h-4 mr-1" />
-                    Descubrir
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-                  >
-                    <Heart className="w-4 h-4 mr-1" />
-                    Conectar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex items-center gap-3 bg-muted/50 rounded-full px-4 py-3">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-sm font-medium text-primary">
+                  {user?.email?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              </div>
+              <span className="text-muted-foreground flex-1">¿Qué estás buscando?</span>
+              <Button size="sm" variant="ghost" className="text-primary">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
+              </Button>
+            </div>
           </div>
 
-          {/* Stories */}
-          <Stories />
+          {/* Carrusel VIP/Publicidades/Historias */}
+          <VipCarousel />
 
           {/* Create Post */}
           <div className="p-4">
             <CreatePost onPostCreated={handleRefresh} />
           </div>
 
-          {/* Ads */}
-          {ads.length > 0 && (
-            <div className="px-4 mb-4">
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">Anuncios</h3>
-              <div className="space-y-2">
-                {ads.map(ad => (
-                  <AdCard key={ad.id} ad={ad} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Posts */}
-          <div className="px-4 pb-20">
-            {loading && posts.length === 0 ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                <span className="ml-2">Cargando posts...</span>
-              </div>
-            ) : error ? (
-              <div className="text-center py-8">
-                <WifiOff className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Error de conexión</h3>
-                <p className="text-muted-foreground mb-4">{error}</p>
-                <Button onClick={handleRefresh} variant="outline">
-                  Intentar nuevamente
-                </Button>
-              </div>
-            ) : posts.length === 0 ? (
-              <div className="text-center py-8">
-                <Frown className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No hay posts</h3>
-                <p className="text-muted-foreground">Sé el primero en crear contenido.</p>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4">
-                  {posts.map((post) => (
-                    <PostCard 
-                      key={post.id} 
-                      post={post} 
-                      onLike={() => handleRefresh()}
-                      onComment={() => handleRefresh()}
-                    />
-                  ))}
-                </div>
-
-                {/* Load More */}
-                {hasMore && (
-                  <div className="flex justify-center py-4">
-                    <Button
-                      variant="outline"
-                      onClick={handleLoadMore}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Cargando...
-                        </>
-                      ) : (
-                        'Cargar más'
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+          {/* Feed Principal de Publicaciones */}
+          <PublicationsFeed />
         </div>
       </div>
     </>

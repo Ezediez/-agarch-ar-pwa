@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, Edit, Save, X, Loader2, Video, Image as ImageIcon } from 'lucide-react';
+import { Camera, Edit, Save, X, Loader2, Video, Image as ImageIcon, Sparkles } from 'lucide-react';
+import CreateStoryModal from './CreateStoryModal';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,6 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu.jsx";
 
 const ProfileActions = ({ editMode, onEditToggle, onSave, onOpenUploadModal, saveLoading }) => {
+  const [showStoryModal, setShowStoryModal] = useState(false);
+
   return (
     <motion.div
       className="mt-6 flex flex-wrap gap-2 justify-center w-full"
@@ -77,9 +80,20 @@ const ProfileActions = ({ editMode, onEditToggle, onSave, onOpenUploadModal, sav
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
+
+            <DropdownMenuItem onClick={() => setShowStoryModal(true)}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              <span>Crear Historia</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+
+      {/* Modal de crear historia */}
+      <CreateStoryModal
+        isOpen={showStoryModal}
+        onClose={() => setShowStoryModal(false)}
+      />
     </motion.div>
   );
 };
