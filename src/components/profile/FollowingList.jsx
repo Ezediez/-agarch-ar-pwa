@@ -13,17 +13,6 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
   const [following, setFollowing] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    console.log('🔍 FollowingList - Usuario:', user?.uid);
-    if (user?.uid) {
-      fetchFollowing();
-    } else {
-      console.log('🔍 FollowingList - No hay usuario autenticado');
-      setFollowing([]);
-      setLoading(false);
-    }
-  }, [user?.uid]); // Solo depende del usuario autenticado
-
   const fetchFollowing = async () => {
     try {
       setLoading(true);
@@ -82,6 +71,17 @@ const FollowingList = ({ followingIds = [], isOwnProfile = false }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    console.log('🔍 FollowingList - Usuario:', user?.uid);
+    if (user?.uid) {
+      fetchFollowing();
+    } else {
+      console.log('🔍 FollowingList - No hay usuario autenticado');
+      setFollowing([]);
+      setLoading(false);
+    }
+  }, [user?.uid]); // Solo depende del usuario autenticado
 
   const handleUnfollow = async (profileId) => {
     try {
