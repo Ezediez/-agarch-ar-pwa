@@ -14,9 +14,9 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        entryFileNames: `assets/[name]-2025-09-21-23-45.js`,
-        chunkFileNames: `assets/[name]-2025-09-21-23-45.js`,
-        assetFileNames: `assets/[name]-2025-09-21-23-45.[ext]`,
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
+        assetFileNames: `assets/[name]-[hash].[ext]`,
         manualChunks: {
           vendor: ['react', 'react-dom'],
           firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage']
