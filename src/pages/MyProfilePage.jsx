@@ -101,6 +101,11 @@ const MyProfilePage = () => {
                 
                 console.log('✅ Foto de perfil guardada en Firestore');
                 
+                // Forzar actualización del contexto de autenticación
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+                
                 toast({ 
                     title: 'Foto de perfil actualizada', 
                     description: 'Tu foto de perfil se ha actualizado correctamente' 
@@ -252,55 +257,54 @@ const MyProfilePage = () => {
 
     // useEffect para cargar perfil inicial
     useEffect(() => {
-        console.log('🔄 useEffect MyProfilePage - ownProfile:', ownProfile, 'user:', user);
+        console.log('🔄 useEffect MyProfilePage - ownProfile:', ownProfile?.id, 'user:', user?.uid);
         
-        if (user?.uid) {
+        if (user?.uid && ownProfile) {
             console.log('🔄 Usuario autenticado:', user.uid);
+            console.log('🔄 Perfil encontrado:', ownProfile.id);
             
-            if (ownProfile) {
-                console.log('🔄 Perfil encontrado:', ownProfile);
-                const completeProfile = {
-                    ...ownProfile,
-                    alias: ownProfile.alias || 'Usuario',
-                    descripcion: ownProfile.descripcion || '',
-                    genero: ownProfile.genero || '',
-                    edad: ownProfile.edad || '',
-                    ubicacion: ownProfile.ubicacion || 'Ubicación no especificada',
-                    fotos: ownProfile.fotos || [],
-                    videos: ownProfile.videos || [],
-                    profile_picture_url: ownProfile.profile_picture_url || '/pwa-512x512.png'
-                };
-                
-                if (!profile || profile.id !== completeProfile.id) {
-                    setProfile(completeProfile);
-                    setLocalProfileData(completeProfile);
-                }
-                setPageLoading(false);
-                console.log('✅ Mi perfil cargado:', completeProfile.alias);
-            } else {
-                console.log('⚠️ Perfil no encontrado, creando perfil básico');
-                const basicProfile = {
-                    id: user.uid,
-                    alias: user.email?.split('@')[0] || 'Usuario',
-                    email: user.email,
-                    descripcion: '',
-                    genero: '',
-                    edad: '',
-                    ubicacion: 'Ubicación no especificada',
-                    fotos: [],
-                    videos: [],
-                    profile_picture_url: '/pwa-512x512.png'
-                };
-                setProfile(basicProfile);
-                setLocalProfileData(basicProfile);
-                setPageLoading(false);
-                console.log('✅ Perfil básico creado:', basicProfile.alias);
+            const completeProfile = {
+                ...ownProfile,
+                alias: ownProfile.alias || 'Usuario',
+                descripcion: ownProfile.descripcion || '',
+                genero: ownProfile.genero || '',
+                edad: ownProfile.edad || '',
+                ubicacion: ownProfile.ubicacion || 'Ubicación no especificada',
+                fotos: ownProfile.fotos || [],
+                videos: ownProfile.videos || [],
+                profile_picture_url: ownProfile.profile_picture_url || '/pwa-512x512.png'
+            };
+            
+            // Solo actualizar si el perfil es diferente
+            if (!profile || profile.id !== completeProfile.id) {
+                setProfile(completeProfile);
+                setLocalProfileData(completeProfile);
             }
-        } else {
+            setPageLoading(false);
+            console.log('✅ Mi perfil cargado:', completeProfile.alias);
+        } else if (user?.uid && !ownProfile) {
+            console.log('⚠️ Perfil no encontrado, creando perfil básico');
+            const basicProfile = {
+                id: user.uid,
+                alias: user.email?.split('@')[0] || 'Usuario',
+                email: user.email,
+                descripcion: '',
+                genero: '',
+                edad: '',
+                ubicacion: 'Ubicación no especificada',
+                fotos: [],
+                videos: [],
+                profile_picture_url: '/pwa-512x512.png'
+            };
+            setProfile(basicProfile);
+            setLocalProfileData(basicProfile);
+            setPageLoading(false);
+            console.log('✅ Perfil básico creado:', basicProfile.alias);
+        } else if (!user?.uid) {
             console.log('❌ No hay usuario autenticado');
             setPageLoading(false);
         }
-    }, [ownProfile, user]);
+    }, [user?.uid, ownProfile?.id]); // Solo dependencias esenciales
 
     // useEffect para cargar usuarios seguidos
     useEffect(() => {
@@ -571,22 +575,20 @@ const MyProfilePage = () => {
                                 </div>
                             )}
                             
-                            {editMode && (
-                                <div className="flex gap-2 justify-center mt-4">
-                                    <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={false} uploading={uploading}>
-                                        <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
-                                            <Upload className="w-4 h-4 mr-1" />
-                                            Galería
-                                        </Button>
-                                    </ImageUploader>
-                                    <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={true} uploading={uploading}>
-                                        <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
-                                            <Camera className="w-4 h-4 mr-1" />
-                                            Cámara
-                                        </Button>
-                                    </ImageUploader>
-                                </div>
-                            )}
+                            <div className="flex gap-2 justify-center mt-4">
+                                <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={false} uploading={uploading}>
+                                    <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
+                                        <Upload className="w-4 h-4 mr-1" />
+                                        Galería
+                                    </Button>
+                                </ImageUploader>
+                                <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={true} uploading={uploading}>
+                                    <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
+                                        <Camera className="w-4 h-4 mr-1" />
+                                        Cámara
+                                    </Button>
+                                </ImageUploader>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -631,22 +633,20 @@ const MyProfilePage = () => {
                                 </div>
                             )}
                             
-                            {editMode && (
-                                <div className="flex gap-2 justify-center mt-4">
-                                    <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={false} uploading={uploading} progress={progress}>
-                                        <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
-                                            <Video className="w-4 h-4 mr-1" />
-                                            Galería
-                                        </Button>
-                                    </VideoUploader>
-                                    <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={true} uploading={uploading} progress={progress}>
-                                        <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
-                                            <Camera className="w-4 h-4 mr-1" />
-                                            Grabar
-                                        </Button>
-                                    </VideoUploader>
-                                </div>
-                            )}
+                            <div className="flex gap-2 justify-center mt-4">
+                                <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={false} uploading={uploading} progress={progress}>
+                                    <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
+                                        <Video className="w-4 h-4 mr-1" />
+                                        Galería
+                                    </Button>
+                                </VideoUploader>
+                                <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={true} uploading={uploading} progress={progress}>
+                                    <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
+                                        <Camera className="w-4 h-4 mr-1" />
+                                        Grabar
+                                    </Button>
+                                </VideoUploader>
+                            </div>
                         </CardContent>
                     </Card>
 
