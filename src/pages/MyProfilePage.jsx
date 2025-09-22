@@ -707,11 +707,11 @@ const MyProfilePage = () => {
                         {profile.videos && profile.videos.length > 0 ? (
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                 {profile.videos.map((video, index) => (
-                                    <div key={index} className="relative group">
+                                    <div key={index} className="relative group cursor-pointer" onClick={() => window.open(video, '_blank')}>
                                         <video
                                             src={video}
                                             controls
-                                                className="w-full h-16 md:h-20 object-cover rounded-lg"
+                                                className="w-full h-16 md:h-20 object-cover rounded-lg hover:opacity-80 transition-opacity"
                                             />
                                             {editMode && (
                                                 <div className="absolute top-1 right-1">
