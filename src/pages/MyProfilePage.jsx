@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import FollowingList from '@/components/profile/FollowingList';
 import UploadModal from '@/components/profile/UploadModal';
-import { Loader2, Edit3, Save, X, MessageSquare, Camera, Upload, Video, Heart } from 'lucide-react';
+import { Loader2, Edit3, Save, X, MessageSquare, Camera, Upload, Video, Heart, MapPin } from 'lucide-react';
 import { useUploader } from '@/hooks/useUploader';
 import ImageUploader from '@/components/ImageUploader';
 import VideoUploader from '@/components/VideoUploader';
@@ -49,7 +49,7 @@ const MyProfilePage = () => {
             const likedUserIds = snapshot.docs.map(doc => doc.data().liked_user_id);
             
             console.log('🔍 MyProfilePage - Usuarios seguidos encontrados:', likedUserIds);
-            setLikedUsers(likedUserIds);
+                setLikedUsers(likedUserIds);
             
             console.log('✅ Usuarios liked cargados:', likedUserIds.length);
         } catch (error) {
@@ -174,12 +174,12 @@ const MyProfilePage = () => {
                         fotos: updatedPhotos
                     }));
                     
-                    await updateDoc(doc(db, 'profiles', user.uid), {
-                        fotos: updatedPhotos,
-                        updatedAt: new Date()
-                    });
+                        await updateDoc(doc(db, 'profiles', user.uid), {
+                            fotos: updatedPhotos,
+                            updatedAt: new Date()
+                        });
                     
-                    console.log('✅ Fotos guardadas en Firestore');
+                        console.log('✅ Fotos guardadas en Firestore');
                     
                     toast({ 
                         title: 'Foto agregada', 
@@ -199,12 +199,12 @@ const MyProfilePage = () => {
                         videos: updatedVideos
                     }));
                     
-                    await updateDoc(doc(db, 'profiles', user.uid), {
-                        videos: updatedVideos,
-                        updatedAt: new Date()
-                    });
+                        await updateDoc(doc(db, 'profiles', user.uid), {
+                            videos: updatedVideos,
+                            updatedAt: new Date()
+                        });
                     
-                    console.log('✅ Videos guardados en Firestore');
+                        console.log('✅ Videos guardados en Firestore');
                     
                     toast({ 
                         title: 'Video agregado', 
@@ -437,79 +437,79 @@ const MyProfilePage = () => {
                 <title>Mi Perfil - AGARCH-AR</title>
                 <meta name="description" content="Gestiona tu perfil en AGARCH-AR" />
             </Helmet>
-
+            
             <div className="min-h-screen bg-background">
                 <div className="container mx-auto px-4 py-6 max-w-4xl">
                     
                     {/* Header del perfil */}
-                    <div className="relative">
-                        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
-                            <div className="flex flex-col items-center space-y-4">
+                <div className="relative">
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
+                        <div className="flex flex-col items-center space-y-4">
                                 {/* Avatar circular */}
-                                <div className="relative">
-                                    <div className="w-24 h-24 rounded-full border-4 border-green-400 overflow-hidden bg-gradient-to-br from-green-400 to-red-400 flex items-center justify-center">
-                                        <img 
-                                            src={profile.profile_picture_url} 
-                                            alt="Foto de perfil"
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                                e.target.src = '/pwa-512x512.png';
-                                            }}
-                                        />
-                                    </div>
-                                    {editMode && (
-                                        <button
-                                            onClick={() => setIsUploadModalOpen(true)}
-                                            className="absolute -bottom-1 -right-1 bg-green-500 text-white rounded-full p-1 hover:bg-green-600 transition-colors"
-                                        >
-                                            <Edit3 className="w-4 h-4" />
-                                        </button>
-                                    )}
+                            <div className="relative">
+                                <div className="w-24 h-24 rounded-full border-4 border-green-400 overflow-hidden bg-gradient-to-br from-green-400 to-red-400 flex items-center justify-center">
+                                    <img 
+                                        src={profile.profile_picture_url} 
+                                        alt="Foto de perfil"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.target.src = '/pwa-512x512.png';
+                                        }}
+                                    />
                                 </div>
-                                
+                                {editMode && (
+                                    <button
+                                        onClick={() => setIsUploadModalOpen(true)}
+                                        className="absolute -bottom-1 -right-1 bg-green-500 text-white rounded-full p-1 hover:bg-green-600 transition-colors"
+                                    >
+                                        <Edit3 className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                            
                                 {/* Nombre */}
-                                <div className="text-center">
-                                    <h1 className="text-2xl font-bold">
-                                        <span className="text-green-300">{profile.alias?.split(' ')[0] || profile.alias}</span>
-                                        <span className="text-red-300">{profile.alias?.split(' ')[1] || ''}</span>
-                                    </h1>
-                                    <p className="text-gray-300 text-sm">
-                                        {profile.ubicacion}
-                                    </p>
-                                </div>
-                                
+                            <div className="text-center">
+                                <h1 className="text-2xl font-bold">
+                                    <span className="text-green-300">{profile.alias?.split(' ')[0] || profile.alias}</span>
+                                    <span className="text-red-300">{profile.alias?.split(' ')[1] || ''}</span>
+                                </h1>
+                                <p className="text-gray-300 text-sm">
+                                    {profile.ubicacion}
+                                </p>
+                            </div>
+                            
                                 {/* Botones de acción */}
-                                <div className="flex gap-2 w-full justify-center max-w-sm mx-auto">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => navigate('/chats')}
-                                        className="flex-1 bg-white hover:bg-gray-100 text-gray-800 border-gray-300 text-xs"
-                                    >
-                                        <MessageSquare className="w-4 h-4 mr-1" />
-                                        Mensajes
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => navigate('/create-post')}
-                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white border-blue-400 text-xs"
-                                    >
-                                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                                        </svg>
-                                        Crear
-                                    </Button>
-                                </div>
+                            <div className="flex gap-2 w-full justify-center max-w-sm mx-auto">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => navigate('/chats')}
+                                    className="flex-1 bg-white hover:bg-gray-100 text-gray-800 border-gray-300 text-xs"
+                                >
+                                    <MessageSquare className="w-4 h-4 mr-1" />
+                                    Mensajes
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => navigate('/create-post')}
+                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white border-blue-400 text-xs"
+                                >
+                                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                    Crear
+                                </Button>
                             </div>
                         </div>
                     </div>
+                </div>
 
                     {/* Información del perfil */}
                     <Card className="bg-gray-800 border-gray-700 mt-6">
-                        <CardHeader className="pb-3">
+                    <CardHeader className="pb-3">
                             <CardTitle className="text-green-400 flex items-center justify-between">
-                                Información
+                            Información
                                 {editMode ? (
                                     <div className="flex gap-2 flex-wrap">
                                         <Button
@@ -565,55 +565,55 @@ const MyProfilePage = () => {
                                         <Edit3 className="w-4 h-4 mr-2" />
                                         Editar
                                     </Button>
-                                )}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <label className="text-green-400 font-medium block mb-1">Sobre mí</label>
-                                {editMode ? (
-                                    <textarea
-                                        value={localProfileData?.descripcion || ''}
-                                        onChange={(e) => handleInputChange('descripcion', e.target.value)}
-                                        className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
-                                        placeholder="Cuéntanos sobre ti..."
-                                    />
-                                ) : (
-                                    <p className="text-white mt-1">
-                                        {profile.descripcion || 'Usuario de AGARCH-AR 👋'}
-                                    </p>
-                                )}
-                            </div>
-                            
-                            <div>
-                                <label className="text-green-400 font-medium block mb-1">Género</label>
-                                {editMode ? (
-                                    <select
-                                        value={localProfileData?.genero || ''}
-                                        onChange={(e) => handleInputChange('genero', e.target.value)}
-                                        className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
-                                    >
-                                        <option value="">Seleccionar género</option>
-                                        <option value="hombre">Hombre</option>
-                                        <option value="mujer">Mujer</option>
-                                        <option value="otro">Otro</option>
-                                    </select>
-                                ) : (
-                                    <p className="text-white mt-1">
+                            )}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <label className="text-green-400 font-medium block mb-1">Sobre mí</label>
+                            {editMode ? (
+                                <textarea
+                                    value={localProfileData?.descripcion || ''}
+                                    onChange={(e) => handleInputChange('descripcion', e.target.value)}
+                                    className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
+                                    placeholder="Cuéntanos sobre ti..."
+                                />
+                            ) : (
+                                <p className="text-white mt-1">
+                                    {profile.descripcion || 'Usuario de AGARCH-AR 👋'}
+                                </p>
+                            )}
+                        </div>
+                        
+                        <div>
+                            <label className="text-green-400 font-medium block mb-1">Género</label>
+                            {editMode ? (
+                                <select
+                                    value={localProfileData?.genero || ''}
+                                    onChange={(e) => handleInputChange('genero', e.target.value)}
+                                    className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
+                                >
+                                    <option value="">Seleccionar género</option>
+                                    <option value="hombre">Hombre</option>
+                                    <option value="mujer">Mujer</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            ) : (
+                                <p className="text-white mt-1">
                                         {profile.genero || 'No especificado'}
-                                    </p>
-                                )}
-                            </div>
-                            
-                            <div>
-                                <label className="text-green-400 font-medium block mb-1">Edad</label>
-                                {editMode ? (
-                                    <input
-                                        type="number"
-                                        value={localProfileData?.edad || ''}
-                                        onChange={(e) => handleInputChange('edad', e.target.value)}
-                                        className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
-                                        placeholder="Tu edad"
+                                </p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="text-green-400 font-medium block mb-1">Edad</label>
+                            {editMode ? (
+                                <input
+                                    type="number"
+                                    value={localProfileData?.edad || ''}
+                                    onChange={(e) => handleInputChange('edad', e.target.value)}
+                                    className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
+                                    placeholder="Tu edad"
                                         min="18"
                                         max="100"
                                     />
@@ -633,29 +633,29 @@ const MyProfilePage = () => {
                                         onChange={(e) => handleInputChange('ubicacion', e.target.value)}
                                         className="w-full mt-1 p-2 border rounded-lg bg-white text-black"
                                         placeholder="Tu ubicación"
-                                    />
-                                ) : (
-                                    <p className="text-white mt-1">
+                                />
+                            ) : (
+                                <p className="text-white mt-1">
                                         {profile.ubicacion || 'Ubicación no especificada'}
-                                    </p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
+                                </p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
 
                     {/* Galería de fotos */}
                     <Card className="bg-gray-800 border-gray-700 mt-6">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="text-green-400">Galería de Fotos</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {profile.fotos && profile.fotos.length > 0 ? (
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-green-400">Galería de Fotos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {profile.fotos && profile.fotos.length > 0 ? (
                                 <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                                     {profile.fotos.map((foto, index) => (
                                         <div key={index} className="relative group cursor-pointer" onClick={() => window.open(foto, '_blank')}>
                                             <img
                                                 src={foto}
-                                                alt={`Foto ${index + 1}`}
+                                            alt={`Foto ${index + 1}`}
                                                 className="w-full h-24 md:h-32 object-cover rounded-lg hover:opacity-80 transition-opacity"
                                             />
                                             {editMode && (
@@ -671,46 +671,46 @@ const MyProfilePage = () => {
                                                     />
                                                 </div>
                                             )}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-8 text-gray-400">
-                                    <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                    <p className="mb-4">Aún no has subido fotos a tu perfil.</p>
-                                </div>
-                            )}
-                            
-                            <div className="flex gap-2 justify-center mt-4">
-                                <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={false} uploading={uploading}>
-                                    <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
-                                        <Upload className="w-4 h-4 mr-1" />
-                                        Galería
-                                    </Button>
-                                </ImageUploader>
-                                <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={true} uploading={uploading}>
-                                    <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
-                                        <Camera className="w-4 h-4 mr-1" />
-                                        Cámara
-                                    </Button>
-                                </ImageUploader>
+                                    </div>
+                                ))}
                             </div>
-                        </CardContent>
-                    </Card>
+                        ) : (
+                            <div className="text-center py-8 text-gray-400">
+                                <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <p className="mb-4">Aún no has subido fotos a tu perfil.</p>
+                            </div>
+                        )}
+                        
+                        <div className="flex gap-2 justify-center mt-4">
+                            <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={false} uploading={uploading}>
+                                <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
+                                    <Upload className="w-4 h-4 mr-1" />
+                                    Galería
+                                </Button>
+                            </ImageUploader>
+                            <ImageUploader onUploadSuccess={(file) => handleFilesUpload(file, 'photos')} useCamera={true} uploading={uploading}>
+                                <Button variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-green-400">
+                                    <Camera className="w-4 h-4 mr-1" />
+                                    Cámara
+                                </Button>
+                            </ImageUploader>
+                        </div>
+                    </CardContent>
+                </Card>
 
                     {/* Galería de videos */}
                     <Card className="bg-gray-800 border-gray-700 mt-6">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="text-green-400">Galería de Videos</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {profile.videos && profile.videos.length > 0 ? (
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-green-400">Galería de Videos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {profile.videos && profile.videos.length > 0 ? (
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                    {profile.videos.map((video, index) => (
-                                        <div key={index} className="relative group">
-                                            <video
-                                                src={video}
-                                                controls
+                                {profile.videos.map((video, index) => (
+                                    <div key={index} className="relative group">
+                                        <video
+                                            src={video}
+                                            controls
                                                 className="w-full h-24 md:h-32 object-cover rounded-lg"
                                             />
                                             {editMode && (
@@ -726,59 +726,62 @@ const MyProfilePage = () => {
                                                     />
                                                 </div>
                                             )}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-8 text-gray-400">
-                                    <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                    <p className="mb-4">Aún no has subido videos a tu perfil.</p>
-                                </div>
-                            )}
-                            
-                            <div className="flex gap-2 justify-center mt-4">
-                                <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={false} uploading={uploading} progress={progress}>
-                                    <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
-                                        <Video className="w-4 h-4 mr-1" />
-                                        Galería
-                                    </Button>
-                                </VideoUploader>
-                                <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={true} uploading={uploading} progress={progress}>
-                                    <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
-                                        <Camera className="w-4 h-4 mr-1" />
-                                        Grabar
-                                    </Button>
-                                </VideoUploader>
+                                    </div>
+                                ))}
                             </div>
-                        </CardContent>
-                    </Card>
+                        ) : (
+                            <div className="text-center py-8 text-gray-400">
+                                <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <p className="mb-4">Aún no has subido videos a tu perfil.</p>
+                            </div>
+                        )}
+                        
+                        <div className="flex gap-2 justify-center mt-4">
+                            <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={false} uploading={uploading} progress={progress}>
+                                <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
+                                    <Video className="w-4 h-4 mr-1" />
+                                    Galería
+                                </Button>
+                            </VideoUploader>
+                            <VideoUploader onUploadSuccess={(file) => handleFilesUpload(file, 'videos')} useCamera={true} uploading={uploading} progress={progress}>
+                                <Button variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-red-400">
+                                    <Camera className="w-4 h-4 mr-1" />
+                                    Grabar
+                                </Button>
+                            </VideoUploader>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                    {/* Lista de seguidos */}
+                {/* Lista de seguidos */}
                     <FollowingList isOwnProfile={true} />
 
-                    {/* Botón para Modal "Mis Likes" */}
-                    <Card className="bg-gradient-to-r from-red-500 to-pink-500 border-red-400 border-2 mt-6">
-                        <CardContent className="p-4 text-center">
-                            <div className="flex items-center justify-center gap-3 mb-3">
-                                <Heart className="w-8 h-8 text-white" />
+                    {/* Botón para Filtrar Perfiles Cercanos */}
+                    <Card className="bg-gradient-to-r from-blue-500 to-purple-500 border-blue-400 border-2 mt-6">
+                    <CardContent className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-3 mb-3">
+                                <MapPin className="w-6 h-6 text-white" />
                                 <span className="text-white text-lg font-semibold">
-                                    Mis Likes ({likedUsers.length})
+                                    Buscar Perfiles
                                 </span>
-                            </div>
-                            <p className="text-gray-400 text-sm">
-                                Los perfiles que sigues aparecen arriba en la lista
-                            </p>
-                        </CardContent>
-                    </Card>
+                        </div>
+                        <Button
+                                onClick={() => navigate('/search?filter=nearby')}
+                                className="w-full bg-white text-blue-600 hover:bg-gray-100 font-medium"
+                        >
+                                Más Cercanos
+                        </Button>
+                    </CardContent>
+                </Card>
 
-                    {/* Modal de subida */}
-                    <UploadModal
-                        isOpen={isUploadModalOpen}
-                        onClose={() => setIsUploadModalOpen(false)}
-                        onUpload={handleFilesUpload}
+                {/* Modal de subida */}
+                <UploadModal
+                    isOpen={isUploadModalOpen}
+                    onClose={() => setIsUploadModalOpen(false)}
+                    onUpload={handleFilesUpload}
                         onProfilePictureUpload={handleUpdateProfilePicture}
-                        uploading={uploading}
-                        progress={progress}
+                    uploading={uploading}
+                    progress={progress}
                         modalType="profile"
                     />
 
