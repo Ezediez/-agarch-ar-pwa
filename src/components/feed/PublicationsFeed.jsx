@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, where } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
-import { useNotificationManager } from '@/hooks/useNotificationManager.jsx';
+import { useToast } from '@/components/ui/use-toast.jsx';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Frown, MoreHorizontal, Heart, MessageCircle, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import AdFeedCard from '@/components/feed/AdFeedCard';
 
 const PublicationsFeed = () => {
   const { user } = useAuth();
-  const { toast } = useNotificationManager();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [publications, setPublications] = useState([]);
   const [ads, setAds] = useState([]);
