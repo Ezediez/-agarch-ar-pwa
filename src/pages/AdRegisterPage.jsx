@@ -114,19 +114,27 @@ const AdRegisterPage = () => {
     } catch (error) {
       console.error('Error creating advertiser account:', error);
       let errorMessage = 'Error al crear la cuenta. Inténtalo de nuevo.';
+      let errorTitle = 'Error';
       
       if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'Este email ya está registrado.';
+        errorTitle = 'Email ya registrado';
+        errorMessage = 'Este email ya está en uso. Por favor, usa un email diferente o intenta iniciar sesión.';
       } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'El email no es válido.';
+        errorTitle = 'Email inválido';
+        errorMessage = 'El formato del email no es válido. Por favor, verifica tu email.';
       } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'La contraseña es muy débil.';
+        errorTitle = 'Contraseña débil';
+        errorMessage = 'La contraseña debe tener al menos 6 caracteres. Por favor, elige una contraseña más segura.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorTitle = 'Operación no permitida';
+        errorMessage = 'El registro está temporalmente deshabilitado. Contacta al administrador.';
       }
       
       toast({
         variant: "destructive",
-        title: "Error",
+        title: errorTitle,
         description: errorMessage,
+        duration: 8000, // Mostrar más tiempo para que el usuario lea el mensaje
       });
     } finally {
       setLoading(false);
@@ -319,7 +327,13 @@ const AdRegisterPage = () => {
                         onChange={(e) => updateFormData('password', e.target.value)}
                         placeholder="Mínimo 6 caracteres"
                         required
+                        minLength={6}
                       />
+                      {formData.password && formData.password.length < 6 && (
+                        <p className="text-sm text-red-500 mt-1">
+                          La contraseña debe tener al menos 6 caracteres
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -332,6 +346,11 @@ const AdRegisterPage = () => {
                         placeholder="Repetir contraseña"
                         required
                       />
+                      {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                        <p className="text-sm text-red-500 mt-1">
+                          Las contraseñas no coinciden
+                        </p>
+                      )}
                     </div>
                   </div>
 
