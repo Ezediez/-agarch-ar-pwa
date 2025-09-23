@@ -126,9 +126,18 @@ const AdRegisterPage = () => {
     setLoading(true);
 
     try {
+      console.log('🔄 Intentando crear usuario con:', {
+        email: formData.email,
+        passwordLength: formData.password.length,
+        telefono: formData.telefono_comercial,
+        codigoPais: formData.codigo_pais
+      });
+
       // Crear usuario en Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
+      
+      console.log('✅ Usuario creado exitosamente:', user.uid);
 
       // Crear perfil de anunciante en Firestore
       await setDoc(doc(db, 'advertisers', user.uid), {
@@ -165,7 +174,16 @@ const AdRegisterPage = () => {
       navigate('/advertising-portal');
 
     } catch (error) {
-      console.error('Error creating advertiser account:', error);
+      console.error('❌ Error creating advertiser account:', error);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Form data:', {
+        email: formData.email,
+        passwordLength: formData.password?.length,
+        nombre: formData.nombre_completo,
+        empresa: formData.nombre_empresa
+      });
+      
       let errorMessage = 'Error al crear la cuenta. Inténtalo de nuevo.';
       let errorTitle = 'Error';
       
@@ -181,13 +199,21 @@ const AdRegisterPage = () => {
       } else if (error.code === 'auth/operation-not-allowed') {
         errorTitle = 'Operación no permitida';
         errorMessage = 'El registro está temporalmente deshabilitado. Contacta al administrador.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorTitle = 'Demasiados intentos';
+        errorMessage = 'Has intentado registrarte muchas veces. Espera unos minutos antes de intentar de nuevo.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorTitle = 'Error de conexión';
+        errorMessage = 'Problema de conexión. Verifica tu internet e intenta de nuevo.';
+      } else {
+        errorMessage = `Error técnico: ${error.code}. ${error.message}`;
       }
       
       toast({
         variant: "destructive",
         title: errorTitle,
         description: errorMessage,
-        duration: 8000, // Mostrar más tiempo para que el usuario lea el mensaje
+        duration: 10000,
       });
     } finally {
       setLoading(false);
