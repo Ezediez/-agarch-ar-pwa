@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -40,11 +40,24 @@ const VipCarousel = () => {
         limit(8)
       );
       const storiesSnapshot = await getDocs(storiesQuery);
-      const stories = storiesSnapshot.docs.map(doc => ({ 
-        id: doc.id, 
-        ...doc.data(), 
-        type: 'story' 
-      }));
+      const stories = await Promise.all(
+        storiesSnapshot.docs.map(async (storyDoc) => {
+          const storyData = { id: storyDoc.id, ...storyDoc.data(), type: 'story' };
+          
+          // Obtener perfil del autor de la historia
+          try {
+            const profileRef = doc(db, 'profiles', storyData.user_id);
+            const profileSnap = await getDoc(profileRef);
+            if (profileSnap.exists()) {
+              storyData.author = { id: profileSnap.id, ...profileSnap.data() };
+            }
+          } catch (error) {
+            console.error('Error fetching story author profile:', error);
+          }
+          
+          return storyData;
+        })
+      );
 
       // Obtener publicidades pagas desde Portal de Anunciantes - simplificado
       const adsRef = collection(db, 'advertisements');
@@ -166,7 +179,7 @@ const VipCarousel = () => {
                 <div className="relative w-full h-full">
                   <img
                     src={item.profile_picture_url || item.media_url || '/pwa-512x512.png'}
-                    alt={item.alias || 'Usuario'}
+                    alt={item.alias || item.author?.alias || 'Usuario'}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       e.target.src = '/pwa-512x512.png';
@@ -185,7 +198,7 @@ const VipCarousel = () => {
             </button>
             <div className="text-center mt-1">
               <span className="text-xs text-muted-foreground truncate w-16 block">
-                {item.type === 'ad' ? 'Publicidad' : (item.alias || 'Usuario')}
+                {item.type === 'ad' ? 'Publicidad' : (item.alias || item.author?.alias || 'Usuario')}
               </span>
             </div>
           </div>

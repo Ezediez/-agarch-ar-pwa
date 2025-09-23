@@ -285,15 +285,16 @@ const AdRegisterPage = () => {
                       <Label htmlFor="telefono_comercial">Teléfono de Contacto Comercial</Label>
                       <div className="flex gap-2">
                         <Select value={formData.codigo_pais} onValueChange={handleCountryChange}>
-                          <SelectTrigger className="w-32">
+                          <SelectTrigger className="w-36">
                             <SelectValue placeholder="País" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="max-h-60 overflow-y-auto">
                             {paisesTelefono.map((pais) => (
                               <SelectItem key={`${pais.codigo}-${pais.pais}`} value={pais.codigo}>
-                                <div className="flex items-center gap-2">
-                                  <span>{pais.bandera}</span>
-                                  <span>{pais.codigo}</span>
+                                <div className="flex items-center gap-2 py-1">
+                                  <span className="text-lg">{pais.bandera}</span>
+                                  <span className="font-mono text-sm">{pais.codigo}</span>
+                                  <span className="text-sm text-muted-foreground ml-1">{pais.pais}</span>
                                 </div>
                               </SelectItem>
                             ))}
