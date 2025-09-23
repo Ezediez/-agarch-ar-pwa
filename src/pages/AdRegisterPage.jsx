@@ -9,6 +9,49 @@ import { db, auth } from '@/lib/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { ArrowLeft, Building, User, Phone, Mail, Globe } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Lista de países con códigos telefónicos para anunciantes
+const paisesTelefono = [
+  { codigo: '+54', pais: 'Argentina', bandera: '🇦🇷' },
+  { codigo: '+1', pais: 'Estados Unidos', bandera: '🇺🇸' },
+  { codigo: '+1', pais: 'Canadá', bandera: '🇨🇦' },
+  { codigo: '+52', pais: 'México', bandera: '🇲🇽' },
+  { codigo: '+55', pais: 'Brasil', bandera: '🇧🇷' },
+  { codigo: '+56', pais: 'Chile', bandera: '🇨🇱' },
+  { codigo: '+57', pais: 'Colombia', bandera: '🇨🇴' },
+  { codigo: '+51', pais: 'Perú', bandera: '🇵🇪' },
+  { codigo: '+58', pais: 'Venezuela', bandera: '🇻🇪' },
+  { codigo: '+593', pais: 'Ecuador', bandera: '🇪🇨' },
+  { codigo: '+591', pais: 'Bolivia', bandera: '🇧🇴' },
+  { codigo: '+598', pais: 'Uruguay', bandera: '🇺🇾' },
+  { codigo: '+595', pais: 'Paraguay', bandera: '🇵🇾' },
+  { codigo: '+34', pais: 'España', bandera: '🇪🇸' },
+  { codigo: '+39', pais: 'Italia', bandera: '🇮🇹' },
+  { codigo: '+33', pais: 'Francia', bandera: '🇫🇷' },
+  { codigo: '+49', pais: 'Alemania', bandera: '🇩🇪' },
+  { codigo: '+44', pais: 'Reino Unido', bandera: '🇬🇧' },
+  { codigo: '+31', pais: 'Países Bajos', bandera: '🇳🇱' },
+  { codigo: '+41', pais: 'Suiza', bandera: '🇨🇭' },
+  { codigo: '+43', pais: 'Austria', bandera: '🇦🇹' },
+  { codigo: '+351', pais: 'Portugal', bandera: '🇵🇹' },
+  { codigo: '+90', pais: 'Turquía', bandera: '🇹🇷' },
+  { codigo: '+7', pais: 'Rusia', bandera: '🇷🇺' },
+  { codigo: '+86', pais: 'China', bandera: '🇨🇳' },
+  { codigo: '+81', pais: 'Japón', bandera: '🇯🇵' },
+  { codigo: '+82', pais: 'Corea del Sur', bandera: '🇰🇷' },
+  { codigo: '+91', pais: 'India', bandera: '🇮🇳' },
+  { codigo: '+61', pais: 'Australia', bandera: '🇦🇺' },
+  { codigo: '+64', pais: 'Nueva Zelanda', bandera: '🇳🇿' },
+  { codigo: '+27', pais: 'Sudáfrica', bandera: '🇿🇦' },
+  { codigo: '+966', pais: 'Arabia Saudí', bandera: '🇸🇦' },
+  { codigo: '+971', pais: 'Emiratos Árabes', bandera: '🇦🇪' },
+  { codigo: '+972', pais: 'Israel', bandera: '🇮🇱' },
+  { codigo: '+20', pais: 'Egipto', bandera: '🇪🇬' },
+  { codigo: '+234', pais: 'Nigeria', bandera: '🇳🇬' },
+  { codigo: '+254', pais: 'Kenia', bandera: '🇰🇪' },
+  { codigo: '+55', pais: 'Brasil', bandera: '🇧🇷' },
+];
 
 const AdRegisterPage = () => {
   const [step, setStep] = useState(1);
@@ -19,6 +62,7 @@ const AdRegisterPage = () => {
     documento_identidad: '',
     email: '',
     telefono_comercial: '',
+    codigo_pais: '+54', // Argentina por defecto
     // Datos de Empresa
     nombre_empresa: '',
     tipo_empresa: '',
@@ -34,6 +78,14 @@ const AdRegisterPage = () => {
 
   const updateFormData = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCountryChange = (value) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      codigo_pais: value,
+      telefono_comercial: '' // Limpiar teléfono al cambiar país
+    }));
   };
 
   const nextStep = () => setStep(prev => prev + 1);
@@ -84,7 +136,8 @@ const AdRegisterPage = () => {
         nombre_completo: formData.nombre_completo,
         documento_identidad: formData.documento_identidad,
         email: formData.email,
-        telefono_comercial: formData.telefono_comercial,
+        telefono_comercial: `${formData.codigo_pais} ${formData.telefono_comercial}`,
+        codigo_pais: formData.codigo_pais,
         
         // Datos de Empresa
         nombre_empresa: formData.nombre_empresa,
@@ -230,13 +283,34 @@ const AdRegisterPage = () => {
 
                     <div>
                       <Label htmlFor="telefono_comercial">Teléfono de Contacto Comercial</Label>
-                      <Input
-                        id="telefono_comercial"
-                        value={formData.telefono_comercial}
-                        onChange={(e) => updateFormData('telefono_comercial', e.target.value)}
-                        placeholder="+54 9 11 1234-5678"
-                        required
-                      />
+                      <div className="flex gap-2">
+                        <Select value={formData.codigo_pais} onValueChange={handleCountryChange}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="País" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {paisesTelefono.map((pais) => (
+                              <SelectItem key={`${pais.codigo}-${pais.pais}`} value={pais.codigo}>
+                                <div className="flex items-center gap-2">
+                                  <span>{pais.bandera}</span>
+                                  <span>{pais.codigo}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          id="telefono_comercial"
+                          value={formData.telefono_comercial}
+                          onChange={(e) => updateFormData('telefono_comercial', e.target.value)}
+                          placeholder="9 11 1234-5678"
+                          className="flex-1"
+                          required
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Teléfono completo: {formData.codigo_pais} {formData.telefono_comercial}
+                      </p>
                     </div>
                   </div>
 
