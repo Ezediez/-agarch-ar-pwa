@@ -1,18 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
-import { Loader2, Frown, WifiOff, RefreshCw, Heart, Users, Sparkles, ArrowRight } from 'lucide-react';
-import PostCard from '@/components/discover/PostCard';
-import CreatePost from '@/components/discover/CreatePost';
-import Stories from '@/components/discover/Stories';
-import AdCard from '@/components/discover/AdCard';
-import VipCarousel from '@/components/feed/VipCarousel';
-import PublicationsFeed from '@/components/feed/PublicationsFeed';
+import { Frown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+
+// Lazy load components for better mobile performance
+const CreatePost = lazy(() => import('@/components/discover/CreatePost'));
+const VipCarousel = lazy(() => import('@/components/feed/VipCarousel'));
+const PublicationsFeed = lazy(() => import('@/components/feed/PublicationsFeed'));
 
 const DiscoverPage = () => {
   const { user } = useAuth();
@@ -236,15 +234,21 @@ const DiscoverPage = () => {
           </div>
 
           {/* Carrusel VIP/Publicidades/Historias */}
-          <VipCarousel />
+          <Suspense fallback={<div className="px-4 py-2"><div className="flex gap-3"><div className="w-16 h-16 bg-muted rounded-full animate-pulse" /></div></div>}>
+            <VipCarousel />
+          </Suspense>
 
           {/* Create Post */}
           <div className="p-4">
-            <CreatePost onPostCreated={handleRefresh} />
+            <Suspense fallback={<div className="bg-muted/50 rounded-lg p-4 animate-pulse"><div className="h-10 bg-muted rounded" /></div>}>
+              <CreatePost onPostCreated={handleRefresh} />
+            </Suspense>
           </div>
 
           {/* Feed Principal de Publicaciones */}
-          <PublicationsFeed />
+          <Suspense fallback={<div className="p-4"><div className="space-y-4"><div className="bg-muted/50 rounded-lg p-4 animate-pulse"><div className="h-32 bg-muted rounded" /></div></div></div>}>
+            <PublicationsFeed />
+          </Suspense>
         </div>
       </div>
     </>
