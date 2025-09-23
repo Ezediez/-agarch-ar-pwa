@@ -283,35 +283,52 @@ const AdRegisterPage = () => {
 
                     <div>
                       <Label htmlFor="telefono_comercial">Teléfono de Contacto Comercial</Label>
-                      <div className="flex gap-2">
+                      
+                      {/* Selector de país mejorado */}
+                      <div className="mb-3">
+                        <Label className="text-sm text-muted-foreground mb-2 block">Seleccionar país:</Label>
                         <Select value={formData.codigo_pais} onValueChange={handleCountryChange}>
-                          <SelectTrigger className="w-36">
-                            <SelectValue placeholder="País" />
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Selecciona tu país" />
                           </SelectTrigger>
-                          <SelectContent className="max-h-60 overflow-y-auto">
+                          <SelectContent className="max-h-80 overflow-y-auto">
                             {paisesTelefono.map((pais) => (
                               <SelectItem key={`${pais.codigo}-${pais.pais}`} value={pais.codigo}>
-                                <div className="flex items-center gap-2 py-1">
-                                  <span className="text-lg">{pais.bandera}</span>
-                                  <span className="font-mono text-sm">{pais.codigo}</span>
-                                  <span className="text-sm text-muted-foreground ml-1">{pais.pais}</span>
+                                <div className="flex items-center gap-3 w-full">
+                                  <span className="text-xl">{pais.bandera}</span>
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{pais.pais}</span>
+                                    <span className="text-sm text-muted-foreground font-mono">{pais.codigo}</span>
+                                  </div>
                                 </div>
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      {/* Campo de teléfono */}
+                      <div>
+                        <Label className="text-sm text-muted-foreground mb-2 block">
+                          Número de teléfono:
+                        </Label>
                         <Input
                           id="telefono_comercial"
                           value={formData.telefono_comercial}
                           onChange={(e) => updateFormData('telefono_comercial', e.target.value)}
                           placeholder="9 11 1234-5678"
-                          className="flex-1"
+                          className="w-full"
                           required
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Teléfono completo: {formData.codigo_pais} {formData.telefono_comercial}
-                      </p>
+                      
+                      {/* Vista previa del teléfono completo */}
+                      <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                        <span className="text-sm text-muted-foreground">Teléfono completo: </span>
+                        <span className="text-sm font-medium text-primary">
+                          {formData.codigo_pais} {formData.telefono_comercial || '___ ___ ____'}
+                        </span>
+                      </div>
                     </div>
                   </div>
 

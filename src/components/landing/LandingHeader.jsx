@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Menu, Briefcase, FileText, Gavel, Shield } from 'lucide-react';
 import LegalRequestForm from '@/components/landing/LegalRequestForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
@@ -44,6 +44,9 @@ const LandingHeader = () => {
           <SheetContent className="bg-surface border-border-color text-text-primary">
             <SheetHeader>
               <SheetTitle>Menú de Navegación</SheetTitle>
+              <SheetDescription>
+                Accede a las diferentes secciones de la plataforma
+              </SheetDescription>
             </SheetHeader>
             <div className="flex flex-col space-y-4 pt-8">
               <SheetClose asChild>

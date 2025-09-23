@@ -230,18 +230,8 @@ const DiscoverPage = () => {
 
           {/* Search Bar */}
           <div className="p-4">
-            <div className="flex items-center gap-3 bg-muted/50 rounded-full px-4 py-3">
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-sm font-medium text-primary">
-                  {user?.email?.charAt(0).toUpperCase() || 'U'}
-                </span>
-              </div>
-              <span className="text-muted-foreground flex-1">¿Qué estás buscando?</span>
-              <Button size="sm" variant="ghost" className="text-primary">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                </svg>
-              </Button>
+            <div className="bg-muted/50 rounded-full px-4 py-3">
+              <span className="text-muted-foreground">¿Qué estás buscando?</span>
             </div>
           </div>
 
