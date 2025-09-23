@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { Menu, Briefcase, FileText, Gavel, Shield } from 'lucide-react';
 import LegalRequestForm from '@/components/landing/LegalRequestForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 
 const LandingHeader = () => {
@@ -26,6 +26,9 @@ const LandingHeader = () => {
           <DialogContent className="sm:max-w-[425px] bg-surface border-border-color text-text-primary">
             <DialogHeader>
               <DialogTitle>Formulario para Entidades Judiciales y de Seguridad</DialogTitle>
+              <DialogDescription>
+                Complete este formulario para solicitar información legal de la plataforma
+              </DialogDescription>
             </DialogHeader>
             <LegalRequestForm setOpen={setIsLegalFormOpen} />
           </DialogContent>

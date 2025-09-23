@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Heart, MessageCircle, User, X } from 'lucide-react';
+import { Bell, Heart, MessageCircle, User, X, CheckCircle, Upload, Image } from 'lucide-react';
 import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +22,13 @@ const NotificationBell = () => {
       setupRealtimeSubscription();
     }
 
+    // Escuchar notificaciones de la campanita desde localStorage
+    const handleBellNotification = () => {
+      fetchNotifications();
+    };
+
+    window.addEventListener('bell-notification-added', handleBellNotification);
+
     // Cerrar dropdown al hacer clic fuera
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -32,6 +39,7 @@ const NotificationBell = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('bell-notification-added', handleBellNotification);
     };
   }, [user?.id]);
 
@@ -120,6 +128,10 @@ const NotificationBell = () => {
         }
       }
 
+      // Agregar notificaciones del localStorage (campanita)
+      const localNotifications = JSON.parse(localStorage.getItem('bell-notifications') || '[]');
+      notifications.push(...localNotifications);
+
       // Ordenar por fecha y limitar
       notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       const limitedNotifications = notifications.slice(0, 15);
@@ -166,6 +178,8 @@ const NotificationBell = () => {
   const clearNotifications = () => {
     setNotifications([]);
     setUnreadCount(0);
+    // Limpiar también localStorage
+    localStorage.removeItem('bell-notifications');
   };
 
   const getNotificationIcon = (type) => {
@@ -174,6 +188,12 @@ const NotificationBell = () => {
         return <Heart className="w-4 h-4 text-red-500" />;
       case 'message':
         return <MessageCircle className="w-4 h-4 text-blue-500" />;
+      case 'upload':
+        return <Upload className="w-4 h-4 text-green-500" />;
+      case 'success':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'image':
+        return <Image className="w-4 h-4 text-purple-500" />;
       default:
         return <User className="w-4 h-4 text-gray-500" />;
     }

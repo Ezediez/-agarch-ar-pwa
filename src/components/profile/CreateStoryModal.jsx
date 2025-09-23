@@ -3,7 +3,7 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Upload, Camera, Video, Type } from 'lucide-react';
@@ -103,6 +103,9 @@ const CreateStoryModal = ({ isOpen, onClose }) => {
       <DialogContent className="card-glass max-w-md mx-auto">
         <DialogHeader className="text-center">
           <DialogTitle>Crear Historia</DialogTitle>
+          <DialogDescription>
+            Crea una historia con texto, foto o video que durará 24 horas
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

@@ -29,5 +29,5 @@ export function ToastClose() {
 }
 
 export function ToastViewport() {
-  return <div className="toast-viewport fixed top-4 right-4 z-50 flex flex-col gap-2" />;
+  return <div className="toast-viewport fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm" />;
 }
