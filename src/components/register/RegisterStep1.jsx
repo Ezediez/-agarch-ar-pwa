@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast.jsx";
 import { Link } from 'react-router-dom';
 import { countries, getProvincesByCountry, getCountryCode } from '@/utils/locationData';
 import { containsProhibitedContent, containsCommercialContent, containsContactInfo, validateEmail } from '@/utils/validation';
+import PhoneInput from '@/components/ui/PhoneInput';
 
 const RegisterStep1 = ({ formData, updateFormData, nextStep }) => {
   const { toast } = useToast();
@@ -114,10 +115,14 @@ const RegisterStep1 = ({ formData, updateFormData, nextStep }) => {
             <Input id="municipio" value={formData.municipio} onChange={handleChange} required className="input-glass" />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="telefono" className="text-primary">Teléfono</Label>
-            <Input id="telefono" type="tel" value={formData.telefono} onChange={handleChange} required className="input-glass" placeholder="+54 11 2345-6789" />
-          </div>
+          <PhoneInput
+            label="Teléfono"
+            value={formData.telefono}
+            onChange={(value) => updateFormData('telefono', value)}
+            placeholder="11 2345-6789"
+            required
+            className="input-glass"
+          />
           <div className="space-y-2">
             <Label htmlFor="email" className="text-primary">Correo electrónico</Label>
             <Input id="email" type="email" value={formData.email} onChange={handleChange} required className="input-glass" />

@@ -10,8 +10,10 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { ArrowLeft, Building, User, Phone, Mail, Globe } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import PhoneInput from '@/components/ui/PhoneInput';
 
-// Lista de países con códigos telefónicos para anunciantes
+// Lista de países eliminada - ahora se usa PhoneInput component
+/*
 const paisesTelefono = [
   { codigo: '+54', pais: 'Argentina', bandera: '🇦🇷' },
   { codigo: '+1', pais: 'Estados Unidos', bandera: '🇺🇸' },
@@ -52,6 +54,7 @@ const paisesTelefono = [
   { codigo: '+254', pais: 'Kenia', bandera: '🇰🇪' },
   { codigo: '+55', pais: 'Brasil', bandera: '🇧🇷' },
 ];
+*/
 
 const AdRegisterPage = () => {
   const [step, setStep] = useState(1);
@@ -80,13 +83,14 @@ const AdRegisterPage = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleCountryChange = (value) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      codigo_pais: value,
-      telefono_comercial: '' // Limpiar teléfono al cambiar país
-    }));
-  };
+  // Función eliminada - ahora se usa PhoneInput component
+  // const handleCountryChange = (value) => {
+  //   setFormData(prev => ({ 
+  //     ...prev, 
+  //     codigo_pais: value,
+  //     telefono_comercial: '' // Limpiar teléfono al cambiar país
+  //   }));
+  // };
 
   const nextStep = () => setStep(prev => prev + 1);
   const prevStep = () => setStep(prev => prev - 1);
@@ -307,55 +311,13 @@ const AdRegisterPage = () => {
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="telefono_comercial">Teléfono de Contacto Comercial</Label>
-                      
-                      {/* Selector de país mejorado */}
-                      <div className="mb-3">
-                        <Label className="text-sm text-muted-foreground mb-2 block">Seleccionar país:</Label>
-                        <Select value={formData.codigo_pais} onValueChange={handleCountryChange}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Selecciona tu país" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-80 overflow-y-auto">
-                            {paisesTelefono.map((pais) => (
-                              <SelectItem key={`${pais.codigo}-${pais.pais}`} value={pais.codigo}>
-                                <div className="flex items-center gap-3 w-full">
-                                  <span className="text-xl">{pais.bandera}</span>
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">{pais.pais}</span>
-                                    <span className="text-sm text-muted-foreground font-mono">{pais.codigo}</span>
-                                  </div>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Campo de teléfono */}
-                      <div>
-                        <Label className="text-sm text-muted-foreground mb-2 block">
-                          Número de teléfono:
-                        </Label>
-                        <Input
-                          id="telefono_comercial"
-                          value={formData.telefono_comercial}
-                          onChange={(e) => updateFormData('telefono_comercial', e.target.value)}
-                          placeholder="9 11 1234-5678"
-                          className="w-full"
-                          required
-                        />
-                      </div>
-                      
-                      {/* Vista previa del teléfono completo */}
-                      <div className="mt-2 p-2 bg-muted/50 rounded-md">
-                        <span className="text-sm text-muted-foreground">Teléfono completo: </span>
-                        <span className="text-sm font-medium text-primary">
-                          {formData.codigo_pais} {formData.telefono_comercial || '___ ___ ____'}
-                        </span>
-                      </div>
-                    </div>
+                    <PhoneInput
+                      label="Teléfono de Contacto Comercial"
+                      value={formData.telefono_comercial}
+                      onChange={(value) => updateFormData('telefono_comercial', value)}
+                      placeholder="9 11 1234-5678"
+                      required
+                    />
                   </div>
 
                   <div className="flex gap-4 mt-6">
