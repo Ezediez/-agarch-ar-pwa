@@ -137,16 +137,22 @@ const ProfilePage = () => {
             await updateDoc(profileRef, updateData);
             console.log('✅ Perfil actualizado en Firestore');
 
-            // Actualizar el estado local inmediatamente
+            // Actualizar el estado local inmediatamente (más rápido)
             setProfile(localProfileData);
             
             toast({ title: 'Perfil actualizado con éxito' });
             setEditMode(false);
             
-            // Forzar actualización del perfil desde la base de datos
-            console.log('🔄 Forzando actualización del perfil...');
-            await forceRefreshProfile();
-            console.log('✅ Perfil refrescado desde Firestore');
+            // Refresh en background para no bloquear UI
+            console.log('🔄 Actualizando perfil en background...');
+            setTimeout(async () => {
+                try {
+                    await forceRefreshProfile();
+                    console.log('✅ Perfil refrescado desde Firestore');
+                } catch (error) {
+                    console.error('❌ Error en refresh de perfil:', error);
+                }
+            }, 200);
         } catch (error) {
             console.error('Error al actualizar perfil:', error);
             toast({ 
@@ -219,19 +225,33 @@ const ProfilePage = () => {
                         handleInputChange('profile_picture_url', url);
                         console.log('✅ Foto de perfil actualizada:', url);
                         
-                        // Actualizar inmediatamente en Firestore
+                        // Actualizar inmediatamente en Firestore (optimizado)
                         const updateProfileInFirestore = async () => {
                             try {
                                 const profileRef = doc(db, 'profiles', user.uid);
+                                
+                                // Actualización optimizada - solo campos necesarios
                                 await updateDoc(profileRef, {
                                     fotos: updatedPhotos,
                                     profile_picture_url: url,
                                     updated_at: new Date().toISOString()
                                 });
+                                
                                 console.log('✅ Foto de perfil guardada en Firestore');
                                 
-                                // Forzar actualización del perfil
-                                await forceRefreshProfile();
+                                // Actualización inmediata del estado local (más rápido)
+                                setProfile(prev => ({
+                                    ...prev,
+                                    fotos: updatedPhotos,
+                                    profile_picture_url: url,
+                                    updated_at: new Date().toISOString()
+                                }));
+                                
+                                // Refresh del perfil en background (no bloquea UI)
+                                setTimeout(() => {
+                                    forceRefreshProfile();
+                                }, 100);
+                                
                             } catch (error) {
                                 console.error('❌ Error actualizando foto de perfil en Firestore:', error);
                             }

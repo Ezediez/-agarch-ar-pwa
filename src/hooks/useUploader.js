@@ -5,6 +5,50 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { v4 as uuidv4 } from 'uuid';
 
+// Función para comprimir imágenes en móviles
+const compressImage = (file, maxWidth = 1920, quality = 0.8) => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // Calcular nuevas dimensiones manteniendo la proporción
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Dibujar imagen redimensionada
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // Convertir a blob con compresión
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: file.type,
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            reject(new Error('Error al comprimir la imagen'));
+          }
+        },
+        file.type,
+        quality
+      );
+    };
+    
+    img.onerror = () => reject(new Error('Error al cargar la imagen'));
+    img.src = URL.createObjectURL(file);
+  });
+};
+
 export const useUploader = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -23,11 +67,21 @@ export const useUploader = () => {
       return;
     }
 
+    // Optimización para móviles: comprimir imagen si es muy grande
+    let fileToUpload = file;
+    if (file.type.startsWith('image/') && file.size > 2 * 1024 * 1024) { // > 2MB
+      try {
+        fileToUpload = await compressImage(file);
+      } catch (error) {
+        console.warn('No se pudo comprimir la imagen, usando original:', error);
+      }
+    }
+
     setIsUploading(true);
     setProgress(0);
     toast({
       title: "Iniciando subida...",
-      description: `El archivo ${file.name} se está subiendo.`,
+      description: `El archivo ${fileToUpload.name} se está subiendo.`,
     });
 
     const fileExt = file.name.split('.').pop();
@@ -35,7 +89,17 @@ export const useUploader = () => {
 
     try {
       const storageRef = ref(storage, `${bucket}/${fileName}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      
+      // Configuración optimizada para móviles
+      const uploadTask = uploadBytesResumable(storageRef, fileToUpload, {
+        cacheControl: 'public,max-age=31536000', // Cache por 1 año
+        contentType: fileToUpload.type,
+        customMetadata: {
+          originalName: fileToUpload.name,
+          uploadedAt: new Date().toISOString(),
+          userId: user.uid
+        }
+      });
 
       const downloadURL = await new Promise((resolve, reject) => {
         uploadTask.on('state_changed',
