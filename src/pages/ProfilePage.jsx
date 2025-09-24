@@ -11,11 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUploader } from '@/hooks/useUploader';
 import UploadModal from '@/components/profile/UploadModal';
 import OtherProfileActions from '@/components/profile/OtherProfileActions';
+import ProfileDebugger from '@/components/debug/ProfileDebugger';
 // import MyLikesModal from '@/components/profile/MyLikesModal'; // Temporalmente desactivado para Etapa 1
 
 const ProfilePage = () => {
     const { id } = useParams();
-    const { user, profile: ownProfile, loading: authLoading, refreshProfile } = useAuth();
+    const { user, profile: ownProfile, loading: authLoading, refreshProfile, forceRefreshProfile } = useAuth();
     const { toast } = useToast();
     const navigate = useNavigate();
     const { uploadFile, isUploading: uploading, progress } = useUploader();
@@ -109,10 +110,18 @@ const ProfilePage = () => {
     const handleSave = async () => {
         if (!localProfileData || !user?.uid) return;
 
+        console.log('💾 Guardando perfil:', {
+            uid: user.uid,
+            alias: localProfileData.alias,
+            profile_picture_url: localProfileData.profile_picture_url,
+            fotos: localProfileData.fotos?.length || 0,
+            videos: localProfileData.videos?.length || 0
+        });
+
         setSaveLoading(true);
         try {
             const profileRef = doc(db, 'profiles', user.uid);
-            await updateDoc(profileRef, {
+            const updateData = {
                 alias: localProfileData.alias,
                 descripcion: localProfileData.descripcion,
                 genero: localProfileData.genero,
@@ -122,7 +131,11 @@ const ProfilePage = () => {
                 videos: localProfileData.videos,
                 profile_picture_url: localProfileData.profile_picture_url,
                 updated_at: new Date().toISOString()
-            });
+            };
+            
+            console.log('📤 Enviando datos a Firestore:', updateData);
+            await updateDoc(profileRef, updateData);
+            console.log('✅ Perfil actualizado en Firestore');
 
             // Actualizar el estado local inmediatamente
             setProfile(localProfileData);
@@ -130,8 +143,10 @@ const ProfilePage = () => {
             toast({ title: 'Perfil actualizado con éxito' });
             setEditMode(false);
             
-            // Refrescar el perfil desde la base de datos
-            await refreshProfile();
+            // Forzar actualización del perfil desde la base de datos
+            console.log('🔄 Forzando actualización del perfil...');
+            await forceRefreshProfile();
+            console.log('✅ Perfil refrescado desde Firestore');
         } catch (error) {
             console.error('Error al actualizar perfil:', error);
             toast({ 
@@ -203,6 +218,26 @@ const ProfilePage = () => {
                     if (currentPhotos.length === 0 || !localProfileData?.profile_picture_url || localProfileData?.profile_picture_url === '/pwa-512x512.png') {
                         handleInputChange('profile_picture_url', url);
                         console.log('✅ Foto de perfil actualizada:', url);
+                        
+                        // Actualizar inmediatamente en Firestore
+                        const updateProfileInFirestore = async () => {
+                            try {
+                                const profileRef = doc(db, 'profiles', user.uid);
+                                await updateDoc(profileRef, {
+                                    fotos: updatedPhotos,
+                                    profile_picture_url: url,
+                                    updated_at: new Date().toISOString()
+                                });
+                                console.log('✅ Foto de perfil guardada en Firestore');
+                                
+                                // Forzar actualización del perfil
+                                await forceRefreshProfile();
+                            } catch (error) {
+                                console.error('❌ Error actualizando foto de perfil en Firestore:', error);
+                            }
+                        };
+                        
+                        updateProfileInFirestore();
                     }
                 } else if (type === 'videos' || type === 'video' || type === 'camera-video') {
                     const currentVideos = localProfileData?.videos || [];
@@ -719,6 +754,13 @@ const ProfilePage = () => {
                     onClose={() => setIsMyLikesModalOpen(false)}
                     followingIds={profile?.following || []}
                 /> */}
+
+                {/* DEBUGGER - Solo visible para desarrollo */}
+                {isOwnProfile && (
+                    <div className="mt-8">
+                        <ProfileDebugger />
+                    </div>
+                )}
 
             </div>
         </>

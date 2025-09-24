@@ -43,6 +43,13 @@ export const AuthProvider = ({ children }) => {
       }
       
       const profileData = profileSnap.data();
+      console.log('📥 Perfil cargado desde Firestore:', {
+        id: profileSnap.id,
+        alias: profileData?.alias,
+        profile_picture_url: profileData?.profile_picture_url,
+        fotos: profileData?.fotos?.length || 0,
+        updated_at: profileData?.updated_at
+      });
       setProfile(profileData || null);
       return profileData || null;
     } catch (error) {
@@ -81,6 +88,16 @@ export const AuthProvider = ({ children }) => {
 
   const refreshProfile = useCallback(async () => {
     if (user) {
+      console.log('🔄 Refrescando perfil desde Firestore...');
+      await getProfile(user);
+    }
+  }, [user, getProfile]);
+
+  const forceRefreshProfile = useCallback(async () => {
+    if (user) {
+      console.log('🔄 Forzando actualización de perfil...');
+      // Limpiar estado actual y recargar desde Firestore
+      setProfile(null);
       await getProfile(user);
     }
   }, [user, getProfile]);
@@ -195,6 +212,7 @@ export const AuthProvider = ({ children }) => {
     signIn,
     signOut,
     refreshProfile,
+    forceRefreshProfile,
     deleteAccount
   };
 
