@@ -3,6 +3,7 @@ import { db, auth } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
+import { useNotificationManager } from '@/hooks/useNotificationManager';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Send, Loader2 } from 'lucide-react';
@@ -12,6 +13,7 @@ import { startConversation } from '@/utils/chatUtils';
 const DirectMessageModal = ({ profile, onClose }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { toast: smartToast } = useNotificationManager();
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -78,7 +80,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
         updatedAt: serverTimestamp(),
       });
       
-      toast({ title: 'Éxito', description: 'Mensaje enviado correctamente' });
+      smartToast({ title: 'Mensaje enviado', description: 'Mensaje enviado correctamente' });
       onClose();
       navigate(`/chats`);
       

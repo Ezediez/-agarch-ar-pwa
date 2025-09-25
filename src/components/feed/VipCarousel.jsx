@@ -18,10 +18,11 @@ const VipCarousel = () => {
     try {
       setLoading(true);
       
-      // Obtener perfiles VIP (mejor posicionados) - simplificado sin filtros complejos
+      // Obtener perfiles VIP (mejor posicionados) - ordenados por fecha de creación
       const profilesRef = collection(db, 'profiles');
       const vipQuery = query(
         profilesRef,
+        orderBy('created_at', 'desc'),
         limit(10)
       );
       const vipSnapshot = await getDocs(vipQuery);
@@ -31,10 +32,11 @@ const VipCarousel = () => {
         type: 'vip' 
       }));
 
-      // Obtener historias de usuarios (últimas 24 horas) - simplificado
+      // Obtener historias de usuarios (últimas 24 horas) - ordenadas por fecha de creación
       const storiesRef = collection(db, 'stories');
       const storiesQuery = query(
         storiesRef,
+        orderBy('created_at', 'desc'),
         limit(8)
       );
       const storiesSnapshot = await getDocs(storiesQuery);
@@ -57,12 +59,13 @@ const VipCarousel = () => {
         })
       );
 
-      // Obtener publicidades activas desde Portal de Anunciantes (Plan Premium $30/mes)
+      // Obtener publicidades activas desde Portal de Anunciantes (Plan Premium $30/mes) - ordenadas por fecha
       const adsRef = collection(db, 'advertisements');
       const adsQuery = query(
         adsRef,
         where('status', '==', 'active'),
         where('ad_plan', '==', 'premium'), // Solo avisos de $30/mes para carrusel
+        orderBy('created_at', 'desc'),
         limit(4)
       );
       const adsSnapshot = await getDocs(adsQuery);

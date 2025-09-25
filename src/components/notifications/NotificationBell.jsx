@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast.jsx';
 
 const NotificationBell = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
@@ -17,7 +17,7 @@ const NotificationBell = () => {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    if (user?.id) {
+    if (user?.uid) {
       fetchNotifications();
       setupRealtimeSubscription();
     }
@@ -41,14 +41,14 @@ const NotificationBell = () => {
       document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('bell-notification-added', handleBellNotification);
     };
-  }, [user?.id]);
+  }, [user?.uid]);
 
   const fetchNotifications = async () => {
     try {
       setLoading(true);
       
-      // Validar que user.id existe
-      if (!user?.id) {
+      // Validar que user.uid existe
+      if (!user?.uid) {
         console.log('❌ No hay usuario autenticado');
         setNotifications([]);
         setUnreadCount(0);
@@ -58,17 +58,18 @@ const NotificationBell = () => {
       // Crear notificaciones virtuales basadas en likes y mensajes recientes
       const notifications = [];
       
-      // 1. Notificaciones de nuevos likes (últimas 24 horas)
-      const likesRef = collection(db, 'user_likes');
-      const likesQuery = query(
-        likesRef,
-        where('liked_user_id', '==', user.id),
-        orderBy('created_at', 'desc'),
-        limit(10)
-      );
-      
-      const likesSnapshot = await getDocs(likesQuery);
-      const likesData = likesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // 1. Notificaciones de nuevos likes (últimas 24 horas) - solo si está habilitado
+      if (profile?.notifications_new_like !== false) {
+        const likesRef = collection(db, 'user_likes');
+        const likesQuery = query(
+          likesRef,
+          where('liked_user_id', '==', user.uid),
+          orderBy('created_at', 'desc'),
+          limit(10)
+        );
+        
+        const likesSnapshot = await getDocs(likesQuery);
+        const likesData = likesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
       for (const like of likesData) {
         try {
@@ -91,12 +92,14 @@ const NotificationBell = () => {
           console.error('Error fetching profile for like:', error);
         }
       }
+      } // Cerrar if de likes
 
-      // 2. Notificaciones de nuevos mensajes (últimas 24 horas)
+      // 2. Notificaciones de nuevos mensajes (últimas 24 horas) - solo si está habilitado
+      if (profile?.notifications_new_message !== false) {
       const messagesRef = collection(db, 'messages');
       const messagesQuery = query(
         messagesRef,
-        where('recipient_id', '==', user.id),
+        where('recipient_id', '==', user.uid),
         orderBy('sent_at', 'desc'),
         limit(10)
       );
@@ -127,10 +130,13 @@ const NotificationBell = () => {
           console.error('Error fetching profile for message:', error);
         }
       }
+      } // Cerrar if de mensajes
 
-      // Agregar notificaciones del localStorage (campanita)
-      const localNotifications = JSON.parse(localStorage.getItem('bell-notifications') || '[]');
-      notifications.push(...localNotifications);
+      // Agregar notificaciones del localStorage (campanita) - solo si están habilitadas las promociones
+      if (profile?.notifications_promotions !== false) {
+        const localNotifications = JSON.parse(localStorage.getItem('bell-notifications') || '[]');
+        notifications.push(...localNotifications);
+      }
 
       // Ordenar por fecha y limitar
       notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));

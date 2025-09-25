@@ -32,12 +32,13 @@ const PublicationsFeed = () => {
     try {
       setLoading(true);
       
-      // Obtener publicaciones de perfiles (sin orderBy para evitar error 400)
-      const postsRef = collection(db, 'posts');
-      const postsQuery = query(
-        postsRef,
-        limit(20)
-      );
+            // Obtener publicaciones de perfiles (ordenadas por fecha de creación)
+            const postsRef = collection(db, 'posts');
+            const postsQuery = query(
+                postsRef,
+                orderBy('created_at', 'desc'),
+                limit(20)
+            );
       const postsSnapshot = await getDocs(postsQuery);
       const postsData = await Promise.all(
         postsSnapshot.docs.map(async (postDoc) => {
@@ -69,13 +70,14 @@ const PublicationsFeed = () => {
         })
       );
 
-      // Obtener publicidades activas desde Portal de Anunciantes
-      const adsRef = collection(db, 'advertisements');
-      const adsQuery = query(
-        adsRef,
-        where('status', '==', 'active'),
-        limit(10)
-      );
+            // Obtener publicidades activas desde Portal de Anunciantes (ordenadas por fecha)
+            const adsRef = collection(db, 'advertisements');
+            const adsQuery = query(
+                adsRef,
+                where('status', '==', 'active'),
+                orderBy('created_at', 'desc'),
+                limit(10)
+            );
       const adsSnapshot = await getDocs(adsQuery);
       const adsData = adsSnapshot.docs.map(doc => ({ 
         id: doc.id, 

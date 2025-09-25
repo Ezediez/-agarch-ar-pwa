@@ -49,7 +49,9 @@ const SettingsPage = () => {
   const navigate = useNavigate();
   const [deleteInput, setDeleteInput] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [privacySettings, setPrivacySettings] = useState({});
+  const [privacySettings, setPrivacySettings] = useState({
+    visibility: profile?.visibility || 'public'
+  });
   const [notificationSettings, setNotificationSettings] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
