@@ -24,6 +24,22 @@
   <body>
     <div id="root"></div>
     
-    <!-- Service Worker y PWA completamente desactivados para evitar errores -->
+    <!-- Limpiar errores de consola no críticos -->
+    <script src="/console-cleanup.js"></script>
+    
+    <!-- Service Worker para PWA -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registrado correctamente:', registration.scope);
+            })
+            .catch((error) => {
+              console.log('Error al registrar SW:', error);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
