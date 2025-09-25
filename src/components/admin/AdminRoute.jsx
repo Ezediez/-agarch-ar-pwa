@@ -13,7 +13,14 @@ const AdminRoute = ({ children }) => {
     );
   }
 
-  if (!user || profile?.role !== 'admin') {
+  // Lista de emails autorizados como admin
+  const adminEmails = [
+    'ezequieldiez@hotmail.com',
+    'yanisole0207@gmail.com',
+    'admin@agarch-ar.com'
+  ];
+
+  if (!user || (profile?.role !== 'admin' && !adminEmails.includes(user.email))) {
     return <Navigate to="/" replace />;
   }
 

@@ -7,9 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { db } from '@/lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 
 const SettingsPage = () => {
   const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [settings, setSettings] = useState({
     notifications: true,
     showLocation: true,
@@ -18,11 +22,36 @@ const SettingsPage = () => {
   });
   const { toast } = useToast();
 
-  const handleUpgradeToVip = () => {
-    toast({
-      title: "🚧 Esta función no está implementada aún",
-      description: "¡Pero no te preocupes! Puedes solicitarla en tu próximo prompt! 🚀"
-    });
+  const handleUpgradeToVip = async () => {
+    if (!user?.uid) return;
+    
+    try {
+      // Activar VIP demo automáticamente para el usuario actual
+      const profileRef = doc(db, 'profiles', user.uid);
+      await updateDoc(profileRef, {
+        is_vip: true,
+        vip_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
+        vip_demo: true,
+        vip_activated_at: new Date()
+      });
+
+      toast({
+        title: "🎉 VIP DEMO Activado",
+        description: "Has activado VIP demo por 30 días. Función temporal hasta implementar pagos.",
+        className: "bg-green-500 text-white"
+      });
+      
+      // Actualizar el usuario en el contexto
+      updateUser({ ...user, is_vip: true });
+      
+    } catch (error) {
+      console.error("Error activando VIP demo:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo activar VIP demo. Intenta nuevamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleReportUser = () => {
@@ -74,22 +103,41 @@ const SettingsPage = () => {
                     VIP
                   </div>
                 ) : (
-                  <Button onClick={handleUpgradeToVip} className="btn-primary">
-                    Hacerse VIP
+                  <Button onClick={handleUpgradeToVip} className="bg-green-500 hover:bg-green-600 text-white">
+                    🎉 VIP DEMO - ¡Activar!
                   </Button>
                 )}
               </div>
 
               {!user?.isVip && (
-                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                  <h3 className="font-medium text-orange-800 mb-2">Beneficios VIP</h3>
-                  <ul className="text-sm text-orange-700 space-y-1">
-                    <li>• Contactos ilimitados por mes</li>
-                    <li>• Sin publicidad</li>
-                    <li>• Perfil destacado en búsquedas</li>
-                    <li>• Videos de hasta 30 segundos</li>
-                    <li>• Soporte prioritario</li>
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h3 className="font-medium text-green-800 mb-2">🎉 VIP DEMO - Beneficios</h3>
+                  <ul className="text-sm text-green-700 space-y-1">
+                    <li>• ✅ Publicar historias de 24 horas</li>
+                    <li>• ✅ Perfil destacado en carrusel VIP</li>
+                    <li>• ✅ Videos de hasta 30 segundos</li>
+                    <li>• ✅ Sin publicidad en el feed</li>
+                    <li>• ⏰ Válido por 30 días (DEMO)</li>
                   </ul>
+                  <p className="text-xs text-green-600 mt-2">
+                    💡 Función temporal hasta implementar PayPal/Stripe
+                  </p>
+                </div>
+              )}
+
+              {/* Botón de acceso admin temporal */}
+              {(user?.email === 'ezequieldiez@hotmail.com' || user?.email === 'yanisole0207@gmail.com' || user?.email === 'admin@agarch-ar.com') && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h3 className="font-medium text-blue-800 mb-2">🔧 Panel de Administrador</h3>
+                  <p className="text-sm text-blue-700 mb-3">
+                    Acceso temporal al panel de administración para gestionar usuarios VIP
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/admin/vip-demo')}
+                    className="bg-blue-500 hover:bg-blue-600 text-white"
+                  >
+                    🚀 Ir al Panel Admin
+                  </Button>
                 </div>
               )}
 
