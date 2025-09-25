@@ -9,7 +9,7 @@ import { collection, addDoc } from 'firebase/firestore';
     import { Textarea } from '@/components/ui/textarea';
     import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
     import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-    import { Loader2, Send, Image as ImageIcon, Video as VideoIcon, Radio } from 'lucide-react';
+    import { Loader2, Send, Image as ImageIcon, Video as VideoIcon, Radio, X } from 'lucide-react';
     import ImageUploader from '@/components/ImageUploader';
     import VideoUploader from '@/components/VideoUploader';
     import { useUploader } from '@/hooks/useUploader';
@@ -20,30 +20,53 @@ import { collection, addDoc } from 'firebase/firestore';
       const navigate = useNavigate();
       const { uploadFile, uploading, progress } = useUploader();
 
-      const [postType, setPostType] = useState('post'); // 'post', 'story'
-      const [text, setText] = useState('');
-      const [isSubmitting, setIsSubmitting] = useState(false);
+  const [postType, setPostType] = useState('post'); // 'post', 'story'
+  const [text, setText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mediaFile, setMediaFile] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
+  const [mediaType, setMediaType] = useState(null);
 
-        const handleUploadAndSubmit = async (file, type) => {
+        const handleFileSelect = (file, type) => {
+            setMediaFile(file);
+            setMediaType(type);
+            
+            // Crear preview
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    setMediaPreview(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            } else if (file.type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                video.onloadedmetadata = () => {
+                    setMediaPreview(video.src);
+                };
+            }
+        };
+
+        const handleSubmit = async () => {
             setIsSubmitting(true);
             
             try {
                 let mediaUrl = null;
                 
-                if (file) {
+                if (mediaFile) {
                     let bucket, folder;
                     
                     if (postType === 'story') {
                         bucket = 'stories';
-                        folder = type === 'image' ? 'images' : 'videos';
+                        folder = mediaType === 'image' ? 'images' : 'videos';
                     } else {
                         bucket = 'posts';
-                        folder = type === 'image' ? 'images' : 'videos';
+                        folder = mediaType === 'image' ? 'images' : 'videos';
                     }
                     
                     // Subir archivo usando Promise wrapper
                     mediaUrl = await new Promise((resolve, reject) => {
-                        uploadFile(file, bucket, folder, (url, error) => {
+                        uploadFile(mediaFile, bucket, folder, (url, error) => {
                             if (error) {
                                 reject(error);
                             } else {
@@ -55,10 +78,16 @@ import { collection, addDoc } from 'firebase/firestore';
                 
                 // Crear publicación o historia
                 if (postType === 'story') {
-                    await createStory(mediaUrl, type);
+                    await createStory(mediaUrl, mediaType);
                 } else {
-                    await createPost(mediaUrl, type);
+                    await createPost(mediaUrl, mediaType);
                 }
+                
+                // Limpiar formulario
+                setText('');
+                setMediaFile(null);
+                setMediaPreview(null);
+                setMediaType(null);
                 
             } catch (error) {
                 console.error('Error al crear publicación:', error);
@@ -164,16 +193,53 @@ import { collection, addDoc } from 'firebase/firestore';
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         className="input-glass min-h-[100px]"
-                        disabled={isSubmitDisabled}
+                        disabled={isSubmitting}
                       />
+                      
+                      {/* Vista previa */}
+                      {mediaPreview && (
+                        <div className="relative">
+                          {mediaType === 'image' ? (
+                            <img 
+                              src={mediaPreview} 
+                              alt="Preview" 
+                              className="w-full h-48 object-cover rounded-lg"
+                            />
+                          ) : (
+                            <video 
+                              src={mediaPreview} 
+                              controls 
+                              className="w-full h-48 object-cover rounded-lg"
+                            />
+                          )}
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => {
+                              setMediaFile(null);
+                              setMediaPreview(null);
+                              setMediaType(null);
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                      
                       <div>
                         <p className="text-sm font-medium mb-2">Añadir a tu publicación:</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <ImageUploader onUploadSuccess={(file) => handleUploadAndSubmit(file, 'image')} uploading={uploading} />
-                            <VideoUploader onUploadSuccess={(file) => handleUploadAndSubmit(file, 'video')} uploading={uploading} progress={progress} />
+                            <ImageUploader onUploadSuccess={(file) => handleFileSelect(file, 'image')} uploading={uploading} />
+                            <VideoUploader onUploadSuccess={(file) => handleFileSelect(file, 'video')} uploading={uploading} progress={progress} />
                         </div>
                       </div>
-                      <Button onClick={() => handleUploadAndSubmit(null, 'text')} disabled={isSubmitDisabled || (!text.trim())} className="w-full btn-action">
+                      
+                      <Button 
+                        onClick={handleSubmit} 
+                        disabled={isSubmitting || (!text.trim() && !mediaFile)} 
+                        className="w-full btn-action"
+                      >
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                         Publicar
                       </Button>
@@ -183,10 +249,59 @@ import { collection, addDoc } from 'firebase/firestore';
                   <TabsContent value="story">
                     <div className="space-y-4 mt-4">
                       <p className="text-sm text-center text-text-secondary">Las historias desaparecen después de 24 horas.</p>
+                      
+                      <Textarea
+                        placeholder="Agregar descripción (opcional)"
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        className="input-glass min-h-[80px]"
+                        disabled={isSubmitting}
+                      />
+                      
+                      {/* Vista previa */}
+                      {mediaPreview && (
+                        <div className="relative">
+                          {mediaType === 'image' ? (
+                            <img 
+                              src={mediaPreview} 
+                              alt="Preview" 
+                              className="w-full h-48 object-cover rounded-lg"
+                            />
+                          ) : (
+                            <video 
+                              src={mediaPreview} 
+                              controls 
+                              className="w-full h-48 object-cover rounded-lg"
+                            />
+                          )}
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => {
+                              setMediaFile(null);
+                              setMediaPreview(null);
+                              setMediaType(null);
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                      
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <ImageUploader onUploadSuccess={(file) => handleUploadAndSubmit(file, 'image')} uploading={uploading} />
-                            <VideoUploader onUploadSuccess={(file) => handleUploadAndSubmit(file, 'video')} uploading={uploading} progress={progress} />
+                            <ImageUploader onUploadSuccess={(file) => handleFileSelect(file, 'image')} uploading={uploading} />
+                            <VideoUploader onUploadSuccess={(file) => handleFileSelect(file, 'video')} uploading={uploading} progress={progress} />
                       </div>
+                      
+                      <Button 
+                        onClick={handleSubmit} 
+                        disabled={isSubmitting || !mediaFile} 
+                        className="w-full btn-action"
+                      >
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Radio className="mr-2 h-4 w-4" />}
+                        Publicar Historia
+                      </Button>
                     </div>
                   </TabsContent>
                 </Tabs>

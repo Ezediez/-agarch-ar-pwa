@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit, doc, getDoc, where } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -32,10 +32,12 @@ const VipCarousel = () => {
         type: 'vip' 
       }));
 
-      // Obtener historias de usuarios
+      // Obtener historias de usuarios (últimas 24 horas)
       const storiesRef = collection(db, 'stories');
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const storiesQuery = query(
         storiesRef,
+        where('created_at', '>', yesterday),
         orderBy('created_at', 'desc'),
         limit(8)
       );
