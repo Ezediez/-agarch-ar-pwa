@@ -61,11 +61,12 @@ const VipCarousel = () => {
         })
       );
 
-      // Obtener publicidades activas desde Portal de Anunciantes
+      // Obtener publicidades activas desde Portal de Anunciantes (Plan Premium $30/mes)
       const adsRef = collection(db, 'advertisements');
       const adsQuery = query(
         adsRef,
         where('status', '==', 'active'),
+        where('ad_plan', '==', 'premium'), // Solo avisos de $30/mes para carrusel
         orderBy('created_at', 'desc'),
         limit(4)
       );
@@ -77,7 +78,7 @@ const VipCarousel = () => {
         source: 'advertising_portal' // Marcar origen desde Portal de Anunciantes
       }));
 
-      // Mezclar siguiendo la regla: cada 6 perfiles/historias, 2 publicidades
+      // Mezclar siguiendo la regla: cada 6 perfiles/historias, 2 publicidades $30
       const mixedItems = [];
       let profileIndex = 0;
       let adIndex = 0;
@@ -90,7 +91,7 @@ const VipCarousel = () => {
         const profileBatch = allProfiles.slice(i, i + 6);
         mixedItems.push(...profileBatch);
         
-        // Agregar 2 publicidades si hay disponibles
+        // Agregar 2 publicidades $30 si hay disponibles
         if (adIndex < ads.length) {
           const adBatch = ads.slice(adIndex, adIndex + 2);
           mixedItems.push(...adBatch);

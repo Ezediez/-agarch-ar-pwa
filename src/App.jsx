@@ -31,14 +31,6 @@ const App = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        toast({
-          title: "¡Aplicación actualizada!",
-          description: "La aplicación se ha actualizado a la última versión. Los cambios se aplicarán al recargar."
-        });
-      });
-    }
     // Solicitar permiso de notificaciones de forma segura y no intrusiva
     askNotificationPermissionIfSupported();
   }, [toast]);

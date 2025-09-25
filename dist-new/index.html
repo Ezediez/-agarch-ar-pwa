@@ -14,32 +14,14 @@
     <meta name="apple-mobile-web-app-title" content="AGARCH-AR">
     <link rel="apple-touch-icon" href="/pwa-192x192.png">
     <link rel="apple-touch-startup-image" href="/pwa-512x512.png">
-    <script type="module" crossorigin src="/assets/index-DJR2ipv2.js"></script>
+    <script type="module" crossorigin src="/assets/index-CZejSxFf.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-npDLdgAy.js">
     <link rel="modulepreload" crossorigin href="/assets/router-Ba8Cb_LR.js">
     <link rel="modulepreload" crossorigin href="/assets/firebase-eG8A_CqU.js">
-    <link rel="modulepreload" crossorigin href="/assets/ui-Cpz89quC.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-Ce6TcXyu.css">
+    <link rel="modulepreload" crossorigin href="/assets/ui-BzcIgpI6.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-BB_fLo1v.css">
   </head>
   <body>
     <div id="root"></div>
-    
-    <!-- Limpiar errores de consola no críticos -->
-    <script src="/console-cleanup.js"></script>
-    
-    <!-- Service Worker para PWA -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registrado correctamente:', registration.scope);
-            })
-            .catch((error) => {
-              console.log('Error al registrar SW:', error);
-            });
-        });
-      }
-    </script>
   </body>
 </html>
