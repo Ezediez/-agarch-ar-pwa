@@ -9,6 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft, LogIn, Plus, Upload, CreditCard, DollarSign, Calendar, Image, FileText, Building, User, Phone, Mail, Globe, X, Eye, Loader2 } from 'lucide-react';
 import PhoneInputStripe from '@/components/ui/PhoneInputStripe';
+import { db, storage } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 const AdvertisingPortal = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -166,11 +169,47 @@ const AdvertisingPortal = () => {
         return;
       }
 
-      // Aquí implementarías la subida de la imagen a Firebase Storage
+      // Subir imagen a Firebase Storage si existe
       let imageUrl = null;
       if (adData.cover_image) {
-        // Simular subida de imagen
-        imageUrl = `https://example.com/images/${Date.now()}.jpg`;
+        try {
+          const fileName = `advertisements/${Date.now()}_${adData.cover_image.name}`;
+          const storageRef = ref(storage, fileName);
+          
+          const uploadTask = uploadBytesResumable(storageRef, adData.cover_image);
+          
+          imageUrl = await new Promise((resolve, reject) => {
+            uploadTask.on('state_changed',
+              (snapshot) => {
+                // Progreso de subida
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                console.log('Subiendo imagen:', progress + '%');
+              },
+              (error) => {
+                console.error('Error subiendo imagen:', error);
+                reject(error);
+              },
+              async () => {
+                try {
+                  const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                  resolve(downloadURL);
+                } catch (error) {
+                  reject(error);
+                }
+              }
+            );
+          });
+          
+          console.log('✅ Imagen subida exitosamente:', imageUrl);
+        } catch (error) {
+          console.error('❌ Error subiendo imagen:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'No se pudo subir la imagen. Intenta de nuevo.'
+          });
+          return;
+        }
       }
 
       // Crear el anuncio en Firestore
@@ -186,14 +225,17 @@ const AdvertisingPortal = () => {
         cover_image_url: imageUrl,
         ad_plan: adData.ad_plan,
         price: getPlanPrice(adData.ad_plan),
-        status: 'pending_payment', // Pending payment
-        created_at: new Date().toISOString(),
+        status: 'active', // Cambiado a 'active' para que aparezca inmediatamente
+        created_at: serverTimestamp(), // Usar serverTimestamp de Firebase
         advertiser_id: 'demo_user', // En producción sería el ID del anunciante logueado
+        views: 0,
+        clicks: 0,
       };
 
-      // Simular guardado en Firestore
-      console.log('Guardando anuncio:', adDataToSave);
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Guardar realmente en Firestore
+      console.log('🔥 Guardando anuncio en Firestore:', adDataToSave);
+      const docRef = await addDoc(collection(db, 'advertisements'), adDataToSave);
+      console.log('✅ Anuncio guardado con ID:', docRef.id);
       
       toast({
         title: 'Anuncio creado exitosamente',

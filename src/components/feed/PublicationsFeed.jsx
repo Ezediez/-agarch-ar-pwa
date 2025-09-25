@@ -71,10 +71,11 @@ const PublicationsFeed = () => {
         })
       );
 
-      // Obtener publicidades desde Portal de Anunciantes - simplificado
+      // Obtener publicidades activas desde Portal de Anunciantes
       const adsRef = collection(db, 'advertisements');
       const adsQuery = query(
         adsRef,
+        where('status', '==', 'active'),
         orderBy('created_at', 'desc'),
         limit(10)
       );
