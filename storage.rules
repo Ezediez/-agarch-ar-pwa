@@ -1,54 +1,43 @@
 rules_version = '2';
-
-// Reglas para Firebase Storage - AGARCH-AR
 service firebase.storage {
   match /b/{bucket}/o {
-    // Reglas para media de usuarios
-    match /media/{userId}/{allPaths=**} {
-      // Solo el usuario autenticado puede leer y escribir sus propios archivos
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Reglas para fotos de perfil
-    match /media/{userId}/profile-photos/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Reglas para fotos de posts
-    match /media/{userId}/posts/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Reglas para videos
-    match /media/{userId}/videos/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Reglas para stories
-    match /media/{userId}/stories/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Reglas para archivos públicos (solo lectura)
-    match /public/{allPaths=**} {
+    // Reglas para chat multimedia (mantener existentes)
+    match /uploads/{uid}/{conversationId}/{allPaths=**} {
       allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
     }
     
-    // Reglas para archivos VIP/Premium (solo usuarios con suscripción activa)
-    match /vip/{userId}/{allPaths=**} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Reglas para archivos de publicidad
-    match /advertisements/{advertiserId}/{allPaths=**} {
+    // Reglas para media de perfiles (mantener existentes)
+    match /media/{uid}/{allPaths=**} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == advertiserId;
+      allow write: if request.auth != null && request.auth.uid == uid;
     }
     
-    // Reglas para archivos de administración
-    match /admin/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
+    // REGLAS NUEVAS PARA LOS BUCKETS QUE USA EL CÓDIGO
+    // Estructura: bucket/user.uid/folder/archivo
+    
+    // Bucket: profile-photos (usado en MyProfilePage.jsx)
+    match /profile-photos/{uid}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+    
+    // Bucket: profile-videos (usado en MyProfilePage.jsx)
+    match /profile-videos/{uid}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+    
+    // Bucket: posts (usado en CreatePostPage.jsx)
+    match /posts/{uid}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+    
+    // Bucket: stories (usado en CreatePostPage.jsx)
+    match /stories/{uid}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
     }
   }
 }
