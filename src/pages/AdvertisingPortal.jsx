@@ -7,11 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { ArrowLeft, LogIn, Plus, Upload, CreditCard, DollarSign, Calendar, Image, FileText, Building, User, Phone, Mail, Globe, X, Eye, Loader2 } from 'lucide-react';
-import PhoneInputStripe from '@/components/ui/PhoneInputStripe';
-import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ArrowLeft, LogIn, Plus, Upload, CreditCard, DollarSign, Calendar, Image, FileText, Building, User, Phone, Mail, Globe } from 'lucide-react';
 
 const AdvertisingPortal = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -525,12 +521,12 @@ const AdvertisingPortal = () => {
                       <h3 className="text-lg font-semibold mb-4">Datos de Contacto</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <PhoneInputStripe
+                          <Label htmlFor="contact_phone">Teléfono</Label>
+                          <Input
+                            id="contact_phone"
                             value={adData.contact_phone}
-                            onChange={(value) => setAdData({...adData, contact_phone: value})}
-                            label="Teléfono"
-                            placeholder="Número de teléfono"
-                            required
+                            onChange={(e) => setAdData({...adData, contact_phone: e.target.value})}
+                            placeholder="+54 11 1234-5678"
                           />
                         </div>
                         <div>
