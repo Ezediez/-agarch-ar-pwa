@@ -200,7 +200,7 @@ const PublicationsFeed = () => {
 
   return (
     <div className="px-4 pb-20">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {mixedFeed.map((item, index) => (
           <div key={item.id || index} className="space-y-3">
             {item.type === 'ad' || item.website ? (

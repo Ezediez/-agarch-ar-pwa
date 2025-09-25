@@ -1,3 +1,9 @@
+// ⚠️ ARCHIVO DUPLICADO - NO USADO ⚠️
+// Este archivo NO se está usando en la aplicación
+// El archivo activo está en: src/pages/SettingsPage.jsx
+// Se mantiene como backup por si se necesita en el futuro
+// NO MODIFICAR - NO ELIMINAR - SOLO BACKUP
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, Shield, Bell, MapPin, Eye, CreditCard, AlertTriangle } from 'lucide-react';

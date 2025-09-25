@@ -99,11 +99,36 @@ const SettingsPage = () => {
     );
   }
 
-  const handleFeatureClick = () => {
-    toast({
-      title: "🚧 Función en desarrollo",
-      description: "Esta característica estará disponible pronto. ¡Puedes solicitarla en tu próximo prompt! 🚀",
-    });
+  const handleFeatureClick = async () => {
+    if (!profile?.uid) return;
+    
+    try {
+      // Activar VIP demo automáticamente para el usuario actual
+      const profileRef = doc(db, 'profiles', profile.uid);
+      await updateDoc(profileRef, {
+        is_vip: true,
+        vip_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
+        vip_demo: true,
+        vip_activated_at: new Date()
+      });
+
+      toast({
+        title: "🎉 VIP DEMO Activado",
+        description: "Has activado VIP demo por 30 días. Función temporal hasta implementar PayPal/Stripe.",
+        className: "bg-green-500 text-white"
+      });
+      
+      // Refrescar el perfil para mostrar cambios
+      await refreshProfile();
+      
+    } catch (error) {
+      console.error("Error activando VIP demo:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo activar VIP demo. Intenta nuevamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleVerificationRequest = async () => {
@@ -198,13 +223,29 @@ const SettingsPage = () => {
               {!profile?.is_vip && (
                  <Button 
                   onClick={handleFeatureClick} 
-                  className="bg-[#0070BA] hover:bg-[#005ea6] text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200"
                 >
-                  <PayPalIcon />
-                  Hacerse VIP con PayPal
+                  🎉 VIP DEMO - ¡Activar!
                 </Button>
               )}
             </SettingsItem>
+
+            {/* Botón de acceso admin para emails autorizados */}
+            {(profile?.email === 'ezequieldiez@hotmail.com' || profile?.email === 'yanisole0207@gmail.com' || profile?.email === 'admin@agarch-ar.com') && (
+              <SettingsItem
+                icon={<Crown className="text-blue-400" />}
+                title="Panel de Administrador"
+                description="Acceso temporal al panel de administración"
+              >
+                <Button 
+                  onClick={() => navigate('/admin/vip-demo')}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  🚀 Ir al Panel Admin
+                </Button>
+              </SettingsItem>
+            )}
+
             <SettingsItem
               icon={<Shield className="text-green-400" />}
               title="Verificación"
