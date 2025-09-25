@@ -18,22 +18,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    
-    <!-- SW Killer - Elimina el Service Worker existente -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw-killer.js')
-          .then(() => {
-            console.log('SW Killer registrado - eliminando SW anterior');
-            // Esperar un momento y luego desregistrar el killer también
-            setTimeout(() => {
-              navigator.serviceWorker.getRegistrations().then(registrations => {
-                registrations.forEach(registration => registration.unregister());
-                console.log('Todos los Service Workers eliminados');
-              });
-            }, 2000);
-          });
-      }
-    </script>
   </body>
 </html>
