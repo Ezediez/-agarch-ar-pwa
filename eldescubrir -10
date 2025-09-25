@@ -1,0 +1,20 @@
+[33mee73481[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m 🔧 RECONSTRUIR: Página publicaciones restaurada después de eliminar Service Worker - Ratios 6:2 corregidos - Cables conectados: like/mensaje/seguir - Build listo para pruebas
+[33m7dd11e9[m 🗑️ ELIMINADO: SW Killer removido completamente del repositorio
+[33me5bfe2b[m 🔄 SW KILLER: Script temporal para eliminar Service Worker persistente del navegador
+[33mf14b9a4[m 🗑️ ELIMINADO: Service Worker y console-cleanup que rompían la página
+[33m81d5814[m 🔧 FIX: Eliminado import de PhoneInputStripe que causaba error de build
+[33ma669103[m 🔄 REVERTIDO: Restaurados archivos al estado anterior funcional - eliminados cambios problemáticos de publicidad y modal
+[33m478143c[m 🔄 FORCE UPDATE: Reversión aplicada - feed restaurado 09/25/2025 02:29:36
+[33mf93ba92[m 🔧 Arreglado: Anuncios ahora aparecen en feed y carrusel - Implementado guardado real en Firestore con Firebase Storage para imágenes y filtro por status: 'active'
+[33m7b879d6[m ✨ Mejorado formulario de publicidad: vista previa de imagen, selector de teléfono estilo PayPal, planes de precios correctos (, , ), función de publicar funcional
+[33m98ce6a8[m fix: Solucionar errores de consola y mejorar PWA
+[33m49dbce4[m feat: Mejorar flujo completo de historias y publicaciones
+[33m45279b1[m feat: Habilitar historias para todos + Optimización móvil
+[33mef8c95f[m feat: Implementar selector de país tipo PayPal en todos los formularios
+[33mddb1afc[m fix: Solucionar problemas de sincronización de perfiles de usuarios nuevos
+[33m5f3d0ed[m debug: Agregar debugging detallado para error de Firebase Auth
+[33m103230a[m feat: Optimización final para móviles y limpieza de código
+[33m8a2de16[m fix: Arreglar accesibilidad y rediseñar selector de país
+[33m48a93fe[m fix: Pulir selector de país y arreglar nombres en carrusel
+[33mb9ff199[m feat: Agregar selector de país con códigos telefónicos al registro publicitario
+[33m97cb33c[m fix: Mejorar manejo de errores en registro publicitario

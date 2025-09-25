@@ -35,16 +35,6 @@ const DiscoverPage = () => {
         </div>
 
         <div className="container mx-auto px-4 py-4 space-y-6">
-          {/* Barra de búsqueda */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="¿Qué estás buscando?"
-              className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            />
-          </div>
-
           {/* Carrusel VIP */}
           <Suspense fallback={
             <div className="flex items-center justify-center py-8">

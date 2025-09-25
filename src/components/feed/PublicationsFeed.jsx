@@ -25,7 +25,6 @@ const PublicationsFeed = () => {
   const [loading, setLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
-  const [expandedPost, setExpandedPost] = useState(null);
 
   const fetchPublications = useCallback(async () => {
     if (!user?.uid) return;
@@ -33,11 +32,10 @@ const PublicationsFeed = () => {
     try {
       setLoading(true);
       
-      // Obtener publicaciones de perfiles
+      // Obtener publicaciones de perfiles (sin orderBy para evitar error 400)
       const postsRef = collection(db, 'posts');
       const postsQuery = query(
         postsRef,
-        orderBy('created_at', 'desc'),
         limit(20)
       );
       const postsSnapshot = await getDocs(postsQuery);
@@ -56,16 +54,16 @@ const PublicationsFeed = () => {
             console.error('Error fetching profile:', error);
           }
           
-          // Obtener likes del post
-          try {
-            const likesRef = collection(db, 'post_likes');
-            const likesQuery = query(likesRef, where('post_id', '==', postData.id));
-            const likesSnapshot = await getDocs(likesQuery);
-            postData.likes = likesSnapshot.docs.map(likeDoc => ({ id: likeDoc.id, ...likeDoc.data() }));
-          } catch (error) {
-            console.error('Error fetching likes:', error);
-            postData.likes = [];
-          }
+      // Obtener likes del post (simplificado para evitar error 400)
+      try {
+        const likesRef = collection(db, 'post_likes');
+        const likesQuery = query(likesRef, where('post_id', '==', postData.id));
+        const likesSnapshot = await getDocs(likesQuery);
+        postData.likes = likesSnapshot.docs.map(likeDoc => ({ id: likeDoc.id, ...likeDoc.data() }));
+      } catch (error) {
+        console.error('Error fetching likes:', error);
+        postData.likes = [];
+      }
           
           return postData;
         })
@@ -76,13 +74,13 @@ const PublicationsFeed = () => {
       const adsQuery = query(
         adsRef,
         where('status', '==', 'active'),
-        orderBy('created_at', 'desc'),
         limit(10)
       );
       const adsSnapshot = await getDocs(adsQuery);
       const adsData = adsSnapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data(),
+        type: 'ad', // Marcar como publicidad
         source: 'advertising_portal' // Marcar origen desde Portal de Anunciantes
       }));
 
@@ -180,9 +178,6 @@ const PublicationsFeed = () => {
     }
   };
 
-  const handleExpandPost = (post) => {
-    setExpandedPost(post);
-  };
 
   if (loading) {
     return (
@@ -262,10 +257,7 @@ const PublicationsFeed = () => {
                 </div>
 
                 {/* Contenido de la publicación */}
-                <div 
-                  className="cursor-pointer"
-                  onClick={() => handleExpandPost(item)}
-                >
+                <div>
                   {item.image_url && (
                     <img
                       src={item.image_url}
@@ -314,30 +306,6 @@ const PublicationsFeed = () => {
         />
       )}
 
-      {/* Modal de publicación expandida */}
-      {expandedPost && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-card rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-medium">Publicación</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setExpandedPost(null)}
-              >
-                ✕
-              </Button>
-            </div>
-            
-            <div className="p-4">
-              {/* Aquí renderizarías la publicación expandida */}
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Vista expandida en desarrollo</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

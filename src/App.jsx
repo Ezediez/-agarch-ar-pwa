@@ -20,6 +20,7 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminUserManagementPage from '@/pages/admin/AdminUserManagementPage';
 import AdminAdManagementPage from '@/pages/admin/AdminAdManagementPage';
+import VipDemoPage from '@/pages/admin/VipDemoPage';
 import AdminRoute from '@/components/admin/AdminRoute';
 import AdvertisingContactPage from '@/pages/AdvertisingContactPage';
 import AdminLoginPage from '@/pages/admin/AdminLoginPage';
@@ -78,6 +79,7 @@ const App = () => {
                 <Route path="/" element={<AdminDashboardPage />} />
                 <Route path="users" element={<AdminUserManagementPage />} />
                 <Route path="ads" element={<AdminAdManagementPage />} />
+                <Route path="vip-demo" element={<VipDemoPage />} />
               </Routes>
             </AdminLayout>
           </AdminRoute>

@@ -19,6 +19,10 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth.uid == profileId;
       allow update: if request.auth.uid == profileId;
+      // Permitir actualización de campos VIP sin afectar otros campos
+      allow update: if request.auth.uid == profileId && 
+        (request.resource.data.keys().hasAll(['is_vip', 'vip_expires_at']) || 
+         request.resource.data.keys().hasAll(['is_premium', 'premium_expires_at']));
     }
 
     // Reglas para posts (públicos para leer, solo el autor puede escribir)
@@ -89,6 +93,10 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == request.resource.data.advertiser_id; // Solo el anunciante puede crear
       allow update: if request.auth != null && request.auth.uid == resource.data.advertiser_id; // Solo el anunciante puede editar
       allow delete: if request.auth != null && request.auth.uid == resource.data.advertiser_id; // Solo el anunciante puede eliminar
+      // Permitir actualización de estado de publicidad para administradores
+      allow update: if request.auth != null && 
+        (request.auth.uid == resource.data.advertiser_id || 
+         request.auth.token.admin == true);
     }
 
     // Reglas para anunciantes (usuarios del Portal de Anunciantes)
@@ -103,6 +111,30 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == resource.data.user_id; // Solo el usuario puede leer sus seguidos
       allow create: if request.auth != null && request.auth.uid == request.resource.data.user_id; // Solo puede seguir desde su cuenta
       allow delete: if request.auth != null && request.auth.uid == resource.data.user_id; // Solo puede dejar de seguir desde su cuenta
+    }
+
+    // Reglas para suscripciones VIP/Premium
+    match /subscriptions/{subscriptionId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.user_id;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.user_id;
+      allow update: if request.auth != null && request.auth.uid == resource.data.user_id;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.user_id;
+    }
+
+    // Reglas para pagos y transacciones
+    match /payments/{paymentId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.user_id;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.user_id;
+      // No permitir actualización ni eliminación de pagos por seguridad
+    }
+
+    // Reglas para mensajes (chat directo)
+    match /messages/{messageId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.sender_id || request.auth.uid == resource.data.recipient_id);
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.sender_id;
+      allow update: if request.auth != null && request.auth.uid == resource.data.sender_id;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.sender_id;
     }
   }
 }

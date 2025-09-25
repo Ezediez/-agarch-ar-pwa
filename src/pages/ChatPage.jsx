@@ -252,36 +252,49 @@ const ChatPage = () => {
         return [...currentMessages, newMessage];
       });
     }, 100);
-  }, [user?.id, activeChat?.id]);
+  }, [user?.uid, activeChat?.id]);
 
   /**
    * Configurar suscripción en tiempo real con Firebase
    */
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.uid) return; // Cambiar user?.id por user?.uid
 
     // Limpiar suscripción anterior
     if (realtimeChannelRef.current) {
       realtimeChannelRef.current();
     }
 
-    // Crear nueva suscripción a mensajes
-    const unsubscribe = onSnapshot(
-      collection(db, 'messages'),
-      (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'added') {
-            const newMessage = { id: change.doc.id, ...change.doc.data() };
-            handleRealtimeMessage({ new: newMessage });
-          }
-        });
-      },
-      (error) => {
-        console.error('Error en suscripción de mensajes:', error);
-      }
-    );
+    // Crear nueva suscripción a mensajes con filtro por chat activo
+    if (activeChat?.id) {
+      const messagesQuery = query(
+        collection(db, 'messages'),
+        where('chat_id', '==', activeChat.id),
+        orderBy('sent_at', 'asc')
+      );
 
-    realtimeChannelRef.current = unsubscribe;
+      const unsubscribe = onSnapshot(
+        messagesQuery,
+        (snapshot) => {
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === 'added') {
+              const newMessage = { id: change.doc.id, ...change.doc.data() };
+              handleRealtimeMessage({ new: newMessage });
+            }
+          });
+        },
+        (error) => {
+          console.error('Error en suscripción de mensajes:', error);
+          // Si hay error, desactivar la suscripción en tiempo real
+          if (realtimeChannelRef.current) {
+            realtimeChannelRef.current();
+            realtimeChannelRef.current = null;
+          }
+        }
+      );
+
+      realtimeChannelRef.current = unsubscribe;
+    }
 
     return () => {
       if (realtimeChannelRef.current) {
