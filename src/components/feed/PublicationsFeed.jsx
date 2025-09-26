@@ -32,11 +32,10 @@ const PublicationsFeed = () => {
     try {
       setLoading(true);
       
-            // Obtener publicaciones de perfiles (ordenadas por fecha de creación)
+            // Obtener publicaciones de perfiles (sin orderBy para evitar error 400)
             const postsRef = collection(db, 'posts');
             const postsQuery = query(
                 postsRef,
-                orderBy('created_at', 'desc'),
                 limit(20)
             );
       const postsSnapshot = await getDocs(postsQuery);
@@ -70,12 +69,11 @@ const PublicationsFeed = () => {
         })
       );
 
-            // Obtener publicidades activas desde Portal de Anunciantes (ordenadas por fecha)
+            // Obtener publicidades activas desde Portal de Anunciantes
             const adsRef = collection(db, 'advertisements');
             const adsQuery = query(
                 adsRef,
                 where('status', '==', 'active'),
-                orderBy('created_at', 'desc'),
                 limit(10)
             );
       const adsSnapshot = await getDocs(adsQuery);
