@@ -32,10 +32,11 @@ const PublicationsFeed = () => {
     try {
       setLoading(true);
       
-            // Obtener publicaciones de perfiles (sin orderBy para evitar error 400)
+            // Obtener publicaciones de perfiles ordenadas por fecha (más recientes primero)
             const postsRef = collection(db, 'posts');
             const postsQuery = query(
                 postsRef,
+                orderBy('created_at', 'desc'),
                 limit(20)
             );
       const postsSnapshot = await getDocs(postsQuery);
@@ -77,12 +78,36 @@ const PublicationsFeed = () => {
                 limit(10)
             );
       const adsSnapshot = await getDocs(adsQuery);
-      const adsData = adsSnapshot.docs.map(doc => ({ 
+      let adsData = adsSnapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data(),
         type: 'ad', // Marcar como publicidad
         source: 'advertising_portal' // Marcar origen desde Portal de Anunciantes
       }));
+
+      // Si no hay publicidades reales, agregar banners promocionales
+      if (adsData.length === 0) {
+        adsData = [
+          {
+            id: 'banner-vip',
+            type: 'promo',
+            title: 'Obtené VIP',
+            description: 'Tu perfil destacado por 30 días',
+            image_url: '/pwa-512x512.png',
+            price: 15,
+            promo_type: 'VIP'
+          },
+          {
+            id: 'banner-automarket',
+            title: 'AutoMarket',
+            description: 'Compra y venta de autos',
+            type: 'promo',
+            image_url: '/pwa-512x512.png',
+            website: 'https://auto-market.pro',
+            promo_type: 'AUTOMARKET'
+          }
+        ];
+      }
 
       setPublications(postsData);
       setAds(adsData);
