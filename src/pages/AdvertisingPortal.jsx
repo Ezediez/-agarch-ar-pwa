@@ -15,6 +15,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 const AdvertisingPortal = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showCreateAd, setShowCreateAd] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loginData, setLoginData] = useState({
     email: '',
@@ -31,7 +32,7 @@ const AdvertisingPortal = () => {
     contact_whatsapp: '',
     cover_image: null,
     cover_image_preview: null,
-    ad_plan: 'basic', // 'basic' ($3), 'standard' ($10), 'premium' ($30)
+    ad_plan: 'standard', // 'standard' ($10), 'premium' ($30)
   });
   
   const fileInputRef = useRef(null);
@@ -89,24 +90,9 @@ const AdvertisingPortal = () => {
   // Función para obtener el precio del plan
   const getPlanPrice = (plan) => {
     switch (plan) {
-      case 'basic': return 3;
       case 'standard': return 10;
       case 'premium': return 30;
-      default: return 3;
-    }
-  };
-
-  // Función para obtener la descripción del plan
-  const getPlanDescription = (plan) => {
-    switch (plan) {
-      case 'basic':
-        return 'Publicación única que va bajando en el feed';
-      case 'standard':
-        return 'Se muestra cada 8 publicaciones por 10 días';
-      case 'premium':
-        return 'Aparece en publicaciones y carrusel por 30 días';
-      default:
-        return '';
+      default: return 10; // Plan estándar por defecto
     }
   };
 
@@ -253,7 +239,7 @@ const AdvertisingPortal = () => {
         contact_whatsapp: '',
         cover_image: null,
         cover_image_preview: null,
-        ad_plan: 'basic'
+        ad_plan: 'standard'
       });
       
       if (fileInputRef.current) {
@@ -555,117 +541,16 @@ const AdvertisingPortal = () => {
                       </div>
                     </div>
 
-                    {/* Planes de Publicidad */}
+                    {/* Resumen simplificado */}
                     <div className="border-t pt-4">
-                      <h3 className="text-lg font-semibold mb-4">Plan de Publicidad</h3>
-                      <div className="space-y-3">
-                        {/* Plan Básico */}
-                        <div 
-                          className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                            adData.ad_plan === 'basic' 
-                              ? 'border-primary bg-primary/5' 
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                          onClick={() => setAdData({...adData, ad_plan: 'basic'})}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="radio"
-                                checked={adData.ad_plan === 'basic'}
-                                onChange={() => setAdData({...adData, ad_plan: 'basic'})}
-                                className="w-4 h-4 text-primary"
-                              />
-                              <div>
-                                <h4 className="font-semibold">Plan Básico</h4>
-                                <p className="text-sm text-gray-600">{getPlanDescription('basic')}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-2xl font-bold text-primary">$3</p>
-                              <p className="text-xs text-gray-500">USD</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Plan Estándar */}
-                        <div 
-                          className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                            adData.ad_plan === 'standard' 
-                              ? 'border-primary bg-primary/5' 
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                          onClick={() => setAdData({...adData, ad_plan: 'standard'})}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="radio"
-                                checked={adData.ad_plan === 'standard'}
-                                onChange={() => setAdData({...adData, ad_plan: 'standard'})}
-                                className="w-4 h-4 text-primary"
-                              />
-                              <div>
-                                <h4 className="font-semibold">Plan Estándar</h4>
-                                <p className="text-sm text-gray-600">{getPlanDescription('standard')}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-2xl font-bold text-primary">$10</p>
-                              <p className="text-xs text-gray-500">USD</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Plan Premium */}
-                        <div 
-                          className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                            adData.ad_plan === 'premium' 
-                              ? 'border-primary bg-primary/5' 
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                          onClick={() => setAdData({...adData, ad_plan: 'premium'})}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="radio"
-                                checked={adData.ad_plan === 'premium'}
-                                onChange={() => setAdData({...adData, ad_plan: 'premium'})}
-                                className="w-4 h-4 text-primary"
-                              />
-                              <div>
-                                <h4 className="font-semibold">Plan Premium</h4>
-                                <p className="text-sm text-gray-600">{getPlanDescription('premium')}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-2xl font-bold text-primary">$30</p>
-                              <p className="text-xs text-gray-500">USD</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Resumen y Botones */}
-                    <div className="border-t pt-4">
-                      <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                        <h4 className="font-semibold mb-2">Resumen del Anuncio</h4>
-                        <div className="flex justify-between items-center">
-                          <span>Plan seleccionado:</span>
-                          <span className="font-semibold">
-                            {adData.ad_plan === 'basic' && 'Plan Básico'}
-                            {adData.ad_plan === 'standard' && 'Plan Estándar'}
-                            {adData.ad_plan === 'premium' && 'Plan Premium'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center mt-2">
-                          <span>Total a pagar:</span>
-                          <span className="text-xl font-bold text-primary">
-                            ${getPlanPrice(adData.ad_plan)} USD
-                          </span>
-                        </div>
+                      <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                        <h4 className="font-semibold mb-2">📝 Resumen del Anuncio</h4>
+                        <p className="text-sm text-gray-600">Título: {adData.title || 'Sin título'}</p>
+                        <p className="text-sm text-gray-600">Categoría: {adData.category || 'Sin categoría'}</p>
+                        <p className="text-sm text-gray-600">Email: {adData.contact_email || 'Sin email'}</p>
+                        <p className="text-xs text-blue-600 mt-2">
+                          ✅ Haz clic en "Elegir Plan de Pago" para continuar
+                        </p>
                       </div>
 
                       <div className="flex gap-4">
@@ -679,21 +564,16 @@ const AdvertisingPortal = () => {
                           Cancelar
                         </Button>
                         <Button
-                          type="submit"
+                          type="button"
                           disabled={loading || !adData.title.trim() || !adData.description.trim() || !adData.contact_email.trim()}
                           className="flex-1"
+                          onClick={() => {
+                            setShowCreateAd(false);
+                            setShowPaymentModal(true);
+                          }}
                         >
-                          {loading ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Creando...
-                            </>
-                          ) : (
-                            <>
                               <CreditCard className="w-4 h-4 mr-2" />
-                              Pagar ${getPlanPrice(adData.ad_plan)} USD
-                            </>
-                          )}
+                          Elegir Plan de Pago
                         </Button>
                       </div>
                     </div>
@@ -719,6 +599,117 @@ const AdvertisingPortal = () => {
             </div>
           </div>
         </div>
+
+        {/* Modal de Pagos Simplificado */}
+        {showPaymentModal && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-50"
+            style={{
+              animation: 'fadeIn 0.2s ease-out',
+            }}
+            onClick={() => setShowPaymentModal(false)}
+          >
+            <div className="bg-white rounded-lg max-w-md w-full mx-auto mt-20 p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold">🚀 Elegir Plan de Publicidad</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                {/* Plan Estándar */}
+                <div 
+                  className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                    adData.ad_plan === 'standard' 
+                      ? 'border-green-500 bg-green-50' 
+                      : 'border-gray-200 hover:border-green-300'
+                  }`}
+                  onClick={() => setAdData({...adData, ad_plan: 'standard'})}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        checked={adData.ad_plan === 'standard'}
+                        onChange={() => setAdData({...adData, ad_plan: 'standard'})}
+                        className="w-4 h-4 text-green-500"
+                      />
+                    <div>
+                        <h4 className="font-semibold">📢 Plan Estándar</h4>
+                        <p className="text-sm text-gray-600">Publicación única que aparecerá arriba y se irá perdiendo en el feed</p>
+                    </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-green-500">$10</p>
+                      <p className="text-xs text-gray-500">USD</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Plan Premium */}
+                <div 
+                  className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                    adData.ad_plan === 'premium' 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-200 hover:border-blue-300'
+                  }`}
+                  onClick={() => setAdData({...adData, ad_plan: 'premium'})}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        checked={adData.ad_plan === 'premium'}
+                        onChange={() => setAdData({...adData, ad_plan: 'premium'})}
+                        className="w-4 h-4 text-blue-500"
+                      />
+                    <div>
+                        <h4 className="font-semibold">⭐ Plan Premium</h4>
+                        <p className="text-sm text-gray-600">Se muestra cada 6 posts de usuarios + 2 banners promocionales por 30 días</p>
+                    </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-blue-500">$30</p>
+                      <p className="text-xs text-gray-500">USD</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="text-center">
+                  <Button
+                    onClick={() => handleCreateAd({ preventDefault: () => {} })}
+                    disabled={loading}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Procesando Pago...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-5 h-5 mr-2" />
+                        Pagar ${getPlanPrice(adData.ad_plan)} USD
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  * Pago simulado por ahora - Se publica inmediatamente
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
