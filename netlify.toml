@@ -26,12 +26,6 @@
     Content-Type = "application/manifest+json"
     Cache-Control = "public, max-age=0, must-revalidate"
 
-# Service Worker habilitado
-[[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Content-Type = "application/javascript"
-    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/assets/*"
@@ -43,7 +37,7 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
-# PWA specific redirects
+# SPA specific redirects
 [[redirects]]
   from = "/discover"
   to = "/index.html"
