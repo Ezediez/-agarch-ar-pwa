@@ -75,7 +75,19 @@ const Stories = () => {
         groupedStories[story.user_id].stories.push(story);
       });
 
-      setStories(Object.values(groupedStories));
+      // Ordenar historias dentro de cada grupo por fecha (más recientes primero)
+      Object.values(groupedStories).forEach(group => {
+        group.stories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      });
+
+      // Ordenar grupos por la historia más reciente de cada usuario
+      const sortedGroups = Object.values(groupedStories).sort((a, b) => {
+        const latestA = a.stories[0]?.created_at;
+        const latestB = b.stories[0]?.created_at;
+        return new Date(latestB) - new Date(latestA);
+      });
+
+      setStories(sortedGroups);
     } catch (error) {
       console.error('Error fetching stories:', error);
       setStories([]);

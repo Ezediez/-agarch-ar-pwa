@@ -92,7 +92,7 @@ export const useUploader = () => {
       
       // Configuración optimizada para móviles
       const uploadTask = uploadBytesResumable(storageRef, fileToUpload, {
-        cacheControl: 'public,max-age=31536000', // Cache por 1 año
+        cacheControl: 'no-cache', // Evitar problemas de caché
         contentType: fileToUpload.type,
         customMetadata: {
           originalName: fileToUpload.name,
@@ -108,14 +108,27 @@ export const useUploader = () => {
             setProgress(progress);
           },
           (error) => {
-            reject(error);
+            console.error('Upload error:', error);
+            // Manejar errores específicos de caché
+            if (error.code === 'storage/retry-limit-exceeded') {
+              reject(new Error('Se excedió el límite de reintentos. Intenta de nuevo.'));
+            } else if (error.message.includes('ERR_CACHE_OPERATION_NOT_SUPPORTED')) {
+              reject(new Error('Error de caché del navegador. Intenta recargar la página.'));
+            } else {
+              reject(error);
+            }
           },
           async () => {
             try {
               const url = await getDownloadURL(uploadTask.snapshot.ref);
               resolve(url);
             } catch (error) {
-              reject(error);
+              console.error('Download URL error:', error);
+              if (error.message.includes('ERR_CACHE_OPERATION_NOT_SUPPORTED')) {
+                reject(new Error('Error de caché del navegador. Intenta recargar la página.'));
+              } else {
+                reject(error);
+              }
             }
           }
         );
@@ -142,6 +155,10 @@ export const useUploader = () => {
         errorMessage = "La subida fue cancelada.";
       } else if (error.code === 'storage/unknown') {
         errorMessage = "Error desconocido de Firebase Storage. Verifica la configuración.";
+      } else if (error.message.includes('ERR_CACHE_OPERATION_NOT_SUPPORTED')) {
+        errorMessage = "Error de caché del navegador. Intenta recargar la página o usar modo incógnito.";
+      } else if (error.message.includes('400')) {
+        errorMessage = "Error de conexión con el servidor. Verifica tu conexión a internet.";
       }
       
       toast({
@@ -219,6 +236,10 @@ export const useUploader = () => {
         errorMessage = "La subida fue cancelada.";
       } else if (error.code === 'storage/unknown') {
         errorMessage = "Error desconocido de Firebase Storage. Verifica la configuración.";
+      } else if (error.message.includes('ERR_CACHE_OPERATION_NOT_SUPPORTED')) {
+        errorMessage = "Error de caché del navegador. Intenta recargar la página o usar modo incógnito.";
+      } else if (error.message.includes('400')) {
+        errorMessage = "Error de conexión con el servidor. Verifica tu conexión a internet.";
       }
       
       toast({

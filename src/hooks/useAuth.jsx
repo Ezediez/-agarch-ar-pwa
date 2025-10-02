@@ -21,7 +21,6 @@ export const AuthProvider = ({ children }) => {
     }
     
     try {
-      setLoading(true);
       // Firebase Firestore query
       const profileRef = doc(db, 'profiles', user.uid);
       const profileSnap = await getDoc(profileRef);
@@ -61,22 +60,20 @@ export const AuthProvider = ({ children }) => {
       });
       setProfile(null);
       return null;
-    } finally {
-        setLoading(false);
     }
   }, [toast]);
 
   useEffect(() => {
-    setLoading(true);
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setLoading(true);
       setSession(currentUser ? { user: currentUser } : null);
       setUser(currentUser);
       if (currentUser) {
         await getProfile(currentUser);
       } else {
         setProfile(null);
-        setLoading(false);
       }
+      setLoading(false);
     });
 
     return () => {

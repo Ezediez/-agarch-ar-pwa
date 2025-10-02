@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
     import { Helmet } from 'react-helmet-async';
-    import { useNavigate } from 'react-router-dom';
+    import { useNavigate, useSearchParams } from 'react-router-dom';
     import { useAuth } from '@/hooks/useAuth';
     import { useToast } from '@/components/ui/use-toast.jsx';
     import { db, auth, storage } from '@/lib/firebase'; // 🔥 Firebase client
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
     import { Button } from '@/components/ui/button';
     import { Textarea } from '@/components/ui/textarea';
     import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
     import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-    import { Loader2, Send, Image as ImageIcon, Video as VideoIcon, Radio, X } from 'lucide-react';
+    import { Loader2, Send, Image as ImageIcon, Video as VideoIcon, Radio, X, Clock } from 'lucide-react';
     import ImageUploader from '@/components/ImageUploader';
     import VideoUploader from '@/components/VideoUploader';
     import { useUploader } from '@/hooks/useUploader';
@@ -19,13 +19,24 @@ import { collection, addDoc } from 'firebase/firestore';
       const { toast } = useToast();
       const navigate = useNavigate();
       const { uploadFile, uploading, progress } = useUploader();
+      const [searchParams] = useSearchParams();
 
-  const [postType, setPostType] = useState('post'); // 'post', 'story'
+  const [postType, setPostType] = useState('post'); // post o story
   const [text, setText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mediaFile, setMediaFile] = useState(null);
   const [mediaPreview, setMediaPreview] = useState(null);
   const [mediaType, setMediaType] = useState(null);
+
+  // Detectar tipo desde URL
+  useEffect(() => {
+    const type = searchParams.get('type');
+    if (type === 'story') {
+      setPostType('story');
+    } else {
+      setPostType('post');
+    }
+  }, [searchParams]);
 
         const handleFileSelect = (file, type) => {
             setMediaFile(file);
@@ -90,11 +101,11 @@ import { collection, addDoc } from 'firebase/firestore';
                 setMediaType(null);
                 
             } catch (error) {
-                console.error('Error al crear publicación:', error);
+                console.error('Error al crear contenido:', error);
                 toast({ 
                     variant: 'destructive', 
                     title: 'Error', 
-                    description: 'No se pudo crear la publicación. Intenta de nuevo.' 
+                    description: `No se pudo crear la ${postType === 'story' ? 'historia' : 'publicación'}. Intenta de nuevo.` 
                 });
             } finally {
                 setIsSubmitting(false);
@@ -141,23 +152,31 @@ import { collection, addDoc } from 'firebase/firestore';
             return;
         }
         
-        if (!mediaUrl) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Debes seleccionar un archivo para tu historia.' });
+        if (!text.trim() && !mediaUrl) {
+            toast({ variant: 'destructive', title: 'Error', description: 'La historia no puede estar vacía.' });
             return;
         }
 
         try {
-            await addDoc(collection(db, 'stories'), {
+            const storyData = {
                 user_id: user.uid,
-                media_url: mediaUrl,
-                media_type: type,
-                created_at: new Date().toISOString()
-            });
+                type: mediaUrl ? (type === 'image' ? 'image' : 'video') : 'text',
+                created_at: serverTimestamp(),
+                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 horas
+                views: [],
+                likes: [],
+                status: 'active',
+                ...(text.trim() && { text: text.trim() }),
+                ...(mediaUrl && type === 'image' && { media_url: mediaUrl }),
+                ...(mediaUrl && type === 'video' && { media_url: mediaUrl }),
+            };
+
+            await addDoc(collection(db, 'stories'), storyData);
             
             toast({ title: '¡Historia creada con éxito!' });
             navigate('/discover');
         } catch (error) {
-            console.error('Error al crear story:', error);
+            console.error('Error al crear historia:', error);
             toast({ 
                 variant: 'destructive', 
                 title: 'Error', 
@@ -165,25 +184,38 @@ import { collection, addDoc } from 'firebase/firestore';
             });
         }
       };
+
       
       const isSubmitDisabled = isSubmitting || uploading;
 
       return (
         <>
           <Helmet>
-            <title>Crear - AGARCH-AR</title>
-            <meta name="description" content="Crea una nueva publicación o historia en AGARCH-AR." />
+            <title>{postType === 'story' ? 'Crear Historia' : 'Crear Publicación'} - AGARCH-AR</title>
+            <meta name="description" content={`Crea una nueva ${postType === 'story' ? 'historia' : 'publicación'} en AGARCH-AR.`} />
           </Helmet>
           <div className="max-w-2xl mx-auto p-4">
             <Card className="card-glass">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold text-center text-primary">Crear</CardTitle>
+                <CardTitle className="text-2xl font-bold text-center text-primary">
+                  {postType === 'story' ? 'Crear Historia' : 'Crear Publicación'}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <Tabs value={postType} onValueChange={setPostType} className="w-full">
+                <Tabs value={postType} className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="post"><Send className="mr-2 h-4 w-4"/>Publicación</TabsTrigger>
-                    <TabsTrigger value="story"><Radio className="mr-2 h-4 w-4"/>Historia</TabsTrigger>
+                    <TabsTrigger 
+                      value="post" 
+                      onClick={() => setPostType('post')}
+                    >
+                      <Send className="mr-2 h-4 w-4"/>Publicación
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="story" 
+                      onClick={() => setPostType('story')}
+                    >
+                      <Clock className="mr-2 h-4 w-4"/>Historia
+                    </TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="post">
@@ -237,7 +269,7 @@ import { collection, addDoc } from 'firebase/firestore';
                       
                       <Button 
                         onClick={handleSubmit} 
-                        disabled={isSubmitting || (!text.trim() && !mediaFile)} 
+                        disabled={isSubmitDisabled || (!text.trim() && !mediaFile)} 
                         className="w-full btn-action"
                       >
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
@@ -248,14 +280,13 @@ import { collection, addDoc } from 'firebase/firestore';
                   
                   <TabsContent value="story">
                     <div className="space-y-4 mt-4">
-                      <p className="text-sm text-center text-text-secondary">Las historias desaparecen después de 24 horas.</p>
-                      
                       <Textarea
-                        placeholder="Agregar descripción (opcional)"
+                        placeholder="¿Qué está pasando?"
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        className="input-glass min-h-[80px]"
+                        className="input-glass min-h-[100px]"
                         disabled={isSubmitting}
+                        maxLength={280}
                       />
                       
                       {/* Vista previa */}
@@ -289,17 +320,20 @@ import { collection, addDoc } from 'firebase/firestore';
                         </div>
                       )}
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium mb-2">Añadir a tu historia:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <ImageUploader onUploadSuccess={(file) => handleFileSelect(file, 'image')} uploading={uploading} />
                             <VideoUploader onUploadSuccess={(file) => handleFileSelect(file, 'video')} uploading={uploading} progress={progress} />
+                        </div>
                       </div>
                       
                       <Button 
                         onClick={handleSubmit} 
-                        disabled={isSubmitting || !mediaFile} 
+                        disabled={isSubmitDisabled || (!text.trim() && !mediaFile)} 
                         className="w-full btn-action"
                       >
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Radio className="mr-2 h-4 w-4" />}
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />}
                         Publicar Historia
                       </Button>
                     </div>

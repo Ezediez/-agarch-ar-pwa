@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, Edit, Save, X, Loader2, Video, Image as ImageIcon, Sparkles } from 'lucide-react';
 import CreateStoryModal from './CreateStoryModal';
+import CreateModal from './CreateModal';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ import {
 
 const ProfileActions = ({ editMode, onEditToggle, onSave, onOpenUploadModal, saveLoading }) => {
   const [showStoryModal, setShowStoryModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   return (
     <motion.div
@@ -35,60 +37,72 @@ const ProfileActions = ({ editMode, onEditToggle, onSave, onOpenUploadModal, sav
           Guardar
         </Button>
       ) : (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex-1">
-              <Camera className="mr-2 h-4 w-4" />
-              Crear
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="card-glass">
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
+        <>
+          <Button 
+            onClick={() => setShowCreateModal(true)} 
+            variant="outline" 
+            className="flex-1"
+          >
+            <Camera className="mr-2 h-4 w-4" />
+            Crear
+          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex-1">
                 <ImageIcon className="mr-2 h-4 w-4" />
-                <span>Subir Foto</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="card-glass">
-                  <DropdownMenuItem onClick={() => onOpenUploadModal('camera-gallery')}>
-                    <Camera className="mr-2 h-4 w-4" />
-                    <span>Tomar Foto</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onOpenUploadModal('gallery')}>
-                    <ImageIcon className="mr-2 h-4 w-4" />
-                    <span>Desde Galería</span>
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
+                Subir
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="card-glass">
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                  <span>Subir Foto</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="card-glass">
+                    <DropdownMenuItem onClick={() => onOpenUploadModal('camera-gallery')}>
+                      <Camera className="mr-2 h-4 w-4" />
+                      <span>Tomar Foto</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onOpenUploadModal('gallery')}>
+                      <ImageIcon className="mr-2 h-4 w-4" />
+                      <span>Desde Galería</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
 
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Video className="mr-2 h-4 w-4" />
-                <span>Subir Shoot</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="card-glass">
-                  <DropdownMenuItem onClick={() => onOpenUploadModal('camera-video')}>
-                    <Camera className="mr-2 h-4 w-4" />
-                    <span>Grabar Video</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onOpenUploadModal('video')}>
-                    <Video className="mr-2 h-4 w-4" />
-                    <span>Desde Galería</span>
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
-
-            <DropdownMenuItem onClick={() => setShowStoryModal(true)}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              <span>Crear Historia</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Video className="mr-2 h-4 w-4" />
+                  <span>Subir Shoot</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="card-glass">
+                    <DropdownMenuItem onClick={() => onOpenUploadModal('camera-video')}>
+                      <Camera className="mr-2 h-4 w-4" />
+                      <span>Grabar Video</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onOpenUploadModal('video')}>
+                      <Video className="mr-2 h-4 w-4" />
+                      <span>Desde Galería</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
       )}
 
+      {/* Modal de crear */}
+      <CreateModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+      />
+      
       {/* Modal de crear historia */}
       <CreateStoryModal
         isOpen={showStoryModal}

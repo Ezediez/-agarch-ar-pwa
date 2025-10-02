@@ -31,31 +31,18 @@ const VipCarousel = () => {
         type: 'vip' 
       }));
 
-      // Obtener historias de usuarios (últimas 24 horas) - simplificado
-      const storiesRef = collection(db, 'stories');
-      const storiesQuery = query(
-        storiesRef,
+      // Obtener más perfiles aleatorios en lugar de historias
+      const moreProfilesRef = collection(db, 'profiles');
+      const moreProfilesQuery = query(
+        moreProfilesRef,
         limit(8)
       );
-      const storiesSnapshot = await getDocs(storiesQuery);
-      const stories = await Promise.all(
-        storiesSnapshot.docs.map(async (storyDoc) => {
-          const storyData = { id: storyDoc.id, ...storyDoc.data(), type: 'story' };
-          
-          // Obtener perfil del autor de la historia
-          try {
-            const profileRef = doc(db, 'profiles', storyData.user_id);
-            const profileSnap = await getDoc(profileRef);
-            if (profileSnap.exists()) {
-              storyData.author = { id: profileSnap.id, ...profileSnap.data() };
-            }
-          } catch (error) {
-            console.error('Error fetching story author profile:', error);
-          }
-          
-          return storyData;
-        })
-      );
+      const moreProfilesSnapshot = await getDocs(moreProfilesQuery);
+      const moreProfiles = moreProfilesSnapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data(), 
+        type: 'vip' 
+      }));
 
       // Obtener publicidades activas desde Portal de Anunciantes (Plan Premium $30/mes)
       const adsRef = collection(db, 'advertisements');
@@ -78,8 +65,8 @@ const VipCarousel = () => {
       let profileIndex = 0;
       let adIndex = 0;
       
-      // Combinar perfiles VIP y historias
-      const allProfiles = [...vipProfiles, ...stories];
+      // Combinar perfiles VIP y más perfiles aleatorios
+      const allProfiles = [...vipProfiles, ...moreProfiles];
       
       for (let i = 0; i < allProfiles.length; i += 6) {
         // Agregar 6 perfiles/historias
@@ -116,11 +103,8 @@ const VipCarousel = () => {
         navigate(`/profile/${item.id}`);
         break;
       case 'story':
-        // Abrir modal de historia
-        toast({
-          title: 'Historia',
-          description: 'Funcionalidad de historias en desarrollo.'
-        });
+        // Ya no hay historias, solo perfiles
+        navigate(`/profile/${item.id}`);
         break;
       case 'ad':
         // Abrir enlace de publicidad
@@ -177,8 +161,8 @@ const VipCarousel = () => {
                 // Perfil o Historia
                 <div className="relative w-full h-full">
                   <img
-                    src={item.profile_picture_url || item.media_url || '/pwa-512x512.png'}
-                    alt={item.alias || item.author?.alias || 'Usuario'}
+                    src={item.profile_picture_url || '/pwa-512x512.png'}
+                    alt={item.alias || 'Usuario'}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       e.target.src = '/pwa-512x512.png';
@@ -189,15 +173,12 @@ const VipCarousel = () => {
                       <Crown className="w-4 h-4 text-yellow-500 fill-current" />
                     </div>
                   )}
-                  {item.type === 'story' && (
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                  )}
                 </div>
               )}
             </button>
             <div className="text-center mt-1">
               <span className="text-xs text-muted-foreground truncate w-16 block">
-                {item.type === 'ad' ? 'Publicidad' : (item.alias || item.author?.alias || 'Usuario')}
+                {item.type === 'ad' ? 'Publicidad' : (item.alias || 'Usuario')}
               </span>
             </div>
           </div>
