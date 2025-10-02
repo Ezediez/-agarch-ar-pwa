@@ -419,7 +419,7 @@ const AdvertisingPortal = () => {
                       <div>
                         <Label htmlFor="category">Categoría</Label>
                         <Select value={adData.category} onValueChange={(value) => setAdData({...adData, category: value})}>
-                          <SelectTrigger>
+                          <SelectTrigger id="category">
                             <SelectValue placeholder="Selecciona una categoría" />
                           </SelectTrigger>
                           <SelectContent>
@@ -456,6 +456,7 @@ const AdvertisingPortal = () => {
                           id="cover_image"
                           accept="image/*"
                           onChange={handleImageSelect}
+                          name="cover_image"
                           className="hidden"
                         />
                         
