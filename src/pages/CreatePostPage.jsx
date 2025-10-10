@@ -8,8 +8,7 @@ import { collection, addDoc } from 'firebase/firestore';
     import { Button } from '@/components/ui/button';
     import { Textarea } from '@/components/ui/textarea';
     import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-    import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-    import { Loader2, Send, Image as ImageIcon, Video as VideoIcon, Radio, X } from 'lucide-react';
+    import { Loader2, Send, Image as ImageIcon, Video as VideoIcon, X } from 'lucide-react';
     import ImageUploader from '@/components/ImageUploader';
     import VideoUploader from '@/components/VideoUploader';
     import { useUploader } from '@/hooks/useUploader';
@@ -20,7 +19,6 @@ import { collection, addDoc } from 'firebase/firestore';
       const navigate = useNavigate();
       const { uploadFile, uploading, progress } = useUploader();
 
-  const [postType, setPostType] = useState('post'); // 'post', 'story'
   const [text, setText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mediaFile, setMediaFile] = useState(null);
@@ -54,15 +52,8 @@ import { collection, addDoc } from 'firebase/firestore';
                 let mediaUrl = null;
                 
                 if (mediaFile) {
-                    let bucket, folder;
-                    
-                    if (postType === 'story') {
-                        bucket = 'stories';
-                        folder = mediaType === 'image' ? 'images' : 'videos';
-                    } else {
-                        bucket = 'posts';
-                        folder = mediaType === 'image' ? 'images' : 'videos';
-                    }
+                    const bucket = 'posts';
+                    const folder = mediaType === 'image' ? 'images' : 'videos';
                     
                     // Subir archivo usando Promise wrapper
                     mediaUrl = await new Promise((resolve, reject) => {
@@ -76,12 +67,8 @@ import { collection, addDoc } from 'firebase/firestore';
                     });
                 }
                 
-                // Crear publicación o historia
-                if (postType === 'story') {
-                    await createStory(mediaUrl, mediaType);
-                } else {
-                    await createPost(mediaUrl, mediaType);
-                }
+                // Crear publicación
+                await createPost(mediaUrl, mediaType);
                 
                 // Limpiar formulario
                 setText('');
@@ -135,37 +122,6 @@ import { collection, addDoc } from 'firebase/firestore';
         }
       };
 
-      const createStory = async (mediaUrl, type) => {
-        if (!user?.uid) {
-            toast({ variant: 'destructive', title: 'Error', description: 'No hay usuario autenticado.' });
-            return;
-        }
-        
-        if (!mediaUrl) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Debes seleccionar un archivo para tu historia.' });
-            return;
-        }
-
-        try {
-            await addDoc(collection(db, 'stories'), {
-                user_id: user.uid,
-                media_url: mediaUrl,
-                media_type: type,
-                created_at: new Date().toISOString()
-            });
-            
-            toast({ title: '¡Historia creada con éxito!' });
-            navigate('/discover');
-        } catch (error) {
-            console.error('Error al crear story:', error);
-            toast({ 
-                variant: 'destructive', 
-                title: 'Error', 
-                description: 'No se pudo crear la historia. Intenta de nuevo.' 
-            });
-        }
-      };
-      
       const isSubmitDisabled = isSubmitting || uploading;
 
       return (
@@ -177,17 +133,10 @@ import { collection, addDoc } from 'firebase/firestore';
           <div className="max-w-2xl mx-auto p-4">
             <Card className="card-glass">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold text-center text-primary">Crear</CardTitle>
+                <CardTitle className="text-2xl font-bold text-center text-primary">Crear Publicación</CardTitle>
               </CardHeader>
               <CardContent>
-                <Tabs value={postType} onValueChange={setPostType} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="post"><Send className="mr-2 h-4 w-4"/>Publicación</TabsTrigger>
-                    <TabsTrigger value="story"><Radio className="mr-2 h-4 w-4"/>Historia</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="post">
-                    <div className="space-y-4 mt-4">
+                <div className="space-y-4 mt-4">
                       <Textarea
                         placeholder="¿Qué estás pensando?"
                         value={text}
@@ -235,76 +184,15 @@ import { collection, addDoc } from 'firebase/firestore';
                         </div>
                       </div>
                       
-                      <Button 
-                        onClick={handleSubmit} 
-                        disabled={isSubmitting || (!text.trim() && !mediaFile)} 
-                        className="w-full btn-action"
-                      >
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                        Publicar
-                      </Button>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="story">
-                    <div className="space-y-4 mt-4">
-                      <p className="text-sm text-center text-text-secondary">Las historias desaparecen después de 24 horas.</p>
-                      
-                      <Textarea
-                        placeholder="Agregar descripción (opcional)"
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        className="input-glass min-h-[80px]"
-                        disabled={isSubmitting}
-                      />
-                      
-                      {/* Vista previa */}
-                      {mediaPreview && (
-                        <div className="relative">
-                          {mediaType === 'image' ? (
-                            <img 
-                              src={mediaPreview} 
-                              alt="Preview" 
-                              className="w-full h-48 object-cover rounded-lg"
-                            />
-                          ) : (
-                            <video 
-                              src={mediaPreview} 
-                              controls 
-                              className="w-full h-48 object-cover rounded-lg"
-                            />
-                          )}
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="absolute top-2 right-2"
-                            onClick={() => {
-                              setMediaFile(null);
-                              setMediaPreview(null);
-                              setMediaType(null);
-                            }}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )}
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <ImageUploader onUploadSuccess={(file) => handleFileSelect(file, 'image')} uploading={uploading} />
-                            <VideoUploader onUploadSuccess={(file) => handleFileSelect(file, 'video')} uploading={uploading} progress={progress} />
-                      </div>
-                      
-                      <Button 
-                        onClick={handleSubmit} 
-                        disabled={isSubmitting || !mediaFile} 
-                        className="w-full btn-action"
-                      >
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Radio className="mr-2 h-4 w-4" />}
-                        Publicar Historia
-                      </Button>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                  <Button 
+                    onClick={handleSubmit} 
+                    disabled={isSubmitting || (!text.trim() && !mediaFile)} 
+                    className="w-full btn-action"
+                  >
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    Publicar
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
