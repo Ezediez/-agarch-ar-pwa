@@ -247,6 +247,7 @@ const AdvertisingPortal = () => {
       }
       
       setShowCreateAd(false);
+      setShowPaymentModal(false);
     } catch (error) {
       console.error('Error creating ad:', error);
       toast({
@@ -403,7 +404,20 @@ const AdvertisingPortal = () => {
                     </Button>
                   </div>
 
-                  <form onSubmit={handleCreateAd} className="space-y-4">
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    // Validar campos requeridos
+                    if (!adData.title.trim() || !adData.description.trim() || !adData.contact_email.trim()) {
+                      toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: 'Completa los campos requeridos (título, descripción y email)'
+                      });
+                      return;
+                    }
+                    setShowCreateAd(false);
+                    setShowPaymentModal(true);
+                  }} className="space-y-4">
                     {/* Información básica */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
