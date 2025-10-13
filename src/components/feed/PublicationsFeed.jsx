@@ -32,10 +32,11 @@ const PublicationsFeed = () => {
     try {
       setLoading(true);
       
-            // Obtener publicaciones de perfiles (sin orderBy para evitar error 400)
+            // Obtener publicaciones de perfiles ordenadas por fecha
             const postsRef = collection(db, 'posts');
             const postsQuery = query(
                 postsRef,
+                orderBy('created_at', 'desc'),
                 limit(20)
             );
       const postsSnapshot = await getDocs(postsQuery);
@@ -77,12 +78,50 @@ const PublicationsFeed = () => {
                 limit(10)
             );
       const adsSnapshot = await getDocs(adsQuery);
-      const adsData = adsSnapshot.docs.map(doc => ({ 
+      let adsData = adsSnapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data(),
         type: 'ad', // Marcar como publicidad
         source: 'advertising_portal' // Marcar origen desde Portal de Anunciantes
       }));
+
+      // Si no hay anuncios, agregar banners promocionales
+      if (adsData.length === 0) {
+        adsData = [
+          {
+            id: 'agarch-vip',
+            title: '¡Hazte VIP en AGARCH-AR!',
+            description: 'Desbloquea todas las funciones premium: historias ilimitadas, perfil destacado, acceso prioritario y mucho más.',
+            category: 'Premium',
+            company_info: 'Únete a la comunidad VIP y lleva tu experiencia al siguiente nivel.',
+            contact_phone: null,
+            contact_email: null,
+            contact_website: '/payments',
+            cover_image: null,
+            duration: 'premium',
+            is_app_promo: true,
+            promo_type: 'vip',
+            type: 'ad',
+            source: 'promotional'
+          },
+          {
+            id: 'automarket-app', 
+            title: 'AUTOMARKET - Tu App de Autos',
+            description: 'Encuentra, vende y compra autos de forma fácil y segura. Miles de vehículos disponibles.',
+            category: 'Automóviles',
+            company_info: 'La plataforma líder en compraventa de autos en Argentina.',
+            contact_phone: '+54 11 1234-5678',
+            contact_email: 'info@auto-market.pro',
+            contact_website: 'https://auto-market.pro',
+            cover_image: null,
+            duration: 'premium',
+            is_app_promo: true,
+            promo_type: 'automarket',
+            type: 'ad',
+            source: 'promotional'
+          }
+        ];
+      }
 
       setPublications(postsData);
       setAds(adsData);

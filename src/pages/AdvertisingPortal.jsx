@@ -7,7 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { ArrowLeft, LogIn, Plus, Upload, CreditCard, DollarSign, Calendar, Image, FileText, Building, User, Phone, Mail, Globe } from 'lucide-react';
+import { ArrowLeft, LogIn, Plus, Upload, CreditCard, DollarSign, Calendar, Image, FileText, Building, User, Phone, Mail, Globe, X, Loader2 } from 'lucide-react';
+import { db, storage } from '@/lib/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import PhoneInput from '@/components/ui/PhoneInput';
 
 const AdvertisingPortal = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -425,6 +429,7 @@ const AdvertisingPortal = () => {
                           onChange={(e) => setAdData({...adData, title: e.target.value})}
                           placeholder="Restaurante El Buen Sabor"
                           required
+                          autoComplete="off"
                         />
                       </div>
                       <div>
@@ -521,12 +526,11 @@ const AdvertisingPortal = () => {
                       <h3 className="text-lg font-semibold mb-4">Datos de Contacto</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="contact_phone">Teléfono</Label>
-                          <Input
-                            id="contact_phone"
+                          <PhoneInput
+                            label="Teléfono"
                             value={adData.contact_phone}
-                            onChange={(e) => setAdData({...adData, contact_phone: e.target.value})}
-                            placeholder="+54 11 1234-5678"
+                            onChange={(value) => setAdData({...adData, contact_phone: value})}
+                            placeholder="9 11 1234-5678"
                           />
                         </div>
                         <div>
@@ -536,8 +540,9 @@ const AdvertisingPortal = () => {
                             type="email"
                             value={adData.contact_email}
                             onChange={(e) => setAdData({...adData, contact_email: e.target.value})}
-                            placeholder="marketing@eu"
+                            placeholder="marketing@empresa.com"
                             required
+                            autoComplete="email"
                           />
                         </div>
                         <div className="md:col-span-2">
@@ -677,7 +682,7 @@ const AdvertisingPortal = () => {
                         </Button>
                         <Button
                           type="submit"
-                          disabled={loading || !adData.title.trim() || !adData.description.trim() || !adData.contact_email.trim()}
+                          disabled={loading || !adData.title.trim() || !adData.description.trim() || !adData.contact_email.trim() || !adData.contact_phone.trim()}
                           className="flex-1"
                         >
                           {loading ? (

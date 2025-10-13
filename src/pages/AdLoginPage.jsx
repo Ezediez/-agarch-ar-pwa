@@ -8,11 +8,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { db, auth, storage } from '@/lib/firebase';
-import { ArrowLeft, LogIn, Plus, Upload, CreditCard, DollarSign, Calendar, Image, FileText } from 'lucide-react';
+import { ArrowLeft, LogIn, Plus, Upload, CreditCard, DollarSign, Calendar, Image, FileText, X, Loader2 } from 'lucide-react';
 
 const AdLoginPage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showCreateAd, setShowCreateAd] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loginData, setLoginData] = useState({
     email: '',
@@ -68,14 +69,13 @@ const AdLoginPage = () => {
   };
 
   const handlePayment = async () => {
+    setLoading(true);
     const price = calculatePrice();
-    toast({
-      title: "Procesando Pago",
-      description: `Redirigiendo a PSP para pagar $${price} USD...`,
-    });
-
-    // Simular proceso de pago
-    setTimeout(() => {
+    
+    try {
+      // Simular proceso de pago
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       toast({
         title: "¡Pago Exitoso!",
         description: `Anuncio publicado correctamente. Costo: $${price} USD`,
@@ -95,8 +95,19 @@ const AdLoginPage = () => {
         ad_type: 'standard',
         duration: 'once'
       });
+      
+      // Cerrar modales
       setShowCreateAd(false);
-    }, 2000);
+      setShowPaymentModal(false);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo procesar el pago. Intenta de nuevo.'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderLoginForm = () => (
@@ -377,12 +388,24 @@ const AdLoginPage = () => {
         </div>
 
         <Button 
-          onClick={handlePayment} 
+          onClick={() => {
+            // Validar campos requeridos
+            if (!adData.title.trim() || !adData.description.trim() || !adData.contact_email.trim()) {
+              toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Completa los campos requeridos (título, descripción y email)'
+              });
+              return;
+            }
+            setShowCreateAd(false);
+            setShowPaymentModal(true);
+          }}
           className="w-full bg-green-600 hover:bg-green-700"
           disabled={!adData.title || !adData.description || !adData.contact_phone || !adData.contact_email}
         >
           <CreditCard className="mr-2 h-4 w-4" />
-          Pagar ${calculatePrice()} USD y Publicar
+          Elegir Plan de Pago
         </Button>
       </div>
     </div>
@@ -410,6 +433,117 @@ const AdLoginPage = () => {
             </Button>
           </div>
         </div>
+
+        {/* Modal de Pagos Simplificado */}
+        {showPaymentModal && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-50"
+            style={{
+              animation: 'fadeIn 0.2s ease-out',
+            }}
+            onClick={() => setShowPaymentModal(false)}
+          >
+            <div className="bg-white rounded-lg max-w-md w-full mx-auto mt-20 p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold">🚀 Elegir Plan de Publicidad</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                {/* Plan Estándar */}
+                <div 
+                  className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                    adData.duration === 'once' 
+                      ? 'border-green-500 bg-green-50' 
+                      : 'border-gray-200 hover:border-green-300'
+                  }`}
+                  onClick={() => setAdData({...adData, duration: 'once'})}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        checked={adData.duration === 'once'}
+                        onChange={() => setAdData({...adData, duration: 'once'})}
+                        className="w-4 h-4 text-green-500"
+                      />
+                      <div>
+                        <h4 className="font-semibold">📢 Plan Estándar</h4>
+                        <p className="text-sm text-gray-600">Publicación única que aparecerá arriba y se irá perdiendo en el feed</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-green-500">$10</p>
+                      <p className="text-xs text-gray-500">USD</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Plan Premium */}
+                <div 
+                  className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                    adData.duration === '30days' 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-200 hover:border-blue-300'
+                  }`}
+                  onClick={() => setAdData({...adData, duration: '30days'})}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        checked={adData.duration === '30days'}
+                        onChange={() => setAdData({...adData, duration: '30days'})}
+                        className="w-4 h-4 text-blue-500"
+                      />
+                      <div>
+                        <h4 className="font-semibold">⭐ Plan Premium</h4>
+                        <p className="text-sm text-gray-600">Se muestra cada 6 posts de usuarios + 2 banners promocionales por 30 días</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-blue-500">$30</p>
+                      <p className="text-xs text-gray-500">USD</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="text-center">
+                  <Button
+                    onClick={() => handlePayment()}
+                    disabled={loading}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Procesando Pago...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-5 h-5 mr-2" />
+                        Pagar ${calculatePrice()} USD
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  * Pago simulado por ahora - Se publica inmediatamente
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
