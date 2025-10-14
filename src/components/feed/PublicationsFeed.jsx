@@ -20,7 +20,9 @@ const PublicationsFeed = forwardRef((props, ref) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const [selectedPost, setSelectedPost] = useState(null);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+  const [isThreeDotsModalOpen, setIsThreeDotsModalOpen] = useState(false);
   const [followingStatus, setFollowingStatus] = useState({});
 
   const fetchPublications = useCallback(async () => {
@@ -341,36 +343,75 @@ const PublicationsFeed = forwardRef((props, ref) => {
               <div className="relative">
                 {/* Post card con funcionalidad completa */}
                 <div className="card-glass rounded-lg overflow-hidden cursor-pointer">
-                  {/* 3 PUNTITOS ARRIBA */}
-                  <div className="absolute top-2 right-2 z-10">
-                    <div className="bg-black/50 rounded-full p-1">
-                      <div className="flex gap-1">
-                        <button
+                  {/* 3 PUNTITOS ARRIBA - DROPDOWN */}
+                  <div className="absolute top-2 right-2 z-20">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPost(item);
+                        setIsThreeDotsModalOpen(selectedPost?.id === item.id ? false : true);
+                      }}
+                      className="bg-black/50 rounded-full p-1 text-white hover:bg-black/70 transition-colors"
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
+                    
+                    {/* Dropdown menu - aparece cerca del botón */}
+                    {isThreeDotsModalOpen && selectedPost?.id === item.id && (
+                      <>
+                        {/* Overlay transparente para cerrar al hacer click afuera */}
+                        <div 
+                          className="fixed inset-0 z-30"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleThreeDotsMenu('message', item.author, item);
+                            setIsThreeDotsModalOpen(false);
+                            setSelectedPost(null);
                           }}
-                          className="w-2 h-2 bg-white rounded-full hover:bg-pink-300 transition-colors"
-                          title="Enviar mensaje"
                         />
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleThreeDotsMenu('profile', item.author, item);
-                          }}
-                          className="w-2 h-2 bg-white rounded-full hover:bg-blue-300 transition-colors"
-                          title="Ver perfil"
-                        />
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleThreeDotsMenu('view', item.author, item);
-                          }}
-                          className="w-2 h-2 bg-white rounded-full hover:bg-green-300 transition-colors"
-                          title="Ver post"
-                        />
-                      </div>
-                    </div>
+                        
+                        {/* Menu dropdown */}
+                        <div className="absolute top-8 right-0 z-40 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 py-1 min-w-[160px]">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsThreeDotsModalOpen(false);
+                              handleThreeDotsMenu('message', selectedPost.author, selectedPost);
+                              setSelectedPost(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 transition-colors text-left"
+                          >
+                            <MessageSquare className="w-4 h-4 text-blue-500" />
+                            <span className="text-sm">Mensaje</span>
+                          </button>
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsThreeDotsModalOpen(false);
+                              handleThreeDotsMenu('profile', selectedPost.author, selectedPost);
+                              setSelectedPost(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 transition-colors text-left"
+                          >
+                            <User className="w-4 h-4 text-green-500" />
+                            <span className="text-sm">Ver perfil</span>
+                          </button>
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsThreeDotsModalOpen(false);
+                              handleThreeDotsMenu('view', selectedPost.author, selectedPost);
+                              setSelectedPost(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 transition-colors text-left"
+                          >
+                            <Eye className="w-4 h-4 text-purple-500" />
+                            <span className="text-sm">Ver post</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Imagen o video del post - CLICK ABRE POST */}
