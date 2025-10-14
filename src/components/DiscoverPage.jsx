@@ -25,91 +25,35 @@ const DiscoverPage = () => {
 
   const fetchAds = useCallback(async () => {
     try {
-      // Obtener anuncios activos desde Firebase
-      const adsRef = collection(db, 'advertisements');
-      const adsQuery = query(
-        adsRef,
-        where('status', '==', 'active'),
-        orderBy('created_at', 'desc'),
-        limit(10)
-      );
-      
-      const adsSnapshot = await getDocs(adsQuery);
-      const adsData = adsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      // Si no hay anuncios en Firebase, usar anuncios promocionales de nuestra app
-      if (adsData.length === 0) {
-        const mockAds = [
-          {
-            id: 'agarch-vip',
-            title: '¡Hazte VIP en AGARCH-AR!',
-            description: 'Desbloquea todas las funciones premium: historias ilimitadas, perfil destacado, acceso prioritario y mucho más.',
-            category: 'Premium',
-            company_info: 'Únete a la comunidad VIP y lleva tu experiencia al siguiente nivel.',
-            contact_phone: null,
-            contact_email: null,
-            contact_website: '/payments',
-            cover_image: null,
-            duration: 'premium',
-            is_app_promo: true,
-            promo_type: 'vip'
-          },
-          {
-            id: 'automarket-app', 
-            title: 'AUTOMARKET - Tu App de Autos',
-            description: 'Encuentra, vende y compra autos de forma fácil y segura. Miles de vehículos disponibles.',
-            category: 'Automóviles',
-            company_info: 'La plataforma líder en compraventa de autos en Argentina.',
-            contact_phone: '+54 11 1234-5678',
-            contact_email: 'info@auto-market.pro',
-            contact_website: 'https://auto-market.pro',
-            cover_image: null,
-            duration: 'premium',
-            is_app_promo: true,
-            promo_type: 'automarket'
-          }
-        ];
-        setAds(mockAds);
-      } else {
-        setAds(adsData);
-      }
-    } catch (error) {
-      console.error('Error fetching ads:', error);
-      // En caso de error, usar anuncios promocionales de nuestra app
+      // Simular anuncios mientras se configura Firebase
       const mockAds = [
         {
-          id: 'agarch-vip',
-          title: '¡Hazte VIP en AGARCH-AR!',
-          description: 'Desbloquea todas las funciones premium: historias ilimitadas, perfil destacado, acceso prioritario y mucho más.',
-          category: 'Premium',
-          company_info: 'Únete a la comunidad VIP y lleva tu experiencia al siguiente nivel.',
-          contact_phone: null,
-          contact_email: null,
-          contact_website: '/payments',
+          id: 'ad-1',
+          title: 'Restaurante El Buen Sabor',
+          description: 'Comida casera y tradicional. Los mejores sabores de la región con ingredientes frescos y naturales.',
+          category: 'Restaurante',
+          company_info: 'Más de 20 años sirviendo a la comunidad con amor y dedicación.',
+          contact_phone: '+54 11 1234-5678',
+          contact_email: 'contacto@elbuensabor.com',
+          contact_website: 'https://elbuensabor.com',
           cover_image: null,
-          duration: 'premium',
-          is_app_promo: true,
-          promo_type: 'vip'
+          duration: '30days'
         },
         {
-          id: 'automarket-app', 
-          title: 'AUTOMARKET - Tu App de Autos',
-          description: 'Encuentra, vende y compra autos de forma fácil y segura. Miles de vehículos disponibles.',
-          category: 'Automóviles',
-          company_info: 'La plataforma líder en compraventa de autos en Argentina.',
-          contact_phone: '+54 11 1234-5678',
-          contact_email: 'info@auto-market.pro',
-          contact_website: 'https://auto-market.pro',
+          id: 'ad-2', 
+          title: 'Tienda Fashion Style',
+          description: 'Ropa moderna y accesorios de última moda. Encuentra tu estilo único con nosotros.',
+          category: 'Moda',
+          company_info: 'Especialistas en tendencias y estilo personal.',
+          contact_phone: '+54 11 9876-5432',
+          contact_email: 'info@fashionstyle.com',
           cover_image: null,
-          duration: 'premium',
-          is_app_promo: true,
-          promo_type: 'automarket'
+          duration: 'once'
         }
       ];
       setAds(mockAds);
+    } catch (error) {
+      console.error('Error fetching ads:', error);
     }
   }, []);
 
@@ -289,7 +233,19 @@ const DiscoverPage = () => {
             <CreatePost onPostCreated={handleRefresh} />
       </div>
 
-          {/* Posts y Ads intercalados */}
+          {/* Ads */}
+          {ads.length > 0 && (
+            <div className="px-4 mb-4">
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">Anuncios</h3>
+              <div className="space-y-2">
+                {ads.map(ad => (
+                  <AdCard key={ad.id} ad={ad} />
+                ))}
+              </div>
+      </div>
+    )}
+
+          {/* Posts */}
           <div className="px-4 pb-20">
             {loading && posts.length === 0 ? (
               <div className="flex items-center justify-center py-8">
@@ -314,27 +270,14 @@ const DiscoverPage = () => {
             ) : (
               <>
                 <div className="space-y-4">
-                  {posts.map((post, index) => {
-                    // Mostrar banner cada 6 posts (posts 5, 11, 17, etc.)
-                    const shouldShowBanner = (index + 1) % 6 === 0 && ads.length > 0;
-                    const adIndex = Math.floor((index + 1) / 6) - 1;
-                    const ad = ads[adIndex % ads.length];
-                    
-                    return (
-                      <div key={post.id}>
-                        <PostCard 
-                          post={post} 
-                          onLike={() => handleRefresh()}
-                          onComment={() => handleRefresh()}
-                        />
-                        {shouldShowBanner && (
-                          <div className="my-4">
-                            <AdCard key={`ad-${adIndex}`} ad={ad} index={adIndex} />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {posts.map((post) => (
+                    <PostCard 
+                      key={post.id} 
+                      post={post} 
+                      onLike={() => handleRefresh()}
+                      onComment={() => handleRefresh()}
+                    />
+                  ))}
   </div>
 
                 {/* Load More */}

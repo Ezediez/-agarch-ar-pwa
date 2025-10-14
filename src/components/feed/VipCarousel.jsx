@@ -18,70 +18,21 @@ const VipCarousel = () => {
     try {
       setLoading(true);
       
-      // Obtener perfiles VIP (mejor posicionados) - simplificado sin filtros complejos
+      // Obtener perfiles de usuarios ordenados por fecha de creación (más nuevos primero)
       const profilesRef = collection(db, 'profiles');
-      const vipQuery = query(
+      const profilesQuery = query(
         profilesRef,
-        limit(10)
+        orderBy('created_at', 'desc'),
+        limit(20)
       );
-      const vipSnapshot = await getDocs(vipQuery);
-      const vipProfiles = vipSnapshot.docs.map(doc => ({ 
+      const profilesSnapshot = await getDocs(profilesQuery);
+      const userProfiles = profilesSnapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data(), 
-        type: 'vip' 
+        type: 'profile' 
       }));
 
-      // Obtener más perfiles aleatorios en lugar de historias
-      const moreProfilesRef = collection(db, 'profiles');
-      const moreProfilesQuery = query(
-        moreProfilesRef,
-        limit(8)
-      );
-      const moreProfilesSnapshot = await getDocs(moreProfilesQuery);
-      const moreProfiles = moreProfilesSnapshot.docs.map(doc => ({ 
-        id: doc.id, 
-        ...doc.data(), 
-        type: 'vip' 
-      }));
-
-      // Obtener publicidades activas desde Portal de Anunciantes (Plan Premium $30/mes)
-      const adsRef = collection(db, 'advertisements');
-      const adsQuery = query(
-        adsRef,
-        where('status', '==', 'active'),
-        where('ad_plan', '==', 'premium'), // Solo avisos de $30/mes para carrusel
-        limit(4)
-      );
-      const adsSnapshot = await getDocs(adsQuery);
-      const ads = adsSnapshot.docs.map(doc => ({ 
-        id: doc.id, 
-        ...doc.data(), 
-        type: 'ad',
-        source: 'advertising_portal' // Marcar origen desde Portal de Anunciantes
-      }));
-
-      // Mezclar siguiendo la regla: cada 6 perfiles/historias, 2 publicidades $30
-      const mixedItems = [];
-      let profileIndex = 0;
-      let adIndex = 0;
-      
-      // Combinar perfiles VIP y más perfiles aleatorios
-      const allProfiles = [...vipProfiles, ...moreProfiles];
-      
-      for (let i = 0; i < allProfiles.length; i += 6) {
-        // Agregar 6 perfiles/historias
-        const profileBatch = allProfiles.slice(i, i + 6);
-        mixedItems.push(...profileBatch);
-        
-        // Agregar 2 publicidades $30 si hay disponibles
-        if (adIndex < ads.length) {
-          const adBatch = ads.slice(adIndex, adIndex + 2);
-          mixedItems.push(...adBatch);
-          adIndex += 2;
-        }
-      }
-
-      setCarouselItems(mixedItems);
+      setCarouselItems(userProfiles);
     } catch (error) {
       console.error('Error fetching carousel data:', error);
       // Si no hay datos, mostrar carrusel vacío en lugar de error
@@ -98,22 +49,9 @@ const VipCarousel = () => {
   }, [user?.uid, fetchCarouselData]);
 
   const handleItemClick = (item) => {
-    switch (item.type) {
-      case 'vip':
-        navigate(`/profile/${item.id}`);
-        break;
-      case 'story':
-        // Ya no hay historias, solo perfiles
-        navigate(`/profile/${item.id}`);
-        break;
-      case 'ad':
-        // Abrir enlace de publicidad
-        if (item.website) {
-          window.open(item.website, '_blank');
-        }
-        break;
-      default:
-        break;
+    // Solo manejar perfiles de usuarios
+    if (item.type === 'profile') {
+      navigate(`/profile/${item.id}`);
     }
   };
 
@@ -132,7 +70,7 @@ const VipCarousel = () => {
   return (
     <div className="px-4 py-2">
       <div className="flex gap-3 overflow-x-auto pb-2">
-        {/* Botón "Tu Historia" */}
+        {/* Botón "Mi Perfil" */}
         <div className="flex-shrink-0">
           <Button
             variant="outline"
@@ -141,44 +79,37 @@ const VipCarousel = () => {
             onClick={() => navigate('/my-profile')}
           >
             <Plus className="w-6 h-6" />
-            <span className="text-xs">Tu historia</span>
+            <span className="text-xs">Mi Perfil</span>
           </Button>
         </div>
 
-        {/* Items del carrusel */}
+        {/* Items del carrusel - Solo perfiles de usuarios */}
         {carouselItems.map((item, index) => (
           <div key={`${item.type}-${item.id}`} className="flex-shrink-0">
             <button
               onClick={() => handleItemClick(item)}
               className="w-16 h-16 rounded-full relative overflow-hidden border-2 border-transparent hover:border-primary transition-colors"
             >
-              {item.type === 'ad' ? (
-                // Publicidad
-                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <Star className="w-8 h-8 text-white" />
-                </div>
-              ) : (
-                // Perfil o Historia
-                <div className="relative w-full h-full">
-                  <img
-                    src={item.profile_picture_url || '/pwa-512x512.png'}
-                    alt={item.alias || 'Usuario'}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.src = '/pwa-512x512.png';
-                    }}
-                  />
-                  {item.is_vip && (
-                    <div className="absolute -top-1 -right-1">
-                      <Crown className="w-4 h-4 text-yellow-500 fill-current" />
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Solo perfiles de usuarios */}
+              <div className="relative w-full h-full">
+                <img
+                  src={item.profile_picture_url || '/pwa-512x512.png'}
+                  alt={item.alias || 'Usuario'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = '/pwa-512x512.png';
+                  }}
+                />
+                {item.is_vip && (
+                  <div className="absolute -top-1 -right-1">
+                    <Crown className="w-4 h-4 text-yellow-500 fill-current" />
+                  </div>
+                )}
+              </div>
             </button>
             <div className="text-center mt-1">
               <span className="text-xs text-muted-foreground truncate w-16 block">
-                {item.type === 'ad' ? 'Publicidad' : (item.alias || 'Usuario')}
+                {item.alias || 'Usuario'}
               </span>
             </div>
           </div>
