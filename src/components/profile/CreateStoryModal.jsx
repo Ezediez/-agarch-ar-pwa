@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
@@ -95,8 +95,8 @@ const CreateStoryModal = ({ isOpen, onClose }) => {
       const storyData = {
         user_id: user.uid,
         type: storyType,
-        created_at: serverTimestamp(),
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 horas
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 horas
         views: [],
         likes: [],
         status: 'active'

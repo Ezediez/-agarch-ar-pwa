@@ -198,7 +198,7 @@ const PublicationsFeed = forwardRef((props, ref) => {
         await addDoc(likesRef, {
           post_id: postId,
           user_id: user.uid,
-          created_at: new Date()
+          created_at: new Date().toISOString()
         });
         toast({
           title: "❤️ Like agregado",

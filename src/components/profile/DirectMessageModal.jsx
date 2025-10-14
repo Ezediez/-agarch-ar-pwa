@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { useNotificationManager } from '@/hooks/useNotificationManager';
@@ -57,7 +57,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
           members: [user.uid, profile?.id],
           lastMessage: message.slice(0, 80),
           lastSenderId: user.uid,
-          updatedAt: serverTimestamp(),
+          updatedAt: new Date().toISOString(),
         };
         const convRef = await addDoc(collection(db, 'conversations'), newConversation);
         conversationId = convRef.id;
@@ -69,7 +69,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
         type: 'text',
         text: message,
         media: [],
-        createdAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),
       });
       
       // Actualizar última conversación
@@ -77,7 +77,7 @@ const DirectMessageModal = ({ profile, onClose }) => {
       await updateDoc(convRef, {
         lastMessage: message.slice(0, 80),
         lastSenderId: user.uid,
-        updatedAt: serverTimestamp(),
+        updatedAt: new Date().toISOString(),
       });
       
       smartToast({ title: 'Mensaje enviado', description: 'Mensaje enviado correctamente' });

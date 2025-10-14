@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft, LogIn, Plus, Upload, CreditCard, DollarSign, Calendar, Image, FileText, Building, User, Phone, Mail, Globe, X, Loader2 } from 'lucide-react';
 import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 const AdvertisingPortal = () => {
@@ -211,7 +211,7 @@ const AdvertisingPortal = () => {
         ad_plan: adData.ad_plan,
         price: getPlanPrice(adData.ad_plan),
         status: 'active', // Cambiado a 'active' para que aparezca inmediatamente
-        created_at: serverTimestamp(), // Usar serverTimestamp de Firebase
+        created_at: new Date().toISOString(),
         advertiser_id: 'demo_user', // En producción sería el ID del anunciante logueado
         views: 0,
         clicks: 0,

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { auth, db, storage } from "@/lib/firebase";
 import {
-  addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc
+  addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, updateDoc
 } from "firebase/firestore";
 import { LIMITS } from "@/features/chat/limits";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
@@ -164,7 +164,7 @@ export default function ChatRoom() {
       type: "text",
       text: trimmed,
       media: [],
-      createdAt: serverTimestamp(),
+      createdAt: new Date().toISOString(),
     };
     await addDoc(collection(db, "conversations", conversationId!, "messages"), msg);
     
@@ -173,7 +173,7 @@ export default function ChatRoom() {
     await updateDoc(doc(db, "conversations", conversationId!), {
       lastMessage: `${currentUserProfile.alias}: ${trimmed.slice(0, 80)}`,
       lastSenderId: uid,
-      updatedAt: serverTimestamp(),
+      updatedAt: new Date().toISOString(),
     });
     setText("");
     setSending(false);
@@ -191,14 +191,14 @@ export default function ChatRoom() {
       medias.push(await uploadFile(f, "image"));
     }
     await addDoc(collection(db, "conversations", conversationId!, "messages"), {
-      authorId: uid, type: "media", text: "", media: medias, createdAt: serverTimestamp(),
+      authorId: uid, type: "media", text: "", media: medias, createdAt: new Date().toISOString(),
     });
     
     // Obtener alias del usuario actual para el lastMessage
     const currentUserProfile = await loadProfile(uid);
     await updateDoc(doc(db, "conversations", conversationId!), {
       lastMessage: `${currentUserProfile.alias}: 📷 Foto`,
-      lastSenderId: uid, updatedAt: serverTimestamp(),
+      lastSenderId: uid, updatedAt: new Date().toISOString(),
     });
     e.target.value = "";
     setSending(false);
@@ -216,14 +216,14 @@ export default function ChatRoom() {
       medias.push(await uploadFile(f, "video"));
     }
     await addDoc(collection(db, "conversations", conversationId!, "messages"), {
-      authorId: uid, type: "media", text: "", media: medias, createdAt: serverTimestamp(),
+      authorId: uid, type: "media", text: "", media: medias, createdAt: new Date().toISOString(),
     });
     
     // Obtener alias del usuario actual para el lastMessage
     const currentUserProfile = await loadProfile(uid);
     await updateDoc(doc(db, "conversations", conversationId!), {
       lastMessage: `${currentUserProfile.alias}: 🎬 Video`,
-      lastSenderId: uid, updatedAt: serverTimestamp(),
+      lastSenderId: uid, updatedAt: new Date().toISOString(),
     });
     e.target.value = "";
     setSending(false);
@@ -257,14 +257,14 @@ export default function ChatRoom() {
         const file = new File([blob], `audio-${Date.now()}.webm`, { type: "audio/webm" });
         const media = await uploadFile(file, "audio");
         await addDoc(collection(db, "conversations", conversationId!, "messages"), {
-          authorId: uid, type: "media", text: "", media: [{...media, durationSec: dur}], createdAt: serverTimestamp(),
+          authorId: uid, type: "media", text: "", media: [{...media, durationSec: dur}], createdAt: new Date().toISOString(),
         });
         
         // Obtener alias del usuario actual para el lastMessage
         const currentUserProfile = await loadProfile(uid);
         await updateDoc(doc(db, "conversations", conversationId!), {
           lastMessage: `${currentUserProfile.alias}: 🎤 Audio`,
-          lastSenderId: uid, updatedAt: serverTimestamp(),
+          lastSenderId: uid, updatedAt: new Date().toISOString(),
         });
       };
       rec.start();

@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { ArrowLeft, CreditCard, DollarSign, Calendar, Loader2, Check } from 'lucide-react';
 
 const AdPaymentPage = () => {
@@ -58,10 +58,10 @@ const AdPaymentPage = () => {
         price: plans[selectedPlan].price,
         status: 'active',
         advertiser_id: 'demo-advertiser-123', // ID temporal para testing
-        created_at: serverTimestamp(),
+        created_at: new Date().toISOString(),
         expires_at: selectedPlan === 'standard' 
-          ? new Date(Date.now() + 24 * 60 * 60 * 1000) // Estándar: 24 horas (se pierde abajo)
-          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Premium: 30 días (luego EXPIRA hasta renovar)
+          ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Estándar: 24 horas (se pierde abajo)
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Premium: 30 días (luego EXPIRA hasta renovar)
         payment_status: 'completed',
         views: 0,
         clicks: 0,
