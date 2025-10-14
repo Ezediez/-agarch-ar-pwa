@@ -75,15 +75,20 @@ const PublicationsFeed = () => {
             const adsQuery = query(
                 adsRef,
                 where('status', '==', 'active'),
-                limit(10)
+                where('expires_at', '>', new Date()), // Solo publicidades no expiradas
+                limit(20) // Más publicidades para algoritmo inteligente
             );
       const adsSnapshot = await getDocs(adsQuery);
       let adsData = adsSnapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data(),
-        type: 'ad', // Marcar como publicidad
-        source: 'advertising_portal' // Marcar origen desde Portal de Anunciantes
+        type: 'ad',
+        source: 'advertising_portal'
       }));
+
+      // Separar publicidades por tipo
+      const premiumAds = adsData.filter(ad => ad.ad_type === 'premium');
+      const standardAds = adsData.filter(ad => ad.ad_type === 'standard');
 
       // Si no hay publicidades reales, agregar banners promocionales
       if (adsData.length === 0) {
@@ -95,7 +100,8 @@ const PublicationsFeed = () => {
             description: 'Tu perfil destacado por 30 días',
             image_url: '/pwa-512x512.png',
             price: 15,
-            promo_type: 'VIP'
+            promo_type: 'VIP',
+            ad_type: 'promo'
           },
           {
             id: 'banner-automarket',
@@ -104,7 +110,8 @@ const PublicationsFeed = () => {
             type: 'promo',
             image_url: '/pwa-512x512.png',
             website: 'https://auto-market.pro',
-            promo_type: 'AUTOMARKET'
+            promo_type: 'AUTOMARKET',
+            ad_type: 'promo'
           }
         ];
       }
@@ -112,21 +119,58 @@ const PublicationsFeed = () => {
       setPublications(postsData);
       setAds(adsData);
       
-      // Mezclar siguiendo la regla: cada 6 publicaciones, 2 publicidades
+      // ALGORITMO INTELIGENTE DE INTERCALADO
       const mixed = [];
-      let adIndex = 0;
+      let premiumIndex = 0;
+      let standardIndex = 0;
+      let promoIndex = 0;
       
-      for (let i = 0; i < postsData.length; i += 6) {
-        // Agregar 6 publicaciones
-        const postBatch = postsData.slice(i, i + 6);
+      // Calcular densidad de publicidades
+      const totalAds = premiumAds.length + standardAds.length;
+      const adDensity = totalAds / postsData.length;
+      
+      // Ajustar frecuencia según densidad
+      let adFrequency = 6; // Por defecto cada 6 posts
+      if (adDensity > 0.3) { // Si hay muchas publicidades
+        adFrequency = 8; // Reducir frecuencia
+      } else if (adDensity < 0.1) { // Si hay pocas publicidades
+        adFrequency = 4; // Aumentar frecuencia
+      }
+      
+      for (let i = 0; i < postsData.length; i += adFrequency) {
+        // Agregar posts del batch
+        const postBatch = postsData.slice(i, i + adFrequency);
         mixed.push(...postBatch);
         
-        // Agregar 2 publicidades si hay disponibles
-        if (adIndex < adsData.length) {
-          const adBatch = adsData.slice(adIndex, adIndex + 2);
-          mixed.push(...adBatch);
-          adIndex += 2;
+        // ALGORITMO DE INTERCALADO INTELIGENTE
+        const adsToAdd = [];
+        
+        // 1. Prioridad: Premium ads (se intercalan)
+        if (premiumIndex < premiumAds.length) {
+          const premiumAd = premiumAds[premiumIndex % premiumAds.length];
+          adsToAdd.push(premiumAd);
+          premiumIndex++;
         }
+        
+        // 2. Si hay espacio, agregar una segunda publicidad
+        if (adsToAdd.length < 2) {
+          // Prioridad: Standard ads (se pierden abajo)
+          if (standardIndex < standardAds.length) {
+            const standardAd = standardAds[standardIndex % standardAds.length];
+            adsToAdd.push(standardAd);
+            standardIndex++;
+          }
+          // Si no hay standard, agregar promo
+          else if (promoIndex < adsData.filter(ad => ad.ad_type === 'promo').length) {
+            const promoAds = adsData.filter(ad => ad.ad_type === 'promo');
+            const promoAd = promoAds[promoIndex % promoAds.length];
+            adsToAdd.push(promoAd);
+            promoIndex++;
+          }
+        }
+        
+        // Agregar publicidades al feed
+        mixed.push(...adsToAdd);
       }
       
       setMixedFeed(mixed);

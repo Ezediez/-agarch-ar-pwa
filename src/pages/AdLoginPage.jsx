@@ -159,14 +159,31 @@ const AdLoginPage = () => {
 
   const renderDashboard = () => (
     <div className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-primary">Dashboard Publicitario</h1>
-          <p className="text-text-secondary">Gestiona tus anuncios y campañas</p>
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-primary mb-4">Portal de Anunciantes</h1>
+        <p className="text-text-secondary mb-8">¿Qué querés hacer hoy?</p>
+        
+        {/* Dos botones principales */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
+          <Button 
+            onClick={() => navigate('/ad-create')} 
+            className="bg-green-600 hover:bg-green-700 flex-1"
+            size="lg"
+          >
+            <Plus className="mr-2 h-5 w-5" /> 
+            Crear Nueva Publicidad
+          </Button>
+          
+          <Button 
+            onClick={() => navigate('/ad-dashboard')} 
+            variant="outline"
+            className="flex-1"
+            size="lg"
+          >
+            <FileText className="mr-2 h-5 w-5" /> 
+            Ver Mi Panel
+          </Button>
         </div>
-        <Button onClick={() => setShowCreateAd(true)} className="bg-green-600 hover:bg-green-700">
-          <Plus className="mr-2 h-4 w-4" /> Crear Anuncio
-        </Button>
       </div>
 
       {/* Anuncios Activos */}
@@ -419,9 +436,7 @@ const AdLoginPage = () => {
       </Helmet>
       <div className="min-h-screen bg-background p-4">
         <div className="container mx-auto py-8">
-          {!isLoggedIn ? renderLoginForm() : 
-           showCreateAd ? renderCreateAdForm() : 
-           renderDashboard()}
+          {!isLoggedIn ? renderLoginForm() : renderDashboard()}
           
           {/* Back to Landing */}
           <div className="text-center mt-8">
