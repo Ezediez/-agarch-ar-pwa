@@ -2,17 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, addDoc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowLeft, Loader2, Heart, MessageSquare } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { ArrowLeft, Loader2, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const PostPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [likesCount, setLikesCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -36,6 +40,21 @@ const PostPage = () => {
           } catch (error) {
             console.error('Error fetching profile:', error);
           }
+
+          // Obtener likes del post
+          try {
+            const likesRef = collection(db, 'post_likes');
+            const likesQuery = query(likesRef, where('post_id', '==', postData.id));
+            const likesSnapshot = await getDocs(likesQuery);
+            const likesData = likesSnapshot.docs.map(likeDoc => ({ id: likeDoc.id, ...likeDoc.data() }));
+            
+            setLikesCount(likesData.length);
+            setIsLiked(likesData.some(like => like.user_id === user?.uid));
+          } catch (error) {
+            console.error('Error fetching likes:', error);
+            setLikesCount(0);
+            setIsLiked(false);
+          }
           
           setPost(postData);
         } else {
@@ -50,7 +69,50 @@ const PostPage = () => {
     };
 
     fetchPost();
-  }, [id, navigate]);
+  }, [id, navigate, user?.uid]);
+
+  const handleLike = async () => {
+    if (!user?.uid || !post) return;
+    
+    try {
+      // Verificar si ya le dio like
+      const likesRef = collection(db, 'post_likes');
+      const likeQuery = query(likesRef, where('post_id', '==', post.id), where('user_id', '==', user.uid));
+      const existingLike = await getDocs(likeQuery);
+      
+      if (existingLike.empty) {
+        // Dar like
+        await addDoc(likesRef, {
+          post_id: post.id,
+          user_id: user.uid,
+          created_at: new Date().toISOString()
+        });
+        setLikesCount(prev => prev + 1);
+        setIsLiked(true);
+        toast({
+          title: "❤️ Like agregado",
+          description: "Tu like ha sido registrado",
+        });
+      } else {
+        // Quitar like
+        const likeDoc = existingLike.docs[0];
+        await deleteDoc(doc(db, 'post_likes', likeDoc.id));
+        setLikesCount(prev => prev - 1);
+        setIsLiked(false);
+        toast({
+          title: "💔 Like removido",
+          description: "Tu like ha sido removido",
+        });
+      }
+    } catch (error) {
+      console.error('Error handling like:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo procesar el like'
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -151,13 +213,14 @@ const PostPage = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-4 pt-4 border-t">
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <Heart className="w-5 h-5" />
-                <span>Like</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                <span>Comentar</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={`flex items-center gap-2 ${isLiked ? 'text-red-500' : 'text-gray-400'} hover:text-red-500 transition-colors`}
+                onClick={handleLike}
+              >
+                <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                <span>{likesCount}</span>
               </Button>
             </div>
           </div>

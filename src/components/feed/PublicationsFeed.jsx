@@ -38,7 +38,7 @@ const PublicationsFeed = forwardRef((props, ref) => {
       const postsQuery = query(
         postsRef,
         orderBy('created_at', 'desc'),
-        limit(20)
+        limit(12) // Reducido de 20 a 12 para mejor performance
       );
       const postsSnapshot = await getDocs(postsQuery);
       const postsData = await Promise.all(
@@ -101,7 +101,7 @@ const PublicationsFeed = forwardRef((props, ref) => {
       const adsQuery = query(
         adsRef,
         where('status', '==', 'active'),
-        limit(10)
+        limit(6) // Reducido de 10 a 6 para mejor performance
       );
       const adsSnapshot = await getDocs(adsQuery);
       let adsData = adsSnapshot.docs.map(doc => ({ 
