@@ -57,7 +57,7 @@ const AdPaymentPage = () => {
         ad_type: selectedPlan,
         price: plans[selectedPlan].price,
         status: 'active',
-        advertiser_id: 'temp-advertiser', // Temporal - en producción sería el UID del anunciante
+        advertiser_id: 'demo-advertiser-123', // ID temporal para testing
         created_at: serverTimestamp(),
         expires_at: selectedPlan === 'standard' 
           ? new Date(Date.now() + 24 * 60 * 60 * 1000) // Estándar: 24 horas (se pierde abajo)

@@ -1,44 +1,41 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, where } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/components/ui/use-toast.jsx';
-import { useNavigate } from 'react-router-dom';
-import { Loader2, Frown, MoreHorizontal, Heart, MessageCircle, UserPlus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import DirectMessageModal from '@/components/profile/DirectMessageModal';
-import AdFeedCard from '@/components/feed/AdFeedCard';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/components/ui/use-toast';
+import { Loader2, Frown, WifiOff, RefreshCw, Heart, MessageCircle, Share, MoreHorizontal } from 'lucide-react';
+import PostCard from '@/components/discover/PostCard';
+import CreatePost from '@/components/discover/CreatePost';
+import AdFeedCard from './AdFeedCard';
 
 const PublicationsFeed = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [publications, setPublications] = useState([]);
   const [ads, setAds] = useState([]);
   const [mixedFeed, setMixedFeed] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProfile, setSelectedProfile] = useState(null);
-  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const POSTS_PER_PAGE = 10;
 
   const fetchPublications = useCallback(async () => {
-    if (!user?.uid) return;
-    
+    if (!user?.uid) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       
-            // Obtener publicaciones de perfiles ordenadas por fecha (más recientes primero)
-            const postsRef = collection(db, 'posts');
-            const postsQuery = query(
-                postsRef,
-                orderBy('created_at', 'desc'),
-                limit(20)
-            );
+      // Obtener posts de usuarios
+      const postsRef = collection(db, 'posts');
+      const postsQuery = query(
+        postsRef,
+        orderBy('created_at', 'desc'),
+        limit(20)
+      );
       const postsSnapshot = await getDocs(postsQuery);
       const postsData = await Promise.all(
         postsSnapshot.docs.map(async (postDoc) => {
@@ -55,29 +52,28 @@ const PublicationsFeed = () => {
             console.error('Error fetching profile:', error);
           }
           
-      // Obtener likes del post (simplificado para evitar error 400)
-      try {
-        const likesRef = collection(db, 'post_likes');
-        const likesQuery = query(likesRef, where('post_id', '==', postData.id));
-        const likesSnapshot = await getDocs(likesQuery);
-        postData.likes = likesSnapshot.docs.map(likeDoc => ({ id: likeDoc.id, ...likeDoc.data() }));
-      } catch (error) {
-        console.error('Error fetching likes:', error);
-        postData.likes = [];
-      }
+          // Obtener likes del post
+          try {
+            const likesRef = collection(db, 'post_likes');
+            const likesQuery = query(likesRef, where('post_id', '==', postData.id));
+            const likesSnapshot = await getDocs(likesQuery);
+            postData.likes = likesSnapshot.docs.map(likeDoc => ({ id: likeDoc.id, ...likeDoc.data() }));
+          } catch (error) {
+            console.error('Error fetching likes:', error);
+            postData.likes = [];
+          }
           
           return postData;
         })
       );
 
-            // Obtener publicidades activas desde Portal de Anunciantes
-            const adsRef = collection(db, 'advertisements');
-            const adsQuery = query(
-                adsRef,
-                where('status', '==', 'active'),
-                where('expires_at', '>', new Date()), // Solo publicidades no expiradas
-                limit(20) // Más publicidades para algoritmo inteligente
-            );
+      // Obtener publicidades activas
+      const adsRef = collection(db, 'advertisements');
+      const adsQuery = query(
+        adsRef,
+        where('status', '==', 'active'),
+        limit(10)
+      );
       const adsSnapshot = await getDocs(adsQuery);
       let adsData = adsSnapshot.docs.map(doc => ({ 
         id: doc.id, 
@@ -86,97 +82,68 @@ const PublicationsFeed = () => {
         source: 'advertising_portal'
       }));
 
-      // Separar publicidades por tipo
-      const premiumAds = adsData.filter(ad => ad.ad_type === 'premium');
-      const standardAds = adsData.filter(ad => ad.ad_type === 'standard');
-
-      // Si no hay publicidades reales, agregar banners promocionales
-      if (adsData.length === 0) {
-        adsData = [
-          {
-            id: 'banner-vip',
-            type: 'promo',
-            title: 'Obtené VIP',
-            description: 'Tu perfil destacado por 30 días',
-            image_url: '/pwa-512x512.png',
-            price: 15,
-            promo_type: 'VIP',
-            ad_type: 'promo'
-          },
-          {
-            id: 'banner-automarket',
-            title: 'AutoMarket',
-            description: 'Compra y venta de autos',
-            type: 'promo',
-            image_url: '/pwa-512x512.png',
-            website: 'https://auto-market.pro',
-            promo_type: 'AUTOMARKET',
-            ad_type: 'promo'
-          }
-        ];
-      }
+      // Agregar banners promocionales SIEMPRE
+      const promoBanners = [
+        {
+          id: 'banner-vip',
+          type: 'promo',
+          title: 'Obtené VIP',
+          description: 'Tu perfil destacado por 30 días',
+          image_url: '/pwa-512x512.png',
+          price: 15,
+          promo_type: 'VIP',
+          ad_type: 'promo'
+        },
+        {
+          id: 'banner-automarket',
+          title: 'AutoMarket',
+          description: 'Compra y venta de autos',
+          type: 'promo',
+          image_url: '/pwa-512x512.png',
+          website: 'https://auto-market.pro',
+          promo_type: 'AUTOMARKET',
+          ad_type: 'promo'
+        }
+      ];
+      
+      // Combinar todas las publicidades
+      adsData = [...adsData, ...promoBanners];
 
       setPublications(postsData);
       setAds(adsData);
       
-      // ALGORITMO INTELIGENTE DE INTERCALADO
+      // ALGORITMO SIMPLE Y ROBUSTO
       const mixed = [];
-      let premiumIndex = 0;
-      let standardIndex = 0;
-      let promoIndex = 0;
+      let adIndex = 0;
       
-      // Calcular densidad de publicidades
-      const totalAds = premiumAds.length + standardAds.length;
-      const adDensity = totalAds / postsData.length;
-      
-      // Ajustar frecuencia según densidad
-      let adFrequency = 6; // Por defecto cada 6 posts
-      if (adDensity > 0.3) { // Si hay muchas publicidades
-        adFrequency = 8; // Reducir frecuencia
-      } else if (adDensity < 0.1) { // Si hay pocas publicidades
-        adFrequency = 4; // Aumentar frecuencia
-      }
-      
-      for (let i = 0; i < postsData.length; i += adFrequency) {
-        // Agregar posts del batch
-        const postBatch = postsData.slice(i, i + adFrequency);
-        mixed.push(...postBatch);
-        
-        // ALGORITMO DE INTERCALADO INTELIGENTE
-        const adsToAdd = [];
-        
-        // 1. Prioridad: Premium ads (se intercalan)
-        if (premiumIndex < premiumAds.length) {
-          const premiumAd = premiumAds[premiumIndex % premiumAds.length];
-          adsToAdd.push(premiumAd);
-          premiumIndex++;
-        }
-        
-        // 2. Si hay espacio, agregar una segunda publicidad
-        if (adsToAdd.length < 2) {
-          // Prioridad: Standard ads (se pierden abajo)
-          if (standardIndex < standardAds.length) {
-            const standardAd = standardAds[standardIndex % standardAds.length];
-            adsToAdd.push(standardAd);
-            standardIndex++;
-          }
-          // Si no hay standard, agregar promo
-          else if (promoIndex < adsData.filter(ad => ad.ad_type === 'promo').length) {
-            const promoAds = adsData.filter(ad => ad.ad_type === 'promo');
-            const promoAd = promoAds[promoIndex % promoAds.length];
-            adsToAdd.push(promoAd);
-            promoIndex++;
+      // Si no hay posts, mostrar solo publicidades
+      if (postsData.length === 0) {
+        mixed.push(...adsData);
+      } else {
+        // Intercalar cada 6 posts con 2 publicidades
+        for (let i = 0; i < postsData.length; i += 6) {
+          // Agregar 6 posts
+          const postBatch = postsData.slice(i, i + 6);
+          mixed.push(...postBatch);
+          
+          // Agregar 2 publicidades si hay disponibles
+          if (adIndex < adsData.length) {
+            const adBatch = adsData.slice(adIndex, adIndex + 2);
+            mixed.push(...adBatch);
+            adIndex += 2;
           }
         }
         
-        // Agregar publicidades al feed
-        mixed.push(...adsToAdd);
+        // Si quedan publicidades sin mostrar, agregarlas al final
+        if (adIndex < adsData.length) {
+          const remainingAds = adsData.slice(adIndex);
+          mixed.push(...remainingAds);
+        }
       }
       
       setMixedFeed(mixed);
     } catch (error) {
       console.error('Error fetching publications:', error);
-      // Si no hay datos, mostrar feed vacío en lugar de error
       setMixedFeed([]);
     } finally {
       setLoading(false);
@@ -191,190 +158,126 @@ const PublicationsFeed = () => {
     if (!user?.uid) return;
     
     try {
-      // Implementar lógica de like en Firestore
-      const likeRef = collection(db, 'post_likes');
-      await addDoc(likeRef, {
-        post_id: postId,
-        user_id: user.uid,
-        created_at: new Date()
-      });
+      // Verificar si ya le dio like
+      const likesRef = collection(db, 'post_likes');
+      const likeQuery = query(likesRef, where('post_id', '==', postId), where('user_id', '==', user.uid));
+      const existingLike = await getDocs(likeQuery);
       
-      toast({
-        title: 'Me gusta',
-        description: 'Has dado me gusta a esta publicación.'
-      });
+      if (existingLike.empty) {
+        // Dar like
+        await addDoc(likesRef, {
+          post_id: postId,
+          user_id: user.uid,
+          created_at: new Date()
+        });
+        toast({
+          title: "❤️ Like agregado",
+          description: "Tu like ha sido registrado",
+        });
+      } else {
+        // Quitar like
+        const likeDoc = existingLike.docs[0];
+        await deleteDoc(doc(db, 'post_likes', likeDoc.id));
+        toast({
+          title: "💔 Like removido",
+          description: "Tu like ha sido removido",
+        });
+      }
       
-      // Refrescar datos
+      // Refrescar el feed
       fetchPublications();
     } catch (error) {
-      console.error('Error liking post:', error);
+      console.error('Error handling like:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo dar me gusta a la publicación.'
+        description: 'No se pudo procesar el like'
       });
     }
   };
 
-  const handleMessage = (profile) => {
-    setSelectedProfile(profile);
-    setShowMessageModal(true);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchPublications();
+    setRefreshing(false);
   };
 
-  const handleFollow = async (profileId) => {
-    if (!user?.uid) return;
+  const handleLoadMore = async () => {
+    if (!hasMore || loading) return;
     
+    setLoading(true);
     try {
-      // Implementar lógica de seguir en Firestore
-      const followRef = collection(db, 'user_likes');
-      await addDoc(followRef, {
-        user_id: user.uid,
-        liked_user_id: profileId,
-        created_at: new Date()
-      });
-      
-      toast({
-        title: 'Perfil guardado',
-        description: 'Has guardado este perfil en tu lista.'
-      });
+      // Implementar paginación si es necesario
+      setPage(prev => prev + 1);
     } catch (error) {
-      console.error('Error following profile:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo guardar el perfil.'
-      });
+      console.error('Error loading more:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-
-  if (loading) {
+  if (loading && mixedFeed.length === 0) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        <span className="ml-2">Cargando publicaciones...</span>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-text-secondary">Cargando publicaciones...</p>
+        </div>
       </div>
     );
   }
 
-  if (mixedFeed.length === 0) {
+  if (mixedFeed.length === 0 && !loading) {
     return (
-      <div className="text-center py-8">
-        <Frown className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium mb-2">No hay publicaciones</h3>
-        <p className="text-muted-foreground">Sé el primero en crear contenido.</p>
+      <div className="text-center py-12">
+        <Frown className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay publicaciones</h3>
+        <p className="text-gray-500 mb-4">Sé el primero en compartir algo</p>
+        <CreatePost />
       </div>
     );
   }
 
   return (
-    <div className="px-4 pb-20">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div className="space-y-6">
+      {/* Header con botón de refresh */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-primary">Descubrir</h2>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+        >
+          <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
+
+      {/* Botón de crear post */}
+      <CreatePost />
+
+      {/* Feed mixto */}
+      <div className="space-y-4">
         {mixedFeed.map((item, index) => (
-          <div key={item.id || index} className="space-y-3">
-            {item.type === 'ad' || item.website ? (
-              // Publicidad
+          <div key={item.id || index}>
+            {item.type === 'ad' || item.type === 'promo' ? (
               <AdFeedCard ad={item} />
             ) : (
-              // Publicación de perfil
-              <div className="bg-card rounded-lg overflow-hidden border">
-                {/* Header de la publicación */}
-                <div className="flex items-center justify-between p-3">
-                  <div className="flex items-center gap-2">
-                    <img
-                      src={item.author?.profile_picture_url || '/pwa-512x512.png'}
-                      alt={item.author?.alias || 'Usuario'}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                    <div>
-                      <p className="font-medium text-sm">{item.author?.alias || 'Usuario'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Ahora'}
-                      </p>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="card-glass">
-                      <DropdownMenuItem 
-                        onClick={() => handleLike(item.id)}
-                        className="flex items-center gap-2"
-                      >
-                        <Heart className="w-4 h-4" />
-                        <span>Me gusta</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleMessage(item.author)}
-                        className="flex items-center gap-2"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        <span>Mensaje</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleFollow(item.author?.id)}
-                        className="flex items-center gap-2"
-                      >
-                        <UserPlus className="w-4 h-4" />
-                        <span>Guardar perfil</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                {/* Contenido de la publicación */}
-                <div>
-                  {item.image_url && (
-                    <img
-                      src={item.image_url}
-                      alt="Publicación"
-                      className="w-full h-48 object-cover"
-                    />
-                  )}
-                  {item.video_url && (
-                    <video
-                      src={item.video_url}
-                      controls
-                      className="w-full h-48 object-cover"
-                    />
-                  )}
-                  {item.text && (
-                    <p className="p-3 text-sm">{item.text}</p>
-                  )}
-                </div>
-
-                {/* Acciones simplificadas - solo mostrar contador de likes */}
-                <div className="flex items-center justify-between p-3 border-t">
-                  <div className="flex items-center gap-2">
-                    <Heart className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      {item.likes?.length || 0} me gusta
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    Usa el menú ⋯ para más opciones
-                  </span>
-                </div>
-              </div>
+              <PostCard 
+                post={item} 
+                onLike={handleLike}
+                currentUserId={user?.uid}
+              />
             )}
           </div>
         ))}
       </div>
 
-      {/* Modal de mensaje */}
-      {showMessageModal && selectedProfile && (
-        <DirectMessageModal
-          profile={selectedProfile}
-          onClose={() => {
-            setShowMessageModal(false);
-            setSelectedProfile(null);
-          }}
-        />
+      {/* Loader para cargar más */}
+      {loading && mixedFeed.length > 0 && (
+        <div className="flex justify-center py-4">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
       )}
-
     </div>
   );
 };
