@@ -6,7 +6,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Frown, RefreshCw, Heart, MoreHorizontal, MessageSquare, User, Eye } from 'lucide-react';
 import PostCard from '@/components/discover/PostCard';
-import CreatePost from '@/components/discover/CreatePost';
 import AdFeedCard from './AdFeedCard';
 import DirectMessageModal from '@/components/profile/DirectMessageModal';
 
@@ -330,8 +329,6 @@ const PublicationsFeed = forwardRef((props, ref) => {
 
   return (
     <div className="space-y-6">
-      {/* Botón de crear post */}
-      <CreatePost />
 
       {/* Feed mixto en GRID DE 2 COLUMNAS */}
       <div className="grid grid-cols-2 gap-4">
@@ -378,10 +375,10 @@ const PublicationsFeed = forwardRef((props, ref) => {
                               handleThreeDotsMenu('message', selectedPost.author, selectedPost);
                               setSelectedPost(null);
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 transition-colors text-left"
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-50 transition-colors text-left"
                           >
-                            <MessageSquare className="w-4 h-4 text-blue-500" />
-                            <span className="text-sm">Mensaje</span>
+                            <MessageSquare className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm text-blue-700 font-medium">📧 Mensaje</span>
                           </button>
                           
                           <button
@@ -391,10 +388,10 @@ const PublicationsFeed = forwardRef((props, ref) => {
                               handleThreeDotsMenu('profile', selectedPost.author, selectedPost);
                               setSelectedPost(null);
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 transition-colors text-left"
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-green-50 transition-colors text-left"
                           >
-                            <User className="w-4 h-4 text-green-500" />
-                            <span className="text-sm">Ver perfil</span>
+                            <User className="w-4 h-4 text-green-600" />
+                            <span className="text-sm text-green-700 font-medium">👤 Ver perfil</span>
                           </button>
                           
                           <button
@@ -404,10 +401,10 @@ const PublicationsFeed = forwardRef((props, ref) => {
                               handleThreeDotsMenu('view', selectedPost.author, selectedPost);
                               setSelectedPost(null);
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 transition-colors text-left"
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 transition-colors text-left"
                           >
-                            <Eye className="w-4 h-4 text-purple-500" />
-                            <span className="text-sm">Ver post</span>
+                            <Eye className="w-4 h-4 text-purple-600" />
+                            <span className="text-sm text-purple-700 font-medium">👁️ Ver post</span>
                           </button>
                         </div>
                       </>
