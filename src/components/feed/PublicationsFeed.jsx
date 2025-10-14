@@ -3,22 +3,24 @@ import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, where 
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, Frown, WifiOff, RefreshCw, Heart, MessageCircle, Share, MoreHorizontal } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Loader2, Frown, RefreshCw, Heart, MoreHorizontal } from 'lucide-react';
 import PostCard from '@/components/discover/PostCard';
 import CreatePost from '@/components/discover/CreatePost';
 import AdFeedCard from './AdFeedCard';
+import DirectMessageModal from '@/components/profile/DirectMessageModal';
 
 const PublicationsFeed = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [publications, setPublications] = useState([]);
   const [ads, setAds] = useState([]);
   const [mixedFeed, setMixedFeed] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const POSTS_PER_PAGE = 10;
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
 
   const fetchPublications = useCallback(async () => {
     if (!user?.uid) {
@@ -29,7 +31,7 @@ const PublicationsFeed = () => {
     try {
       setLoading(true);
       
-      // Obtener posts de usuarios
+      // Obtener posts de usuarios (no perfiles, sino publicaciones)
       const postsRef = collection(db, 'posts');
       const postsQuery = query(
         postsRef,
@@ -58,9 +60,13 @@ const PublicationsFeed = () => {
             const likesQuery = query(likesRef, where('post_id', '==', postData.id));
             const likesSnapshot = await getDocs(likesQuery);
             postData.likes = likesSnapshot.docs.map(likeDoc => ({ id: likeDoc.id, ...likeDoc.data() }));
+            postData.likes_count = postData.likes.length;
+            postData.is_liked = postData.likes.some(like => like.user_id === user.uid);
           } catch (error) {
             console.error('Error fetching likes:', error);
             postData.likes = [];
+            postData.likes_count = 0;
+            postData.is_liked = false;
           }
           
           return postData;
@@ -112,7 +118,7 @@ const PublicationsFeed = () => {
       setPublications(postsData);
       setAds(adsData);
       
-      // ALGORITMO SIMPLE Y ROBUSTO
+      // ALGORITMO: Intercalar cada 6 posts con 2 publicidades
       const mixed = [];
       let adIndex = 0;
       
@@ -177,7 +183,12 @@ const PublicationsFeed = () => {
       } else {
         // Quitar like
         const likeDoc = existingLike.docs[0];
-        await deleteDoc(doc(db, 'post_likes', likeDoc.id));
+        await addDoc(collection(db, 'post_likes'), {
+          post_id: postId,
+          user_id: user.uid,
+          created_at: new Date(),
+          action: 'unlike'
+        });
         toast({
           title: "💔 Like removido",
           description: "Tu like ha sido removido",
@@ -196,24 +207,15 @@ const PublicationsFeed = () => {
     }
   };
 
+  const handleProfileMenuClick = (profile) => {
+    setSelectedProfile(profile);
+    setIsMessageModalOpen(true);
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchPublications();
     setRefreshing(false);
-  };
-
-  const handleLoadMore = async () => {
-    if (!hasMore || loading) return;
-    
-    setLoading(true);
-    try {
-      // Implementar paginación si es necesario
-      setPage(prev => prev + 1);
-    } catch (error) {
-      console.error('Error loading more:', error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   if (loading && mixedFeed.length === 0) {
@@ -255,18 +257,86 @@ const PublicationsFeed = () => {
       {/* Botón de crear post */}
       <CreatePost />
 
-      {/* Feed mixto */}
-      <div className="space-y-4">
+      {/* Feed mixto en GRID DE 2 COLUMNAS */}
+      <div className="grid grid-cols-2 gap-4">
         {mixedFeed.map((item, index) => (
-          <div key={item.id || index}>
+          <div key={item.id || index} className="relative">
             {item.type === 'ad' || item.type === 'promo' ? (
               <AdFeedCard ad={item} />
             ) : (
-              <PostCard 
-                post={item} 
-                onLike={handleLike}
-                currentUserId={user?.uid}
-              />
+              <div className="relative">
+                {/* Post card con funcionalidad completa */}
+                <div 
+                  className="card-glass rounded-lg overflow-hidden cursor-pointer"
+                  onClick={() => navigate(`/post/${item.id}`)}
+                >
+                  {/* Imagen o video del post */}
+                  {item.image_url && (
+                    <div className="aspect-square relative">
+                      <img 
+                        src={item.image_url} 
+                        alt="Post" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  
+                  {item.video_url && (
+                    <div className="aspect-square relative">
+                      <video 
+                        src={item.video_url} 
+                        className="w-full h-full object-cover"
+                        muted
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Contenido del post */}
+                  <div className="p-3">
+                    {/* Header con avatar y 3 puntitos */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <img 
+                          src={item.author?.profile_picture_url || '/pwa-512x512.png'} 
+                          alt={item.author?.alias}
+                          className="w-6 h-6 rounded-full object-cover"
+                        />
+                        <span className="text-sm font-medium">{item.author?.alias}</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleProfileMenuClick(item.author);
+                        }}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                    </div>
+                    
+                    {/* Texto del post */}
+                    {item.text && (
+                      <p className="text-sm text-gray-700 mb-2 line-clamp-2">{item.text}</p>
+                    )}
+                    
+                    {/* Likes */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLike(item.id);
+                        }}
+                        className={`flex items-center gap-1 ${
+                          item.is_liked ? 'text-red-500' : 'text-gray-400'
+                        } hover:text-red-500 transition-colors`}
+                      >
+                        <Heart className={`w-4 h-4 ${item.is_liked ? 'fill-current' : ''}`} />
+                        <span className="text-xs">{item.likes_count}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         ))}
@@ -277,6 +347,17 @@ const PublicationsFeed = () => {
         <div className="flex justify-center py-4">
           <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
+      )}
+
+      {/* Modal de mensaje directo */}
+      {selectedProfile && (
+        <DirectMessageModal 
+          profile={selectedProfile} 
+          onClose={() => {
+            setIsMessageModalOpen(false);
+            setSelectedProfile(null);
+          }}
+        />
       )}
     </div>
   );
