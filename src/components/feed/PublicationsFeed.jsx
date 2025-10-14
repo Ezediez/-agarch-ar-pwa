@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, where } from 'firebase/firestore';
+import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, where, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Frown, RefreshCw, Heart, MoreHorizontal } from 'lucide-react';
+import { Loader2, Frown, RefreshCw, Heart, MoreHorizontal, MessageSquare, User, Eye } from 'lucide-react';
 import PostCard from '@/components/discover/PostCard';
 import CreatePost from '@/components/discover/CreatePost';
 import AdFeedCard from './AdFeedCard';
 import DirectMessageModal from '@/components/profile/DirectMessageModal';
 
-const PublicationsFeed = () => {
+const PublicationsFeed = forwardRef((props, ref) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -21,6 +21,7 @@ const PublicationsFeed = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+  const [followingStatus, setFollowingStatus] = useState({});
 
   const fetchPublications = useCallback(async () => {
     if (!user?.uid) {
@@ -72,6 +73,27 @@ const PublicationsFeed = () => {
           return postData;
         })
       );
+
+      // Verificar estado de seguimiento para cada autor
+      const followingStatusMap = {};
+      for (const post of postsData) {
+        if (post.author?.id) {
+          try {
+            const userLikesRef = collection(db, 'user_likes');
+            const userLikesQuery = query(
+              userLikesRef,
+              where('user_id', '==', user.uid),
+              where('liked_user_id', '==', post.author.id)
+            );
+            const userLikesSnapshot = await getDocs(userLikesQuery);
+            followingStatusMap[post.author.id] = userLikesSnapshot.size > 0;
+          } catch (error) {
+            console.error('Error checking follow status:', error);
+            followingStatusMap[post.author.id] = false;
+          }
+        }
+      }
+      setFollowingStatus(followingStatusMap);
 
       // Obtener publicidades activas
       const adsRef = collection(db, 'advertisements');
@@ -183,12 +205,7 @@ const PublicationsFeed = () => {
       } else {
         // Quitar like
         const likeDoc = existingLike.docs[0];
-        await addDoc(collection(db, 'post_likes'), {
-          post_id: postId,
-          user_id: user.uid,
-          created_at: new Date(),
-          action: 'unlike'
-        });
+        await deleteDoc(doc(db, 'post_likes', likeDoc.id));
         toast({
           title: "💔 Like removido",
           description: "Tu like ha sido removido",
@@ -207,9 +224,73 @@ const PublicationsFeed = () => {
     }
   };
 
-  const handleProfileMenuClick = (profile) => {
-    setSelectedProfile(profile);
-    setIsMessageModalOpen(true);
+  const handleFollow = async (authorId) => {
+    if (!user?.uid || !authorId) return;
+    
+    try {
+      const isFollowing = followingStatus[authorId];
+      
+      if (isFollowing) {
+        // Dejar de seguir - buscar y eliminar el like existente
+        const userLikesRef = collection(db, 'user_likes');
+        const userLikesQuery = query(
+          userLikesRef,
+          where('user_id', '==', user.uid),
+          where('liked_user_id', '==', authorId)
+        );
+        
+        const snapshot = await getDocs(userLikesQuery);
+        for (const likeDoc of snapshot.docs) {
+          await deleteDoc(doc(db, 'user_likes', likeDoc.id));
+        }
+        
+        setFollowingStatus(prev => ({ ...prev, [authorId]: false }));
+        toast({ 
+          title: "Dejaste de seguir",
+          description: "Ya no sigues a este usuario" 
+        });
+      } else {
+        // Seguir - agregar nuevo like
+        await addDoc(collection(db, 'user_likes'), {
+          user_id: user.uid,
+          liked_user_id: authorId,
+          created_at: new Date().toISOString()
+        });
+        
+        setFollowingStatus(prev => ({ ...prev, [authorId]: true }));
+        toast({ 
+          title: "¡Siguiendo!",
+          description: "Ahora sigues a este usuario" 
+        });
+      }
+      
+      // Refrescar el feed
+      fetchPublications();
+    } catch (error) {
+      console.error('Error handling follow:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo procesar la acción'
+      });
+    }
+  };
+
+  const handleThreeDotsMenu = (action, profile, post) => {
+    switch (action) {
+      case 'message':
+        setSelectedProfile(profile);
+        setIsMessageModalOpen(true);
+        break;
+      case 'profile':
+        navigate(`/profile/${profile.id}`);
+        break;
+      case 'view':
+        navigate(`/post/${post.id}`);
+        break;
+      default:
+        break;
+    }
   };
 
   const handleRefresh = async () => {
@@ -217,6 +298,11 @@ const PublicationsFeed = () => {
     await fetchPublications();
     setRefreshing(false);
   };
+
+  // Exponer función de refresh al componente padre
+  useImperativeHandle(ref, () => ({
+    handleRefresh
+  }));
 
   if (loading && mixedFeed.length === 0) {
     return (
@@ -242,18 +328,6 @@ const PublicationsFeed = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header con botón de refresh */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-primary">Descubrir</h2>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-        >
-          <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
-
       {/* Botón de crear post */}
       <CreatePost />
 
@@ -266,52 +340,71 @@ const PublicationsFeed = () => {
             ) : (
               <div className="relative">
                 {/* Post card con funcionalidad completa */}
-                <div 
-                  className="card-glass rounded-lg overflow-hidden cursor-pointer"
-                  onClick={() => navigate(`/post/${item.id}`)}
-                >
-                  {/* Imagen o video del post */}
-                  {item.image_url && (
-                    <div className="aspect-square relative">
+                <div className="card-glass rounded-lg overflow-hidden cursor-pointer">
+                  {/* 3 PUNTITOS ARRIBA */}
+                  <div className="absolute top-2 right-2 z-10">
+                    <div className="bg-black/50 rounded-full p-1">
+                      <div className="flex gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleThreeDotsMenu('message', item.author, item);
+                          }}
+                          className="w-2 h-2 bg-white rounded-full hover:bg-pink-300 transition-colors"
+                          title="Enviar mensaje"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleThreeDotsMenu('profile', item.author, item);
+                          }}
+                          className="w-2 h-2 bg-white rounded-full hover:bg-blue-300 transition-colors"
+                          title="Ver perfil"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleThreeDotsMenu('view', item.author, item);
+                          }}
+                          className="w-2 h-2 bg-white rounded-full hover:bg-green-300 transition-colors"
+                          title="Ver post"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Imagen o video del post - CLICK ABRE POST */}
+                  <div 
+                    onClick={() => navigate(`/post/${item.id}`)}
+                    className="aspect-square relative cursor-pointer"
+                  >
+                    {item.image_url && (
                       <img 
                         src={item.image_url} 
                         alt="Post" 
                         className="w-full h-full object-cover"
                       />
-                    </div>
-                  )}
-                  
-                  {item.video_url && (
-                    <div className="aspect-square relative">
+                    )}
+                    
+                    {item.video_url && (
                       <video 
                         src={item.video_url} 
                         className="w-full h-full object-cover"
                         muted
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                   
                   {/* Contenido del post */}
                   <div className="p-3">
-                    {/* Header con avatar y 3 puntitos */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <img 
-                          src={item.author?.profile_picture_url || '/pwa-512x512.png'} 
-                          alt={item.author?.alias}
-                          className="w-6 h-6 rounded-full object-cover"
-                        />
-                        <span className="text-sm font-medium">{item.author?.alias}</span>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleProfileMenuClick(item.author);
-                        }}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
+                    {/* Header con avatar */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <img 
+                        src={item.author?.profile_picture_url || '/pwa-512x512.png'} 
+                        alt={item.author?.alias}
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                      <span className="text-sm font-medium">{item.author?.alias}</span>
                     </div>
                     
                     {/* Texto del post */}
@@ -319,8 +412,8 @@ const PublicationsFeed = () => {
                       <p className="text-sm text-gray-700 mb-2 line-clamp-2">{item.text}</p>
                     )}
                     
-                    {/* Likes */}
-                    <div className="flex items-center gap-2">
+                    {/* ACCIONES ABAJO: Like + Seguir */}
+                    <div className="flex items-center justify-between">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -332,6 +425,21 @@ const PublicationsFeed = () => {
                       >
                         <Heart className={`w-4 h-4 ${item.is_liked ? 'fill-current' : ''}`} />
                         <span className="text-xs">{item.likes_count}</span>
+                      </button>
+                      
+                      {/* Botón seguir/guardar perfil */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFollow(item.author?.id);
+                        }}
+                        className={`text-xs px-2 py-1 rounded-full transition-colors ${
+                          followingStatus[item.author?.id] 
+                            ? 'bg-red-500 text-white hover:bg-red-600' 
+                            : 'bg-green-500 text-white hover:bg-green-600'
+                        }`}
+                      >
+                        {followingStatus[item.author?.id] ? 'Siguiendo' : 'Seguir'}
                       </button>
                     </div>
                   </div>
@@ -361,6 +469,8 @@ const PublicationsFeed = () => {
       )}
     </div>
   );
-};
+});
+
+PublicationsFeed.displayName = 'PublicationsFeed';
 
 export default PublicationsFeed;
