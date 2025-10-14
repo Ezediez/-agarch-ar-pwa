@@ -10,6 +10,7 @@ import SettingsPage from '@/pages/SettingsPage';
 import CreatePostPage from '@/pages/CreatePostPage';
 import PaymentsPage from '@/pages/PaymentsPage';
 import AdvancedSearchPage from '@/pages/AdvancedSearchPage';
+import PostPage from '@/pages/PostPage';
 import { useAuth } from '@/hooks/useAuth';
 
 const MainApp = () => {
@@ -38,6 +39,7 @@ const MainApp = () => {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/create-post" element={<CreatePostPage />} />
         <Route path="/payments" element={<PaymentsPage />} />
+        <Route path="/post/:id" element={<PostPage />} />
         <Route path="*" element={<Navigate to="/discover" replace />} />
       </Routes>
     </MainLayout>

@@ -355,19 +355,7 @@ const PublicationsFeed = forwardRef((props, ref) => {
                     
                     {/* Dropdown menu - aparece cerca del botón */}
                     {isThreeDotsModalOpen && selectedPost?.id === item.id && (
-                      <>
-                        {/* Overlay transparente para cerrar al hacer click afuera */}
-                        <div 
-                          className="fixed inset-0 z-30"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsThreeDotsModalOpen(false);
-                            setSelectedPost(null);
-                          }}
-                        />
-                        
-                        {/* Menu dropdown */}
-                        <div className="absolute top-8 right-0 z-40 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 py-1 min-w-[160px]">
+                      <div className="absolute top-8 right-0 z-40 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 py-1 min-w-[160px]">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -406,8 +394,7 @@ const PublicationsFeed = forwardRef((props, ref) => {
                             <Eye className="w-4 h-4 text-purple-600" />
                             <span className="text-sm text-purple-700 font-medium">👁️ Ver post</span>
                           </button>
-                        </div>
-                      </>
+                      </div>
                     )}
                   </div>
 
