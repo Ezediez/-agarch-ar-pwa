@@ -26,11 +26,6 @@
     Content-Type = "application/manifest+json"
     Cache-Control = "public, max-age=0, must-revalidate"
 
-<<<<<<< HEAD
-=======
-# Service Worker DESHABILITADO - Eliminado para evitar problemas de cache
->>>>>>> e98d0969fab7ef9b0b980963a8c51206a79171da
-
 [[headers]]
   for = "/assets/*"
   [headers.values]
@@ -41,61 +36,52 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
-# SPA specific redirects
+# Rutas SPA
 [[redirects]]
   from = "/discover"
   to = "/index.html"
   status = 200
-
 [[redirects]]
   from = "/chat"
   to = "/index.html"
   status = 200
-
 [[redirects]]
   from = "/profile"
   to = "/index.html"
   status = 200
-
 [[redirects]]
   from = "/search"
   to = "/index.html"
   status = 200
-
 [[redirects]]
   from = "/settings"
   to = "/index.html"
   status = 200
-
 [[redirects]]
   from = "/create-post"
   to = "/index.html"
   status = 200
-
 [[redirects]]
   from = "/payments"
   to = "/index.html"
   status = 200
 
-# Admin routes
+# Admin
 [[redirects]]
   from = "/admin/*"
   to = "/index.html"
   status = 200
 
-# Auth routes
+# Auth
 [[redirects]]
   from = "/login"
   to = "/index.html"
   status = 200
-
 [[redirects]]
   from = "/register"
   to = "/index.html"
   status = 200
-
 [[redirects]]
   from = "/landing"
   to = "/index.html"
   status = 200
-
