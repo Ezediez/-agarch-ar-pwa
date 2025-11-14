@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast.jsx';
 import { Loader2, Edit3, Save, X, Heart, MessageSquare } from 'lucide-react';
@@ -305,7 +305,7 @@ const ProfilePage = () => {
                     
                     await updateDoc(userProfileRef, {
                         following: updatedFollowing,
-                        updatedAt: serverTimestamp()
+                        updatedAt: new Date().toISOString()
                     });
                     
                     toast({ 
@@ -373,7 +373,7 @@ const ProfilePage = () => {
                     members: [user.uid, profile.id],
                     lastMessage: 'Conversación iniciada',
                     lastSenderId: user.uid,
-                    updatedAt: serverTimestamp(),
+                    updatedAt: new Date().toISOString(),
                 };
                 const convRef = await addDoc(collection(db, 'conversations'), newConversation);
                 conversationId = convRef.id;

@@ -1,21 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, where } from 'firebase/firestore';
+import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, where, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/components/ui/use-toast.jsx';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Frown, MoreHorizontal, Heart, MessageCircle, UserPlus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Loader2, Frown, RefreshCw, Heart, MoreHorizontal, MessageSquare, User, Eye } from 'lucide-react';
+import PostCard from '@/components/discover/PostCard';
+import AdFeedCard from './AdFeedCard';
 import DirectMessageModal from '@/components/profile/DirectMessageModal';
-import AdFeedCard from '@/components/feed/AdFeedCard';
 
-const PublicationsFeed = () => {
+const PublicationsFeed = forwardRef((props, ref) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -23,15 +17,23 @@ const PublicationsFeed = () => {
   const [ads, setAds] = useState([]);
   const [mixedFeed, setMixedFeed] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
-  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+  const [isThreeDotsModalOpen, setIsThreeDotsModalOpen] = useState(false);
+  const [followingStatus, setFollowingStatus] = useState({});
 
   const fetchPublications = useCallback(async () => {
-    if (!user?.uid) return;
-    
+    if (!user?.uid) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       
+<<<<<<< HEAD
             // Obtener publicaciones de perfiles ordenadas por fecha (más recientes primero)
             const postsRef = collection(db, 'posts');
             const postsQuery = query(
@@ -39,6 +41,15 @@ const PublicationsFeed = () => {
                 orderBy('created_at', 'desc'),
                 limit(20)
             );
+=======
+      // Obtener posts de usuarios (no perfiles, sino publicaciones)
+      const postsRef = collection(db, 'posts');
+      const postsQuery = query(
+        postsRef,
+        orderBy('created_at', 'desc'),
+        limit(12) // Reducido de 20 a 12 para mejor performance
+      );
+>>>>>>> e98d0969fab7ef9b0b980963a8c51206a79171da
       const postsSnapshot = await getDocs(postsQuery);
       const postsData = await Promise.all(
         postsSnapshot.docs.map(async (postDoc) => {
@@ -55,36 +66,62 @@ const PublicationsFeed = () => {
             console.error('Error fetching profile:', error);
           }
           
-      // Obtener likes del post (simplificado para evitar error 400)
-      try {
-        const likesRef = collection(db, 'post_likes');
-        const likesQuery = query(likesRef, where('post_id', '==', postData.id));
-        const likesSnapshot = await getDocs(likesQuery);
-        postData.likes = likesSnapshot.docs.map(likeDoc => ({ id: likeDoc.id, ...likeDoc.data() }));
-      } catch (error) {
-        console.error('Error fetching likes:', error);
-        postData.likes = [];
-      }
+          // Obtener likes del post
+          try {
+            const likesRef = collection(db, 'post_likes');
+            const likesQuery = query(likesRef, where('post_id', '==', postData.id));
+            const likesSnapshot = await getDocs(likesQuery);
+            postData.likes = likesSnapshot.docs.map(likeDoc => ({ id: likeDoc.id, ...likeDoc.data() }));
+            postData.likes_count = postData.likes.length;
+            postData.is_liked = postData.likes.some(like => like.user_id === user.uid);
+          } catch (error) {
+            console.error('Error fetching likes:', error);
+            postData.likes = [];
+            postData.likes_count = 0;
+            postData.is_liked = false;
+          }
           
           return postData;
         })
       );
 
-            // Obtener publicidades activas desde Portal de Anunciantes
-            const adsRef = collection(db, 'advertisements');
-            const adsQuery = query(
-                adsRef,
-                where('status', '==', 'active'),
-                limit(10)
+      // Verificar estado de seguimiento para cada autor
+      const followingStatusMap = {};
+      for (const post of postsData) {
+        if (post.author?.id) {
+          try {
+            const userLikesRef = collection(db, 'user_likes');
+            const userLikesQuery = query(
+              userLikesRef,
+              where('user_id', '==', user.uid),
+              where('liked_user_id', '==', post.author.id)
             );
+            const userLikesSnapshot = await getDocs(userLikesQuery);
+            followingStatusMap[post.author.id] = userLikesSnapshot.size > 0;
+          } catch (error) {
+            console.error('Error checking follow status:', error);
+            followingStatusMap[post.author.id] = false;
+          }
+        }
+      }
+      setFollowingStatus(followingStatusMap);
+
+      // Obtener publicidades activas
+      const adsRef = collection(db, 'advertisements');
+      const adsQuery = query(
+        adsRef,
+        where('status', '==', 'active'),
+        limit(6) // Reducido de 10 a 6 para mejor performance
+      );
       const adsSnapshot = await getDocs(adsQuery);
       let adsData = adsSnapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data(),
-        type: 'ad', // Marcar como publicidad
-        source: 'advertising_portal' // Marcar origen desde Portal de Anunciantes
+        type: 'ad',
+        source: 'advertising_portal'
       }));
 
+<<<<<<< HEAD
       // Si no hay publicidades reales, agregar banners promocionales
       if (adsData.length === 0) {
         adsData = [
@@ -108,31 +145,70 @@ const PublicationsFeed = () => {
           }
         ];
       }
+=======
+      // Agregar banners promocionales SIEMPRE
+      const promoBanners = [
+        {
+          id: 'banner-vip',
+          type: 'promo',
+          title: 'Obtené VIP',
+          description: 'Tu perfil destacado por 30 días',
+          image_url: '/pwa-512x512.png',
+          price: 15,
+          promo_type: 'VIP',
+          ad_type: 'promo'
+        },
+        {
+          id: 'banner-automarket',
+          title: 'AutoMarket',
+          description: 'Compra y venta de autos',
+          type: 'promo',
+          image_url: '/pwa-512x512.png',
+          website: 'https://auto-market.pro',
+          promo_type: 'AUTOMARKET',
+          ad_type: 'promo'
+        }
+      ];
+      
+      // Combinar todas las publicidades
+      adsData = [...adsData, ...promoBanners];
+>>>>>>> e98d0969fab7ef9b0b980963a8c51206a79171da
 
       setPublications(postsData);
       setAds(adsData);
       
-      // Mezclar siguiendo la regla: cada 6 publicaciones, 2 publicidades
+      // ALGORITMO: Intercalar cada 6 posts con 2 publicidades
       const mixed = [];
       let adIndex = 0;
       
-      for (let i = 0; i < postsData.length; i += 6) {
-        // Agregar 6 publicaciones
-        const postBatch = postsData.slice(i, i + 6);
-        mixed.push(...postBatch);
+      // Si no hay posts, mostrar solo publicidades
+      if (postsData.length === 0) {
+        mixed.push(...adsData);
+      } else {
+        // Intercalar cada 6 posts con 2 publicidades
+        for (let i = 0; i < postsData.length; i += 6) {
+          // Agregar 6 posts
+          const postBatch = postsData.slice(i, i + 6);
+          mixed.push(...postBatch);
+          
+          // Agregar 2 publicidades si hay disponibles
+          if (adIndex < adsData.length) {
+            const adBatch = adsData.slice(adIndex, adIndex + 2);
+            mixed.push(...adBatch);
+            adIndex += 2;
+          }
+        }
         
-        // Agregar 2 publicidades si hay disponibles
+        // Si quedan publicidades sin mostrar, agregarlas al final
         if (adIndex < adsData.length) {
-          const adBatch = adsData.slice(adIndex, adIndex + 2);
-          mixed.push(...adBatch);
-          adIndex += 2;
+          const remainingAds = adsData.slice(adIndex);
+          mixed.push(...remainingAds);
         }
       }
       
       setMixedFeed(mixed);
     } catch (error) {
       console.error('Error fetching publications:', error);
-      // Si no hay datos, mostrar feed vacío en lugar de error
       setMixedFeed([]);
     } finally {
       setLoading(false);
@@ -147,172 +223,287 @@ const PublicationsFeed = () => {
     if (!user?.uid) return;
     
     try {
-      // Implementar lógica de like en Firestore
-      const likeRef = collection(db, 'post_likes');
-      await addDoc(likeRef, {
-        post_id: postId,
-        user_id: user.uid,
-        created_at: new Date()
-      });
+      // Verificar si ya le dio like
+      const likesRef = collection(db, 'post_likes');
+      const likeQuery = query(likesRef, where('post_id', '==', postId), where('user_id', '==', user.uid));
+      const existingLike = await getDocs(likeQuery);
       
-      toast({
-        title: 'Me gusta',
-        description: 'Has dado me gusta a esta publicación.'
-      });
+      if (existingLike.empty) {
+        // Dar like
+        await addDoc(likesRef, {
+          post_id: postId,
+          user_id: user.uid,
+          created_at: new Date().toISOString()
+        });
+        toast({
+          title: "❤️ Like agregado",
+          description: "Tu like ha sido registrado",
+        });
+      } else {
+        // Quitar like
+        const likeDoc = existingLike.docs[0];
+        await deleteDoc(doc(db, 'post_likes', likeDoc.id));
+        toast({
+          title: "💔 Like removido",
+          description: "Tu like ha sido removido",
+        });
+      }
       
-      // Refrescar datos
+      // Refrescar el feed
       fetchPublications();
     } catch (error) {
-      console.error('Error liking post:', error);
+      console.error('Error handling like:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo dar me gusta a la publicación.'
+        description: 'No se pudo procesar el like'
       });
     }
   };
 
-  const handleMessage = (profile) => {
-    setSelectedProfile(profile);
-    setShowMessageModal(true);
-  };
-
-  const handleFollow = async (profileId) => {
-    if (!user?.uid) return;
+  const handleFollow = async (authorId) => {
+    if (!user?.uid || !authorId) return;
     
     try {
-      // Implementar lógica de seguir en Firestore
-      const followRef = collection(db, 'user_likes');
-      await addDoc(followRef, {
-        user_id: user.uid,
-        liked_user_id: profileId,
-        created_at: new Date()
-      });
+      const isFollowing = followingStatus[authorId];
       
-      toast({
-        title: 'Perfil guardado',
-        description: 'Has guardado este perfil en tu lista.'
-      });
+      if (isFollowing) {
+        // Dejar de seguir - buscar y eliminar el like existente
+        const userLikesRef = collection(db, 'user_likes');
+        const userLikesQuery = query(
+          userLikesRef,
+          where('user_id', '==', user.uid),
+          where('liked_user_id', '==', authorId)
+        );
+        
+        const snapshot = await getDocs(userLikesQuery);
+        for (const likeDoc of snapshot.docs) {
+          await deleteDoc(doc(db, 'user_likes', likeDoc.id));
+        }
+        
+        setFollowingStatus(prev => ({ ...prev, [authorId]: false }));
+        toast({ 
+          title: "Dejaste de seguir",
+          description: "Ya no sigues a este usuario" 
+        });
+      } else {
+        // Seguir - agregar nuevo like
+        await addDoc(collection(db, 'user_likes'), {
+          user_id: user.uid,
+          liked_user_id: authorId,
+          created_at: new Date().toISOString()
+        });
+        
+        setFollowingStatus(prev => ({ ...prev, [authorId]: true }));
+        toast({ 
+          title: "¡Siguiendo!",
+          description: "Ahora sigues a este usuario" 
+        });
+      }
+      
+      // Refrescar el feed
+      fetchPublications();
     } catch (error) {
-      console.error('Error following profile:', error);
+      console.error('Error handling follow:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo guardar el perfil.'
+        description: 'No se pudo procesar la acción'
       });
     }
   };
 
+  const handleThreeDotsMenu = (action, profile, post) => {
+    switch (action) {
+      case 'message':
+        setSelectedProfile(profile);
+        setIsMessageModalOpen(true);
+        break;
+      case 'profile':
+        navigate(`/profile/${profile.id}`);
+        break;
+      case 'view':
+        navigate(`/post/${post.id}`);
+        break;
+      default:
+        break;
+    }
+  };
 
-  if (loading) {
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchPublications();
+    setRefreshing(false);
+  };
+
+  // Exponer función de refresh al componente padre
+  useImperativeHandle(ref, () => ({
+    handleRefresh
+  }));
+
+  if (loading && mixedFeed.length === 0) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        <span className="ml-2">Cargando publicaciones...</span>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-text-secondary">Cargando publicaciones...</p>
+        </div>
       </div>
     );
   }
 
-  if (mixedFeed.length === 0) {
+  if (mixedFeed.length === 0 && !loading) {
     return (
-      <div className="text-center py-8">
-        <Frown className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium mb-2">No hay publicaciones</h3>
-        <p className="text-muted-foreground">Sé el primero en crear contenido.</p>
+      <div className="text-center py-12">
+        <Frown className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay publicaciones</h3>
+        <p className="text-gray-500 mb-4">Sé el primero en compartir algo</p>
+        <CreatePost />
       </div>
     );
   }
 
   return (
-    <div className="px-4 pb-20">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div className="space-y-6">
+
+      {/* Feed mixto en GRID DE 2 COLUMNAS */}
+      <div className="grid grid-cols-2 gap-4">
         {mixedFeed.map((item, index) => (
-          <div key={item.id || index} className="space-y-3">
-            {item.type === 'ad' || item.website ? (
-              // Publicidad
+          <div key={item.id || index} className="relative">
+            {item.type === 'ad' || item.type === 'promo' ? (
               <AdFeedCard ad={item} />
             ) : (
-              // Publicación de perfil
-              <div className="bg-card rounded-lg overflow-hidden border">
-                {/* Header de la publicación */}
-                <div className="flex items-center justify-between p-3">
-                  <div className="flex items-center gap-2">
-                    <img
-                      src={item.author?.profile_picture_url || '/pwa-512x512.png'}
-                      alt={item.author?.alias || 'Usuario'}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                    <div>
-                      <p className="font-medium text-sm">{item.author?.alias || 'Usuario'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Ahora'}
-                      </p>
+              <div className="relative">
+                {/* Post card con funcionalidad completa */}
+                <div className="card-glass rounded-lg overflow-hidden cursor-pointer">
+                  {/* 3 PUNTITOS ARRIBA - DROPDOWN */}
+                  <div className="absolute top-2 right-2 z-20">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPost(item);
+                        setIsThreeDotsModalOpen(selectedPost?.id === item.id ? false : true);
+                      }}
+                      className="bg-black/50 rounded-full p-1 text-white hover:bg-black/70 transition-colors"
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
+                    
+                    {/* Dropdown menu - aparece cerca del botón */}
+                    {isThreeDotsModalOpen && selectedPost?.id === item.id && (
+                      <div className="absolute top-8 right-0 z-40 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 py-1 min-w-[160px]">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsThreeDotsModalOpen(false);
+                              handleThreeDotsMenu('message', selectedPost.author, selectedPost);
+                              setSelectedPost(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-50 transition-colors text-left"
+                          >
+                            <MessageSquare className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm text-blue-700 font-medium">📧 Mensaje</span>
+                          </button>
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsThreeDotsModalOpen(false);
+                              handleThreeDotsMenu('profile', selectedPost.author, selectedPost);
+                              setSelectedPost(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-green-50 transition-colors text-left"
+                          >
+                            <User className="w-4 h-4 text-green-600" />
+                            <span className="text-sm text-green-700 font-medium">👤 Ver perfil</span>
+                          </button>
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsThreeDotsModalOpen(false);
+                              handleThreeDotsMenu('view', selectedPost.author, selectedPost);
+                              setSelectedPost(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 transition-colors text-left"
+                          >
+                            <Eye className="w-4 h-4 text-purple-600" />
+                            <span className="text-sm text-purple-700 font-medium">👁️ Ver post</span>
+                          </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Imagen o video del post - CLICK ABRE POST */}
+                  <div 
+                    onClick={() => navigate(`/post/${item.id}`)}
+                    className="aspect-square relative cursor-pointer"
+                  >
+                    {item.image_url && (
+                      <img 
+                        src={item.image_url} 
+                        alt="Post" 
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    
+                    {item.video_url && (
+                      <video 
+                        src={item.video_url} 
+                        className="w-full h-full object-cover"
+                        muted
+                      />
+                    )}
+                  </div>
+                  
+                  {/* Contenido del post */}
+                  <div className="p-3">
+                    {/* Header con avatar */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <img 
+                        src={item.author?.profile_picture_url || '/pwa-512x512.png'} 
+                        alt={item.author?.alias}
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                      <span className="text-sm font-medium">{item.author?.alias}</span>
+                    </div>
+                    
+                    {/* Texto del post */}
+                    {item.text && (
+                      <p className="text-sm text-gray-700 mb-2 line-clamp-2">{item.text}</p>
+                    )}
+                    
+                    {/* ACCIONES ABAJO: Like + Seguir */}
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLike(item.id);
+                        }}
+                        className={`flex items-center gap-1 ${
+                          item.is_liked ? 'text-red-500' : 'text-gray-400'
+                        } hover:text-red-500 transition-colors`}
+                      >
+                        <Heart className={`w-4 h-4 ${item.is_liked ? 'fill-current' : ''}`} />
+                        <span className="text-xs">{item.likes_count}</span>
+                      </button>
+                      
+                      {/* Botón seguir/guardar perfil */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFollow(item.author?.id);
+                        }}
+                        className={`text-xs px-2 py-1 rounded-full transition-colors ${
+                          followingStatus[item.author?.id] 
+                            ? 'bg-red-500 text-white hover:bg-red-600' 
+                            : 'bg-green-500 text-white hover:bg-green-600'
+                        }`}
+                      >
+                        {followingStatus[item.author?.id] ? 'Siguiendo' : 'Seguir'}
+                      </button>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="card-glass">
-                      <DropdownMenuItem 
-                        onClick={() => handleLike(item.id)}
-                        className="flex items-center gap-2"
-                      >
-                        <Heart className="w-4 h-4" />
-                        <span>Me gusta</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleMessage(item.author)}
-                        className="flex items-center gap-2"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        <span>Mensaje</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleFollow(item.author?.id)}
-                        className="flex items-center gap-2"
-                      >
-                        <UserPlus className="w-4 h-4" />
-                        <span>Guardar perfil</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                {/* Contenido de la publicación */}
-                <div>
-                  {item.image_url && (
-                    <img
-                      src={item.image_url}
-                      alt="Publicación"
-                      className="w-full h-48 object-cover"
-                    />
-                  )}
-                  {item.video_url && (
-                    <video
-                      src={item.video_url}
-                      controls
-                      className="w-full h-48 object-cover"
-                    />
-                  )}
-                  {item.text && (
-                    <p className="p-3 text-sm">{item.text}</p>
-                  )}
-                </div>
-
-                {/* Acciones simplificadas - solo mostrar contador de likes */}
-                <div className="flex items-center justify-between p-3 border-t">
-                  <div className="flex items-center gap-2">
-                    <Heart className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      {item.likes?.length || 0} me gusta
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    Usa el menú ⋯ para más opciones
-                  </span>
                 </div>
               </div>
             )}
@@ -320,19 +511,27 @@ const PublicationsFeed = () => {
         ))}
       </div>
 
-      {/* Modal de mensaje */}
-      {showMessageModal && selectedProfile && (
-        <DirectMessageModal
-          profile={selectedProfile}
+      {/* Loader para cargar más */}
+      {loading && mixedFeed.length > 0 && (
+        <div className="flex justify-center py-4">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      )}
+
+      {/* Modal de mensaje directo */}
+      {selectedProfile && (
+        <DirectMessageModal 
+          profile={selectedProfile} 
           onClose={() => {
-            setShowMessageModal(false);
+            setIsMessageModalOpen(false);
             setSelectedProfile(null);
           }}
         />
       )}
-
     </div>
   );
-};
+});
+
+PublicationsFeed.displayName = 'PublicationsFeed';
 
 export default PublicationsFeed;

@@ -73,10 +73,28 @@ const AdFeedCard = ({ ad }) => {
       <div className="relative z-10">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
+<<<<<<< HEAD
         <div className="bg-white/20 px-2 py-1 rounded-full">
           <span className="text-xs font-medium">
             {ad.type === 'promo' ? 'PROMOCIÓN' : 'PUBLICIDAD'}
           </span>
+=======
+        <div className="flex gap-2">
+          <div className="bg-white/20 px-2 py-1 rounded-full">
+            <span className="text-xs font-medium">
+              {ad.type === 'promo' ? 'PROMOCIÓN' : 'PUBLICIDAD'}
+            </span>
+          </div>
+          {ad.ad_type && ad.ad_type !== 'promo' && (
+            <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+              ad.ad_type === 'premium' 
+                ? 'bg-yellow-400/30 text-yellow-200' 
+                : 'bg-blue-400/30 text-blue-200'
+            }`}>
+              {ad.ad_type === 'premium' ? '⭐ PREMIUM' : '📢 ESTÁNDAR'}
+            </div>
+          )}
+>>>>>>> e98d0969fab7ef9b0b980963a8c51206a79171da
         </div>
         <ExternalLink className="w-4 h-4 opacity-70" />
       </div>
