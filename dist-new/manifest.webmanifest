@@ -1,9 +1,0 @@
-{
-  "name": "AGARCH-AR - Red Social",
-  "short_name": "AGARCH-AR",
-  "description": "Conéctate con personas afines a vos, cerca tuyo y con ganas de hacer lo mismo que vos cuando quieras, sin ataduras.",
-  "start_url": "/",
-  "display": "browser",
-  "background_color": "#ffffff",
-  "theme_color": "#dc2626"
-}

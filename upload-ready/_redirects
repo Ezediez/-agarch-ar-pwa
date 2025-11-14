@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Netlify redirects for SPA
 /*    /index.html   200
 
@@ -22,3 +23,29 @@
 http://agarch-ar.com/* https://agarch-ar.com/:splat 301!
 http://www.agarch-ar.com/* https://agarch-ar.com/:splat 301!
 
+=======
+# Netlify redirects for SPA
+/*    /index.html   200
+
+# PWA specific routes
+/discover    /index.html   200
+/chat       /index.html   200
+/profile    /index.html   200
+/search     /index.html   200
+/settings   /index.html   200
+/create-post /index.html  200
+/payments   /index.html   200
+
+# Admin routes
+/admin/*    /index.html   200
+
+# Auth routes
+/login      /index.html   200
+/register   /index.html   200
+/landing    /index.html   200
+
+# Force HTTPS
+http://agarch-ar.com/* https://agarch-ar.com/:splat 301!
+http://www.agarch-ar.com/* https://agarch-ar.com/:splat 301!
+
+>>>>>>> 86743ab358cc5567296735ba15ad4047a5191cdb
